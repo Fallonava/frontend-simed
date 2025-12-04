@@ -33,7 +33,7 @@ const DoctorCard = ({ doctor }) => {
             <div className="relative z-10">
                 <div className="flex items-start justify-between mb-6">
                     <div className="flex items-center gap-4">
-                        <div className="w-14 h-14 rounded-2xl bg-gray-100 flex items-center justify-center overflow-hidden shadow-inner">
+                        <div className="w-14 h-14 rounded-2xl bg-gray-100 flex items-center justify-center overflow-hidden shadow-inner shrink-0">
                             {doctor.photo_url ? (
                                 <img src={doctor.photo_url} alt={doctor.name} className="w-full h-full object-cover" />
                             ) : (
