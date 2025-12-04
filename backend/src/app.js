@@ -32,6 +32,7 @@ app.use((req, res, next) => {
 app.post('/api/quota/generate', queueController.generateQuota);
 app.post('/api/quota/toggle', queueController.toggleStatus);
 app.post('/api/queue/ticket', queueController.takeTicket);
+app.post('/api/queue/call', queueController.callNext);
 app.get('/api/doctors', queueController.getDoctors); // Helper to get doctors and their status
 
 // Socket.io Connection

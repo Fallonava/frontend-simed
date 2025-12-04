@@ -8,6 +8,7 @@ const API_URL = 'http://localhost:3000/api';
 const useQueueStore = create((set, get) => ({
     socket: null,
     doctors: [],
+    currentCalling: null,
     isConnected: false,
 
     // Initialize Socket and fetch initial data
@@ -47,6 +48,14 @@ const useQueueStore = create((set, get) => ({
             }));
         });
 
+        socket.on('call_patient', ({ ticket, doctor }) => {
+            set((state) => ({
+                currentCalling: { ticket, doctor }
+            }));
+            // Clear calling state after 10 seconds (optional, or keep it)
+            // setTimeout(() => set({ currentCalling: null }), 10000);
+        });
+
         set({ socket });
         await get().fetchDoctors();
     },
@@ -80,6 +89,15 @@ const useQueueStore = create((set, get) => ({
         } catch (error) {
             console.error('Failed to take ticket:', error);
             throw error;
+        }
+    },
+
+    callNext: async (doctorId) => {
+        try {
+            const response = await axios.post(`${API_URL}/queue/call`, { doctor_id: doctorId });
+            return response.data;
+        } catch (error) {
+            console.error('Failed to call next patient:', error);
         }
     },
 

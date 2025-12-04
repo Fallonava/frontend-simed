@@ -3,7 +3,7 @@ import { User, Users, MoreHorizontal, Edit2, Check, X } from 'lucide-react';
 import useQueueStore from '../store/useQueueStore';
 
 const DoctorCard = ({ doctor }) => {
-    const { toggleStatus } = useQueueStore();
+    const { toggleStatus, callNext } = useQueueStore();
     const [isEditing, setIsEditing] = useState(false);
     const [newQuota, setNewQuota] = useState(doctor.quota?.max_quota || 30);
 
@@ -92,6 +92,14 @@ const DoctorCard = ({ doctor }) => {
                                 </button>
                             ))}
                         </div>
+
+                        <button
+                            onClick={() => callNext(doctor.id)}
+                            className="w-full py-2 bg-black text-white rounded-xl text-sm font-semibold hover:bg-gray-800 active:scale-[0.98] transition-all flex items-center justify-center gap-2 shadow-sm"
+                        >
+                            <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
+                            Call Next Patient
+                        </button>
 
                         <div className="flex items-center justify-between pt-2">
                             {isEditing ? (

@@ -130,6 +130,75 @@ exports.takeTicket = async (req, res) => {
     }
 };
 
+exports.callNext = async (req, res) => {
+    const { prisma, io } = req;
+    const { doctor_id } = req.body;
+    const today = getToday();
+
+    try {
+        const result = await prisma.$transaction(async (tx) => {
+            const quota = await tx.dailyQuota.findUnique({
+                where: {
+                    doctor_id_date: {
+                        doctor_id: parseInt(doctor_id),
+                        date: today
+                    }
+                },
+                include: { doctor: true }
+            });
+
+            if (!quota) throw new Error('Doctor not available today');
+
+            // Find currently called ticket and mark as served
+            const currentTicket = await tx.queue.findFirst({
+                where: {
+                    daily_quota_id: quota.id,
+                    status: 'CALLED'
+                }
+            });
+
+            if (currentTicket) {
+                await tx.queue.update({
+                    where: { id: currentTicket.id },
+                    data: { status: 'SERVED' }
+                });
+            }
+
+            // Find next waiting ticket
+            const nextTicket = await tx.queue.findFirst({
+                where: {
+                    daily_quota_id: quota.id,
+                    status: 'WAITING'
+                },
+                orderBy: { queue_number: 'asc' }
+            });
+
+            if (!nextTicket) {
+                return { message: 'No more patients in queue', quota };
+            }
+
+            // Mark next ticket as called
+            const updatedTicket = await tx.queue.update({
+                where: { id: nextTicket.id },
+                data: { status: 'CALLED' }
+            });
+
+            return { ticket: updatedTicket, doctor: quota.doctor, quota };
+        });
+
+        if (result.ticket) {
+            io.emit('call_patient', result);
+            // Also emit status update to keep counts in sync if we track served counts later
+            // io.emit('status_update', { ...result.quota, doctor: result.doctor }); 
+        }
+
+        res.json(result);
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ error: 'Failed to call next patient' });
+    }
+};
+
 exports.getDoctors = async (req, res) => {
     const { prisma } = req;
     const today = getToday();
