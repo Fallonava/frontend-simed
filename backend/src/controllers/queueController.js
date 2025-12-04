@@ -91,7 +91,11 @@ exports.takeTicket = async (req, res) => {
                         date: today
                     }
                 },
-                include: { doctor: true }
+                include: {
+                    doctor: {
+                        include: { poliklinik: true }
+                    }
+                }
             });
 
             if (!quota) throw new Error('Doctor not available today');
@@ -111,7 +115,7 @@ exports.takeTicket = async (req, res) => {
                 data: {
                     daily_quota_id: quota.id,
                     queue_number: newCount,
-                    queue_code: `${quota.doctor.poli_name.substring(0, 3).toUpperCase()}-${String(newCount).padStart(3, '0')}`,
+                    queue_code: `${quota.doctor.poliklinik.queue_code}-${String(newCount).padStart(3, '0')}`,
                     status: 'WAITING'
                 }
             });
@@ -130,67 +134,112 @@ exports.takeTicket = async (req, res) => {
     }
 };
 
+exports.getWaiting = async (req, res) => {
+    const { prisma } = req;
+    const { poli_id } = req.query;
+    const today = getToday();
+
+    try {
+        const whereClause = {
+            status: 'WAITING',
+            daily_quota: {
+                date: today
+            }
+        };
+
+        if (poli_id && poli_id !== 'all') {
+            whereClause.daily_quota.doctor = {
+                poliklinik_id: parseInt(poli_id)
+            };
+        }
+
+        const queues = await prisma.queue.findMany({
+            where: whereClause,
+            include: {
+                daily_quota: {
+                    include: {
+                        doctor: {
+                            include: { poliklinik: true }
+                        }
+                    }
+                }
+            },
+            orderBy: { created_at: 'asc' }
+        });
+
+        res.json(queues);
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ error: 'Failed to fetch waiting queues' });
+    }
+};
+
 exports.callNext = async (req, res) => {
     const { prisma, io } = req;
-    const { doctor_id } = req.body;
+    const { counter_name, poli_id } = req.body; // poli_id is optional filter
     const today = getToday();
 
     try {
         const result = await prisma.$transaction(async (tx) => {
-            const quota = await tx.dailyQuota.findUnique({
-                where: {
-                    doctor_id_date: {
-                        doctor_id: parseInt(doctor_id),
-                        date: today
-                    }
-                },
-                include: { doctor: true }
-            });
-
-            if (!quota) throw new Error('Doctor not available today');
-
-            // Find currently called ticket and mark as served
-            const currentTicket = await tx.queue.findFirst({
-                where: {
-                    daily_quota_id: quota.id,
-                    status: 'CALLED'
+            // Build filter for next ticket
+            const whereClause = {
+                status: 'WAITING',
+                daily_quota: {
+                    date: today
                 }
-            });
+            };
 
-            if (currentTicket) {
-                await tx.queue.update({
-                    where: { id: currentTicket.id },
-                    data: { status: 'SERVED' }
-                });
+            if (poli_id && poli_id !== 'all') {
+                whereClause.daily_quota.doctor = {
+                    poliklinik_id: parseInt(poli_id)
+                };
             }
 
             // Find next waiting ticket
             const nextTicket = await tx.queue.findFirst({
-                where: {
-                    daily_quota_id: quota.id,
-                    status: 'WAITING'
-                },
-                orderBy: { queue_number: 'asc' }
+                where: whereClause,
+                orderBy: { created_at: 'asc' }, // FIFO
+                include: {
+                    daily_quota: {
+                        include: {
+                            doctor: {
+                                include: { poliklinik: true }
+                            }
+                        }
+                    }
+                }
             });
 
             if (!nextTicket) {
-                return { message: 'No more patients in queue', quota };
+                return null;
             }
 
-            // Mark next ticket as called
+            // Mark ticket as called
             const updatedTicket = await tx.queue.update({
                 where: { id: nextTicket.id },
                 data: { status: 'CALLED' }
             });
 
-            return { ticket: updatedTicket, doctor: quota.doctor, quota };
+            return {
+                ticket: updatedTicket,
+                doctor: nextTicket.daily_quota.doctor,
+                poliklinik: nextTicket.daily_quota.doctor.poliklinik
+            };
         });
 
-        if (result.ticket) {
-            io.emit('call_patient', result);
-            // Also emit status update to keep counts in sync if we track served counts later
-            // io.emit('status_update', { ...result.quota, doctor: result.doctor }); 
+        if (!result) {
+            return res.status(404).json({ message: 'No more patients in queue' });
         }
+
+        // Emit event for TV and other clients
+        io.emit('call_patient', {
+            ticket: result.ticket,
+            counter_name: counter_name,
+            poli_name: result.poliklinik.name
+        });
+
+        // Also emit status update to refresh lists
+        io.emit('queue_update');
 
         res.json(result);
     } catch (error) {
@@ -199,9 +248,127 @@ exports.callNext = async (req, res) => {
     }
 };
 
+exports.completeTicket = async (req, res) => {
+    const { prisma, io } = req;
+    const { ticket_id } = req.body;
+
+    try {
+        const ticket = await prisma.queue.update({
+            where: { id: parseInt(ticket_id) },
+            data: { status: 'SERVED' }
+        });
+
+        io.emit('queue_update');
+        res.json(ticket);
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ error: 'Failed to complete ticket' });
+    }
+};
+
+exports.skipTicket = async (req, res) => {
+    const { prisma, io } = req;
+    const { ticket_id } = req.body;
+
+    try {
+        const ticket = await prisma.queue.update({
+            where: { id: parseInt(ticket_id) },
+            data: { status: 'SKIPPED' }
+        });
+
+        io.emit('queue_update');
+        res.json(ticket);
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ error: 'Failed to skip ticket' });
+    }
+};
+
+exports.getSkipped = async (req, res) => {
+    const { prisma } = req;
+    const { poli_id } = req.query;
+    const today = getToday();
+
+    try {
+        const whereClause = {
+            status: 'SKIPPED',
+            daily_quota: {
+                date: today
+            }
+        };
+
+        if (poli_id && poli_id !== 'all') {
+            whereClause.daily_quota.doctor = {
+                poliklinik_id: parseInt(poli_id)
+            };
+        }
+
+        const queues = await prisma.queue.findMany({
+            where: whereClause,
+            include: {
+                daily_quota: {
+                    include: {
+                        doctor: {
+                            include: { poliklinik: true }
+                        }
+                    }
+                }
+            },
+            orderBy: { created_at: 'asc' }
+        });
+
+        res.json(queues);
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ error: 'Failed to fetch skipped queues' });
+    }
+};
+
+exports.recallSkipped = async (req, res) => {
+    const { prisma, io } = req;
+    const { ticket_id, counter_name } = req.body;
+
+    try {
+        const ticket = await prisma.queue.findUnique({
+            where: { id: parseInt(ticket_id) },
+            include: {
+                daily_quota: {
+                    include: {
+                        doctor: {
+                            include: { poliklinik: true }
+                        }
+                    }
+                }
+            }
+        });
+
+        if (!ticket) return res.status(404).json({ error: 'Ticket not found' });
+
+        // Update status to CALLED
+        const updatedTicket = await prisma.queue.update({
+            where: { id: parseInt(ticket_id) },
+            data: { status: 'CALLED' }
+        });
+
+        // Emit event
+        io.emit('call_patient', {
+            ticket: updatedTicket,
+            counter_name: counter_name,
+            poli_name: ticket.daily_quota.doctor.poliklinik.name
+        });
+
+        io.emit('queue_update');
+        res.json(updatedTicket);
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ error: 'Failed to recall ticket' });
+    }
+};
+
 exports.getDoctors = async (req, res) => {
     const { prisma } = req;
     const today = getToday();
+    // ... existing code ...
 
     try {
         // Fetch doctors with their today's quota

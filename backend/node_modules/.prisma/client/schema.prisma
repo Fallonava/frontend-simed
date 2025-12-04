@@ -7,13 +7,21 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+model Poliklinik {
+  id         Int      @id @default(autoincrement())
+  name       String
+  queue_code String   @unique
+  doctors    Doctor[]
+}
+
 model Doctor {
-  id          Int          @id @default(autoincrement())
-  name        String
-  specialist  String
-  photo_url   String?
-  poli_name   String
-  DailyQuota  DailyQuota[]
+  id            Int        @id @default(autoincrement())
+  name          String
+  specialist    String
+  photo_url     String?
+  poliklinik_id Int
+  poliklinik    Poliklinik @relation(fields: [poliklinik_id], references: [id])
+  DailyQuota    DailyQuota[]
 }
 
 model DailyQuota {
@@ -37,4 +45,11 @@ model Queue {
   queue_code     String
   status         String      @default("WAITING") // WAITING, CALLED, SERVED, SKIPPED
   created_at     DateTime    @default(now())
+}
+
+model User {
+  id       Int    @id @default(autoincrement())
+  username String @unique
+  password String
+  role     String // ADMIN, STAFF
 }
