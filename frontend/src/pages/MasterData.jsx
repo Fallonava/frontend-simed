@@ -20,116 +20,65 @@ const MasterData = () => {
     const [poliForm, setPoliForm] = useState({ name: '', queue_code: '' });
     const [doctorForm, setDoctorForm] = useState({ name: '', specialist: '', poliklinik_id: '', photo_url: '' });
 
+    const [counters, setCounters] = useState([]);
+    const [isCounterModalOpen, setIsCounterModalOpen] = useState(false);
+    const [counterForm, setCounterForm] = useState({ name: '' });
+
     useEffect(() => {
         fetchPolies();
         fetchDoctors();
+        fetchCounters();
     }, []);
 
-    const fetchPolies = async () => {
+    const fetchCounters = async () => {
         try {
-            const res = await axios.get(`${API_URL}/polies`);
-            setPolies(res.data);
+            const res = await axios.get(`${API_URL}/counters`);
+            setCounters(res.data);
         } catch (error) {
-            console.error('Failed to fetch polies', error);
+            console.error('Failed to fetch counters', error);
         }
     };
 
-    const fetchDoctors = async () => {
-        try {
-            const res = await axios.get(`${API_URL}/doctors-master`);
-            setDoctors(res.data);
-        } catch (error) {
-            console.error('Failed to fetch doctors', error);
-        }
-    };
-
-    // --- Poliklinik Handlers ---
-    const handlePoliSubmit = async (e) => {
+    // --- Counter Handlers ---
+    const handleCounterSubmit = async (e) => {
         e.preventDefault();
         try {
             if (editingItem) {
-                await axios.put(`${API_URL}/polies/${editingItem.id}`, poliForm);
-                toast.success('Poliklinik updated');
+                await axios.put(`${API_URL}/counters/${editingItem.id}`, counterForm);
+                toast.success('Counter updated');
             } else {
-                await axios.post(`${API_URL}/polies`, poliForm);
-                toast.success('Poliklinik created');
+                await axios.post(`${API_URL}/counters`, counterForm);
+                toast.success('Counter created');
             }
-            fetchPolies();
-            setIsPoliModalOpen(false);
+            fetchCounters();
+            setIsCounterModalOpen(false);
             setEditingItem(null);
-            setPoliForm({ name: '', queue_code: '' });
+            setCounterForm({ name: '' });
         } catch (error) {
-            toast.error(error.response?.data?.error || 'Operation failed');
+            toast.error('Operation failed');
         }
     };
 
-    const handleDeletePoli = async (id) => {
+    const handleDeleteCounter = async (id) => {
         if (!window.confirm('Are you sure?')) return;
         try {
-            await axios.delete(`${API_URL}/polies/${id}`);
-            toast.success('Poliklinik deleted');
-            fetchPolies();
+            await axios.delete(`${API_URL}/counters/${id}`);
+            toast.success('Counter deleted');
+            fetchCounters();
         } catch (error) {
-            toast.error(error.response?.data?.error || 'Failed to delete');
+            toast.error('Failed to delete counter');
         }
     };
 
-    const openPoliModal = (poli = null) => {
-        if (poli) {
-            setEditingItem(poli);
-            setPoliForm({ name: poli.name, queue_code: poli.queue_code });
+    const openCounterModal = (counter = null) => {
+        if (counter) {
+            setEditingItem(counter);
+            setCounterForm({ name: counter.name });
         } else {
             setEditingItem(null);
-            setPoliForm({ name: '', queue_code: '' });
+            setCounterForm({ name: '' });
         }
-        setIsPoliModalOpen(true);
-    };
-
-    // --- Doctor Handlers ---
-    const handleDoctorSubmit = async (e) => {
-        e.preventDefault();
-        try {
-            if (editingItem) {
-                await axios.put(`${API_URL}/doctors/${editingItem.id}`, doctorForm);
-                toast.success('Doctor updated');
-            } else {
-                await axios.post(`${API_URL}/doctors`, doctorForm);
-                toast.success('Doctor created');
-            }
-            fetchDoctors();
-            setIsDoctorModalOpen(false);
-            setEditingItem(null);
-            setDoctorForm({ name: '', specialist: '', poliklinik_id: '', photo_url: '' });
-        } catch (error) {
-            toast.error(error.response?.data?.error || 'Operation failed');
-        }
-    };
-
-    const handleDeleteDoctor = async (id) => {
-        if (!window.confirm('Are you sure?')) return;
-        try {
-            await axios.delete(`${API_URL}/doctors/${id}`);
-            toast.success('Doctor deleted');
-            fetchDoctors();
-        } catch (error) {
-            toast.error('Failed to delete doctor');
-        }
-    };
-
-    const openDoctorModal = (doctor = null) => {
-        if (doctor) {
-            setEditingItem(doctor);
-            setDoctorForm({
-                name: doctor.name,
-                specialist: doctor.specialist,
-                poliklinik_id: doctor.poliklinik_id,
-                photo_url: doctor.photo_url || ''
-            });
-        } else {
-            setEditingItem(null);
-            setDoctorForm({ name: '', specialist: '', poliklinik_id: '', photo_url: '' });
-        }
-        setIsDoctorModalOpen(true);
+        setIsCounterModalOpen(true);
     };
 
     return (
@@ -142,8 +91,8 @@ const MasterData = () => {
                 <div className="flex space-x-4 mb-6 border-b border-gray-200">
                     <button
                         className={`pb-2 px-4 font-medium transition-colors ${activeTab === 'poliklinik'
-                                ? 'border-b-2 border-blue-600 text-blue-600'
-                                : 'text-gray-500 hover:text-gray-700'
+                            ? 'border-b-2 border-blue-600 text-blue-600'
+                            : 'text-gray-500 hover:text-gray-700'
                             }`}
                         onClick={() => setActiveTab('poliklinik')}
                     >
@@ -151,17 +100,26 @@ const MasterData = () => {
                     </button>
                     <button
                         className={`pb-2 px-4 font-medium transition-colors ${activeTab === 'doctors'
-                                ? 'border-b-2 border-blue-600 text-blue-600'
-                                : 'text-gray-500 hover:text-gray-700'
+                            ? 'border-b-2 border-blue-600 text-blue-600'
+                            : 'text-gray-500 hover:text-gray-700'
                             }`}
                         onClick={() => setActiveTab('doctors')}
                     >
                         Kelola Dokter
                     </button>
+                    <button
+                        className={`pb-2 px-4 font-medium transition-colors ${activeTab === 'counters'
+                            ? 'border-b-2 border-blue-600 text-blue-600'
+                            : 'text-gray-500 hover:text-gray-700'
+                            }`}
+                        onClick={() => setActiveTab('counters')}
+                    >
+                        Kelola Loket
+                    </button>
                 </div>
 
                 {/* Content */}
-                {activeTab === 'poliklinik' ? (
+                {activeTab === 'poliklinik' && (
                     <div>
                         <div className="flex justify-end mb-4">
                             <button
@@ -207,18 +165,13 @@ const MasterData = () => {
                                             </td>
                                         </tr>
                                     ))}
-                                    {polies.length === 0 && (
-                                        <tr>
-                                            <td colSpan="4" className="p-8 text-center text-gray-400">
-                                                No data available
-                                            </td>
-                                        </tr>
-                                    )}
                                 </tbody>
                             </table>
                         </div>
                     </div>
-                ) : (
+                )}
+
+                {activeTab === 'doctors' && (
                     <div>
                         <div className="flex justify-end mb-4">
                             <button
@@ -271,13 +224,52 @@ const MasterData = () => {
                                             </td>
                                         </tr>
                                     ))}
-                                    {doctors.length === 0 && (
-                                        <tr>
-                                            <td colSpan="4" className="p-8 text-center text-gray-400">
-                                                No data available
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                )}
+
+                {activeTab === 'counters' && (
+                    <div>
+                        <div className="flex justify-end mb-4">
+                            <button
+                                onClick={() => openCounterModal()}
+                                className="bg-blue-600 text-white px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-blue-700 transition"
+                            >
+                                <Plus size={20} /> Tambah Loket
+                            </button>
+                        </div>
+                        <div className="bg-white rounded-xl shadow-sm overflow-hidden border border-gray-100">
+                            <table className="w-full text-left">
+                                <thead className="bg-gray-50 border-b border-gray-100">
+                                    <tr>
+                                        <th className="p-4 font-semibold text-gray-600">ID</th>
+                                        <th className="p-4 font-semibold text-gray-600">Nama Loket</th>
+                                        <th className="p-4 font-semibold text-gray-600 text-right">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="divide-y divide-gray-100">
+                                    {counters.map((counter) => (
+                                        <tr key={counter.id} className="hover:bg-gray-50 transition">
+                                            <td className="p-4 text-gray-600">#{counter.id}</td>
+                                            <td className="p-4 font-medium text-gray-800">{counter.name}</td>
+                                            <td className="p-4 text-right space-x-2">
+                                                <button
+                                                    onClick={() => openCounterModal(counter)}
+                                                    className="text-gray-400 hover:text-blue-600 transition"
+                                                >
+                                                    <Edit size={18} />
+                                                </button>
+                                                <button
+                                                    onClick={() => handleDeleteCounter(counter.id)}
+                                                    className="text-gray-400 hover:text-red-600 transition"
+                                                >
+                                                    <Trash2 size={18} />
+                                                </button>
                                             </td>
                                         </tr>
-                                    )}
+                                    ))}
                                 </tbody>
                             </table>
                         </div>
@@ -391,6 +383,42 @@ const MasterData = () => {
                                         className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 outline-none"
                                         value={doctorForm.photo_url}
                                         onChange={(e) => setDoctorForm({ ...doctorForm, photo_url: e.target.value })}
+                                    />
+                                </div>
+                                <button
+                                    type="submit"
+                                    className="w-full bg-blue-600 text-white py-2 rounded-lg font-medium hover:bg-blue-700 transition"
+                                >
+                                    Simpan
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                )}
+
+                {/* Counter Modal */}
+                {isCounterModalOpen && (
+                    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 backdrop-blur-sm">
+                        <div className="bg-white rounded-xl shadow-xl w-full max-w-md p-6 relative animate-in fade-in zoom-in duration-200">
+                            <button
+                                onClick={() => setIsCounterModalOpen(false)}
+                                className="absolute top-4 right-4 text-gray-400 hover:text-gray-600"
+                            >
+                                <X size={20} />
+                            </button>
+                            <h2 className="text-xl font-bold mb-4">
+                                {editingItem ? 'Edit Loket' : 'Tambah Loket'}
+                            </h2>
+                            <form onSubmit={handleCounterSubmit} className="space-y-4">
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">Nama Loket</label>
+                                    <input
+                                        type="text"
+                                        required
+                                        placeholder="Contoh: Loket 1"
+                                        className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 outline-none"
+                                        value={counterForm.name}
+                                        onChange={(e) => setCounterForm({ ...counterForm, name: e.target.value })}
                                     />
                                 </div>
                                 <button

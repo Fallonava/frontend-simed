@@ -30,10 +30,35 @@ const Counter = () => {
             const { ticket, counter_name, poli_name } = data;
             setCounters(prev => ({
                 ...prev,
-                [counter_name]: { ticket, poli_name, timestamp: new Date() }
+                [counter_name]: { ticket, poli_name, timestamp: new Date(), status: 'BUSY' }
             }));
             setActiveCaller(counter_name);
             playNotificationSound();
+        });
+
+        socketRef.current.on('active_counters_update', (activeList) => {
+            setCounters(prev => {
+                const newCounters = { ...prev };
+
+                // Add new active counters if not exist
+                activeList.forEach(c => {
+                    if (!newCounters[c.name]) {
+                        newCounters[c.name] = {
+                            ticket: { queue_code: '-' },
+                            poli_name: 'Menunggu...',
+                            timestamp: new Date(0), // Old timestamp so it goes to bottom
+                            status: 'ONLINE'
+                        };
+                    }
+                });
+
+                // Optional: Remove counters that are no longer active? 
+                // For now, let's keep them but maybe mark as offline if we wanted.
+                // But user requirement is "Active Counter Management", so maybe we SHOULD remove offline ones?
+                // Let's stick to adding for now to avoid flickering if socket reconnects.
+
+                return newCounters;
+            });
         });
 
         return () => {

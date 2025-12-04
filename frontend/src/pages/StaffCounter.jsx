@@ -49,6 +49,14 @@ const StaffCounter = () => {
         if (isInitialized) {
             fetchWaitingList();
             fetchSkippedList();
+
+            // Emit join event to server
+            if (socketRef.current) {
+                socketRef.current.emit('join_counter', {
+                    counterName: config.counterName,
+                    poliId: config.poliId
+                });
+            }
         }
     }, [isInitialized, config.poliId]);
 
@@ -207,14 +215,18 @@ const StaffCounter = () => {
                     <form onSubmit={handleInitSubmit} className="space-y-6">
                         <div>
                             <label className="block text-sm font-medium text-gray-700 mb-2">Nama Loket</label>
-                            <input
-                                type="text"
+                            <select
                                 required
-                                placeholder="Contoh: Loket 1"
                                 className="w-full border border-gray-300 rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 outline-none"
                                 value={config.counterName}
                                 onChange={(e) => setConfig({ ...config, counterName: e.target.value })}
-                            />
+                            >
+                                <option value="">Pilih Loket</option>
+                                <option value="Loket 1">Loket 1</option>
+                                <option value="Loket 2">Loket 2</option>
+                                <option value="Loket 3">Loket 3</option>
+                                <option value="Loket 4">Loket 4</option>
+                            </select>
                         </div>
                         <div>
                             <label className="block text-sm font-medium text-gray-700 mb-2">Filter Antrian</label>

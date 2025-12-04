@@ -6,6 +6,7 @@ const { PrismaClient } = require('@prisma/client');
 const queueController = require('./controllers/queueController');
 const poliklinikController = require('./controllers/poliklinikController');
 const doctorController = require('./controllers/doctorController');
+const counterController = require('./controllers/counterController');
 const authController = require('./controllers/authController');
 const analyticsController = require('./controllers/analyticsController');
 const authMiddleware = require('./middleware/authMiddleware');
@@ -64,11 +65,44 @@ app.post('/api/doctors', doctorController.create);
 app.put('/api/doctors/:id', doctorController.update);
 app.delete('/api/doctors/:id', doctorController.delete);
 
+app.get('/api/counters', counterController.getAll);
+app.post('/api/counters', counterController.create);
+app.put('/api/counters/:id', counterController.update);
+app.delete('/api/counters/:id', counterController.delete);
+
 // Socket.io Connection
+// Socket.io Connection
+const activeCounters = new Map(); // socketId -> { name, poliId }
+
 io.on('connection', (socket) => {
     console.log('A user connected:', socket.id);
 
+    socket.on('join_counter', (data) => {
+        const { counterName, poliId } = data;
+        activeCounters.set(socket.id, { name: counterName, poliId });
+
+        // Broadcast active counters list
+        const countersList = Array.from(activeCounters.values());
+        // Remove duplicates (if multiple tabs open for same counter, take latest)
+        // Actually, Map by socketId handles multiple tabs as separate connections. 
+        // We might want to deduplicate by name for the display.
+        const uniqueCounters = Array.from(new Map(countersList.map(item => [item.name, item])).values());
+
+        io.emit('active_counters_update', uniqueCounters);
+        console.log(`Counter joined: ${counterName}`);
+    });
+
     socket.on('disconnect', () => {
+        if (activeCounters.has(socket.id)) {
+            const { name } = activeCounters.get(socket.id);
+            activeCounters.delete(socket.id);
+
+            const countersList = Array.from(activeCounters.values());
+            const uniqueCounters = Array.from(new Map(countersList.map(item => [item.name, item])).values());
+
+            io.emit('active_counters_update', uniqueCounters);
+            console.log(`Counter disconnected: ${name}`);
+        }
         console.log('User disconnected:', socket.id);
     });
 });
