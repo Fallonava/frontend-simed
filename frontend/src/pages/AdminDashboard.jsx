@@ -95,26 +95,37 @@ const AdminDashboard = () => {
             <main className="flex-1 p-6 lg:p-10 overflow-y-auto h-screen scroll-smooth">
                 <div className="max-w-[1600px] mx-auto" id="dashboard">
                     {/* Header */}
-                    <header className="flex flex-col md:flex-row md:items-center justify-between mb-12 gap-6">
+                    {/* Floating Glass Navbar */}
+                    <header className="sticky top-0 z-30 mb-8 -mx-6 px-6 py-4 bg-modern-bg/80 backdrop-blur-xl border-b border-white/5 flex items-center justify-between transition-all duration-300">
                         <div>
-                            <h1 className="text-4xl font-bold text-modern-text tracking-tight flex items-center gap-3">
-                                Dashboard
-                            </h1>
-                            <p className="text-modern-text-secondary mt-2 text-lg font-medium">Overview of hospital queues today</p>
+                            <h1 className="text-2xl font-bold text-modern-text tracking-tight">Dashboard</h1>
+                            <p className="text-sm text-modern-text-secondary">Overview of hospital queues today</p>
                         </div>
 
-                        <div className="flex items-center gap-4 bg-modern-card/50 backdrop-blur-md p-2 rounded-2xl border border-white/5 shadow-sm">
-                            <div className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition-colors ${isConnected ? 'bg-modern-green/10 text-modern-green border border-modern-green/20' : 'bg-red-500/10 text-red-500 border border-red-500/20'}`}>
-                                <div className={`w-2 h-2 rounded-full ${isConnected ? 'bg-modern-green animate-pulse shadow-[0_0_10px_rgba(0,230,118,0.5)]' : 'bg-red-500'}`}></div>
-                                {isConnected ? 'System Online' : 'Offline'}
+                        <div className="flex items-center gap-4">
+                            {/* System Status Pill */}
+                            <div className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-semibold transition-colors border ${isConnected ? 'bg-modern-green/10 text-modern-green border-modern-green/20' : 'bg-red-500/10 text-red-500 border-red-500/20'}`}>
+                                <div className={`w-1.5 h-1.5 rounded-full ${isConnected ? 'bg-modern-green animate-pulse shadow-[0_0_8px_rgba(0,230,118,0.5)]' : 'bg-red-500'}`}></div>
+                                {isConnected ? 'Online' : 'Offline'}
                             </div>
-                            <button
-                                onClick={() => generateQuota()}
-                                className="btn-primary px-5 py-2.5 rounded-xl text-sm font-semibold flex items-center gap-2 shadow-lg shadow-modern-blue/20 hover:shadow-modern-blue/40"
-                            >
-                                <RefreshCw className="w-4 h-4" />
-                                Generate Quota
-                            </button>
+
+                            {/* Action Buttons */}
+                            <div className="flex items-center gap-2 bg-modern-card/50 p-1 rounded-full border border-white/10 shadow-sm">
+                                <button
+                                    onClick={() => generateQuota()}
+                                    className="px-4 py-2 rounded-full text-sm font-semibold bg-modern-text text-modern-bg hover:bg-white transition-all shadow-lg shadow-white/5 flex items-center gap-2"
+                                >
+                                    <RefreshCw className="w-3.5 h-3.5" />
+                                    <span>Generate Quota</span>
+                                </button>
+                            </div>
+
+                            {/* User Profile (Placeholder) */}
+                            <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-modern-blue to-modern-purple p-[2px] shadow-lg shadow-modern-blue/20 cursor-pointer hover:scale-105 transition-transform">
+                                <div className="w-full h-full rounded-full bg-modern-card flex items-center justify-center overflow-hidden">
+                                    <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=Admin" alt="Admin" className="w-full h-full object-cover" />
+                                </div>
+                            </div>
                         </div>
                     </header>
 
