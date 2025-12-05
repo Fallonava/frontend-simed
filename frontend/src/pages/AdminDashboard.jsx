@@ -195,20 +195,31 @@ const AdminDashboard = () => {
 
                         {/* Grid */}
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                            {doctors.map((doctor) => (
+                            {doctors.filter(doctor => {
+                                // Get current day (1=Senin ... 6=Sabtu, 0=Minggu -> 7)
+                                const today = new Date().getDay();
+                                const dbDay = today === 0 ? 7 : today;
+
+                                // Check if doctor has schedule for today
+                                return doctor.schedules?.some(s => s.day === dbDay);
+                            }).map((doctor) => (
                                 <DoctorCard key={doctor.id} doctor={doctor} />
                             ))}
                         </div>
 
-                        {doctors.length === 0 && (
-                            <div className="text-center py-32">
-                                <div className="w-24 h-24 bg-modern-card rounded-full flex items-center justify-center mx-auto mb-6 border border-white/5">
-                                    <LayoutGrid className="w-10 h-10 text-modern-text-secondary" />
+                        {doctors.filter(d => {
+                            const today = new Date().getDay();
+                            const dbDay = today === 0 ? 7 : today;
+                            return d.schedules?.some(s => s.day === dbDay);
+                        }).length === 0 && (
+                                <div className="text-center py-32">
+                                    <div className="w-24 h-24 bg-modern-card rounded-full flex items-center justify-center mx-auto mb-6 border border-white/5">
+                                        <LayoutGrid className="w-10 h-10 text-modern-text-secondary" />
+                                    </div>
+                                    <h3 className="text-xl font-semibold text-modern-text">No Doctors Available Today</h3>
+                                    <p className="text-modern-text-secondary mt-2">There are no doctors scheduled for today.</p>
                                 </div>
-                                <h3 className="text-xl font-semibold text-modern-text">No Data Available</h3>
-                                <p className="text-modern-text-secondary mt-2">Generate daily quotas to start managing queues.</p>
-                            </div>
-                        )}
+                            )}
                     </div>
                 </div>
             </main>
