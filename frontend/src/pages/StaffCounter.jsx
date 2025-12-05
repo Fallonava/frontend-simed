@@ -14,6 +14,7 @@ const StaffCounter = () => {
 
     // Data State
     const [polies, setPolies] = useState([]);
+    const [counters, setCounters] = useState([]);
     const [waitingList, setWaitingList] = useState([]);
     const [skippedList, setSkippedList] = useState([]);
     const [currentTicket, setCurrentTicket] = useState(null);
@@ -32,6 +33,7 @@ const StaffCounter = () => {
         }
 
         fetchPolies();
+        fetchCounters();
 
         // Setup Socket
         socketRef.current = io(SOCKET_URL);
@@ -66,6 +68,15 @@ const StaffCounter = () => {
             setPolies(res.data);
         } catch (error) {
             console.error('Failed to fetch polies', error);
+        }
+    };
+
+    const fetchCounters = async () => {
+        try {
+            const res = await axios.get(`${API_URL}/counters`);
+            setCounters(res.data);
+        } catch (error) {
+            console.error('Failed to fetch counters', error);
         }
     };
 
@@ -222,10 +233,9 @@ const StaffCounter = () => {
                                 onChange={(e) => setConfig({ ...config, counterName: e.target.value })}
                             >
                                 <option value="">Pilih Loket</option>
-                                <option value="Loket 1">Loket 1</option>
-                                <option value="Loket 2">Loket 2</option>
-                                <option value="Loket 3">Loket 3</option>
-                                <option value="Loket 4">Loket 4</option>
+                                {counters.map((c) => (
+                                    <option key={c.id} value={c.name}>{c.name}</option>
+                                ))}
                             </select>
                         </div>
                         <div>
