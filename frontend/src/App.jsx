@@ -8,10 +8,12 @@ import Login from './pages/Login';
 import StaffCounter from './pages/StaffCounter';
 import MainMenu from './pages/MainMenu';
 import ProtectedRoute from './components/ProtectedRoute';
+import ThemeToggle from './components/ThemeToggle';
 
 function App() {
   return (
     <BrowserRouter>
+      <ThemeToggle />
       <Routes>
         <Route path="/login" element={<Login />} />
 

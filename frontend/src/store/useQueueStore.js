@@ -70,15 +70,36 @@ const useQueueStore = create((set, get) => ({
     },
 
     toggleStatus: async (doctorId, status, maxQuota) => {
+        // Optimistic Update
+        set((state) => ({
+            doctors: state.doctors.map((doc) =>
+                doc.id === doctorId
+                    ? {
+                        ...doc,
+                        quota: {
+                            ...doc.quota,
+                            status: status,
+                            max_quota: maxQuota,
+                            // Ensure other fields exist if quota was null
+                            doctor_id: doctorId,
+                            current_count: doc.quota?.current_count || 0
+                        }
+                    }
+                    : doc
+            )
+        }));
+
         try {
             await axios.post(`${API_URL}/quota/toggle`, {
                 doctor_id: doctorId,
                 status,
                 max_quota: maxQuota
             });
-            // State update will happen via socket event
+            // Socket will confirm the update, but we already updated UI
         } catch (error) {
             console.error('Failed to toggle status:', error);
+            // Revert or fetch fresh data on error
+            get().fetchDoctors();
         }
     },
 

@@ -4,13 +4,19 @@ export default {
         "./index.html",
         "./src/**/*.{js,ts,jsx,tsx}",
     ],
+    darkMode: 'class',
     theme: {
         extend: {
             colors: {
-                // Apple-inspired colors
-                'apple-gray': '#f5f5f7',
-                'apple-blue': '#0071e3',
-                'apple-dark': '#1d1d1f',
+                // Modern Theme Colors using CSS Variables
+                'modern-bg': 'rgb(var(--modern-bg) / <alpha-value>)',
+                'modern-card': 'rgb(var(--modern-card) / <alpha-value>)',
+                'modern-text': 'rgb(var(--modern-text) / <alpha-value>)',
+                'modern-text-secondary': 'rgb(var(--modern-text-secondary) / <alpha-value>)',
+                'modern-purple': 'rgb(var(--modern-purple) / <alpha-value>)',
+                'modern-blue': 'rgb(var(--modern-blue) / <alpha-value>)',
+                'modern-teal': 'rgb(var(--modern-teal) / <alpha-value>)',
+                'modern-green': 'rgb(var(--modern-green) / <alpha-value>)',
             }
         },
     },

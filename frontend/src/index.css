@@ -3,26 +3,70 @@
 @tailwind utilities;
 
 @layer base {
+  :root {
+    /* Light Mode (Default) */
+    --modern-bg: 243 244 246;
+    /* gray-100 */
+    --modern-card: 255 255 255;
+    /* white */
+    --modern-text: 31 41 55;
+    /* gray-800 */
+    --modern-text-secondary: 107 114 128;
+    /* gray-500 */
+
+    /* Accents - slightly darker for visibility on light */
+    --modern-purple: 147 51 234;
+    /* purple-600 */
+    --modern-blue: 37 99 235;
+    /* blue-600 */
+    --modern-teal: 13 148 136;
+    /* teal-600 */
+    --modern-green: 22 163 74;
+    /* green-600 */
+  }
+
+  .dark {
+    /* Dark Mode (Original) */
+    --modern-bg: 24 24 36;
+    /* #181824 */
+    --modern-card: 37 37 58;
+    /* #25253A */
+    --modern-text: 255 255 255;
+    /* #FFFFFF */
+    --modern-text-secondary: 160 160 176;
+    /* #A0A0B0 */
+
+    /* Accents (Original Neon) */
+    --modern-purple: 213 0 249;
+    /* #D500F9 */
+    --modern-blue: 41 121 255;
+    /* #2979FF */
+    --modern-teal: 24 255 255;
+    /* #18FFFF */
+    --modern-green: 0 230 118;
+    /* #00E676 */
+  }
+
   body {
-    @apply bg-[#F5F5F7] text-[#1D1D1F] font-sans antialiased;
+    @apply bg-modern-bg text-modern-text font-sans antialiased selection:bg-modern-purple/30 selection:text-modern-purple transition-colors duration-300;
   }
 }
 
 @layer utilities {
   .glass {
-    @apply bg-white/70 backdrop-blur-xl border border-white/20 shadow-sm;
+    @apply bg-modern-card/70 backdrop-blur-xl border border-white/10 shadow-lg;
   }
 
   .glass-card {
-    @apply bg-white/80 backdrop-blur-md border border-white/50 shadow-sm hover:shadow-md transition-all duration-300;
+    @apply bg-modern-card/80 backdrop-blur-md border border-white/5 shadow-lg hover:shadow-modern-purple/20 hover:border-modern-purple/30 transition-all duration-300;
   }
 
   .btn-primary {
-    @apply bg-[#0071E3] text-white hover:bg-[#0077ED] active:scale-95 transition-all duration-200 shadow-sm hover:shadow;
+    @apply bg-gradient-to-r from-modern-blue to-modern-purple text-white hover:opacity-90 active:scale-95 transition-all duration-200 shadow-lg shadow-modern-blue/20;
   }
 
   .btn-secondary {
-    @apply bg-[#E8E8ED] text-[#1D1D1F] hover:bg-[#D2D2D7] active:scale-95 transition-all duration-200;
+    @apply bg-white/5 text-modern-text hover:bg-white/10 active:scale-95 transition-all duration-200 border border-white/10;
   }
 }
 

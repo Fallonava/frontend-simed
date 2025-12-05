@@ -1,7 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { Toaster, toast } from 'react-hot-toast';
-import { Trash2, Edit, Plus, X } from 'lucide-react';
+import {
+    Trash2, Edit, Plus, X,
+    LayoutGrid, Stethoscope, Store,
+    Search
+} from 'lucide-react';
 
 const API_URL = 'http://localhost:3000/api';
 
@@ -9,19 +13,17 @@ const MasterData = () => {
     const [activeTab, setActiveTab] = useState('poliklinik');
     const [polies, setPolies] = useState([]);
     const [doctors, setDoctors] = useState([]);
-    const [loading, setLoading] = useState(false);
+    const [counters, setCounters] = useState([]);
 
     // Modal States
     const [isPoliModalOpen, setIsPoliModalOpen] = useState(false);
     const [isDoctorModalOpen, setIsDoctorModalOpen] = useState(false);
+    const [isCounterModalOpen, setIsCounterModalOpen] = useState(false);
     const [editingItem, setEditingItem] = useState(null);
 
     // Form States
     const [poliForm, setPoliForm] = useState({ name: '', queue_code: '' });
-    const [doctorForm, setDoctorForm] = useState({ name: '', specialist: '', poliklinik_id: '', photo_url: '' });
-
-    const [counters, setCounters] = useState([]);
-    const [isCounterModalOpen, setIsCounterModalOpen] = useState(false);
+    const [doctorForm, setDoctorForm] = useState({ name: '', specialist: '', poliklinik_id: '', photo_url: '', schedules: [] });
     const [counterForm, setCounterForm] = useState({ name: '' });
 
     useEffect(() => {
@@ -30,13 +32,110 @@ const MasterData = () => {
         fetchCounters();
     }, []);
 
+    const fetchPolies = async () => {
+        try { const res = await axios.get(`${API_URL}/polies`); setPolies(res.data); }
+        catch (error) { console.error('Failed to fetch polies', error); }
+    };
+
+    const fetchDoctors = async () => {
+        try { const res = await axios.get(`${API_URL}/doctors-master`); setDoctors(res.data); }
+        catch (error) { console.error('Failed to fetch doctors', error); }
+    };
+
     const fetchCounters = async () => {
+        try { const res = await axios.get(`${API_URL}/counters`); setCounters(res.data); }
+        catch (error) { console.error('Failed to fetch counters', error); }
+    };
+
+    // --- Poliklinik Handlers ---
+    const handlePoliSubmit = async (e) => {
+        e.preventDefault();
         try {
-            const res = await axios.get(`${API_URL}/counters`);
-            setCounters(res.data);
+            if (editingItem) {
+                await axios.put(`${API_URL}/polies/${editingItem.id}`, poliForm);
+                toast.success('Poliklinik updated');
+            } else {
+                await axios.post(`${API_URL}/polies`, poliForm);
+                toast.success('Poliklinik created');
+            }
+            fetchPolies();
+            setIsPoliModalOpen(false);
+            setEditingItem(null);
+            setPoliForm({ name: '', queue_code: '' });
         } catch (error) {
-            console.error('Failed to fetch counters', error);
+            toast.error(error.response?.data?.error || 'Operation failed');
         }
+    };
+
+    const handleDeletePoli = async (id) => {
+        if (!window.confirm('Are you sure?')) return;
+        try {
+            await axios.delete(`${API_URL}/polies/${id}`);
+            toast.success('Poliklinik deleted');
+            fetchPolies();
+        } catch (error) {
+            toast.error(error.response?.data?.error || 'Failed to delete');
+        }
+    };
+
+    const openPoliModal = (poli = null) => {
+        if (poli) {
+            setEditingItem(poli);
+            setPoliForm({ name: poli.name, queue_code: poli.queue_code });
+        } else {
+            setEditingItem(null);
+            setPoliForm({ name: '', queue_code: '' });
+        }
+        setIsPoliModalOpen(true);
+    };
+
+    // --- Doctor Handlers ---
+    const handleDoctorSubmit = async (e) => {
+        e.preventDefault();
+        try {
+            const payload = { ...doctorForm, poliklinik_id: parseInt(doctorForm.poliklinik_id) };
+            if (editingItem) {
+                await axios.put(`${API_URL}/doctors/${editingItem.id}`, payload);
+                toast.success('Doctor updated');
+            } else {
+                await axios.post(`${API_URL}/doctors`, payload);
+                toast.success('Doctor created');
+            }
+            fetchDoctors();
+            setIsDoctorModalOpen(false);
+            setEditingItem(null);
+            setDoctorForm({ name: '', specialist: '', poliklinik_id: '', photo_url: '', schedules: [] });
+        } catch (error) {
+            toast.error(error.response?.data?.error || 'Operation failed');
+        }
+    };
+
+    const handleDeleteDoctor = async (id) => {
+        if (!window.confirm('Are you sure?')) return;
+        try {
+            await axios.delete(`${API_URL}/doctors/${id}`);
+            toast.success('Doctor deleted');
+            fetchDoctors();
+        } catch (error) {
+            toast.error('Failed to delete doctor');
+        }
+    };
+
+    const openDoctorModal = (doctor = null) => {
+        if (doctor) {
+            setEditingItem(doctor);
+            setDoctorForm({
+                name: doctor.name,
+                specialist: doctor.specialist,
+                poliklinik_id: doctor.poliklinik_id,
+                photo_url: doctor.photo_url || '',
+                schedules: doctor.schedules || []
+            });
+        } else {
+            setEditingItem(null);
+            setDoctorForm({ name: '', specialist: '', poliklinik_id: '', photo_url: '', schedules: [] });
+        }
+        setIsDoctorModalOpen(true);
     };
 
     // --- Counter Handlers ---
@@ -55,7 +154,7 @@ const MasterData = () => {
             setEditingItem(null);
             setCounterForm({ name: '' });
         } catch (error) {
-            toast.error('Operation failed');
+            toast.error(error.response?.data?.error || 'Operation failed');
         }
     };
 
@@ -81,359 +180,332 @@ const MasterData = () => {
         setIsCounterModalOpen(true);
     };
 
+    // Render Helpers
+    const TabButton = ({ id, label, icon: Icon }) => (
+        <button
+            onClick={() => setActiveTab(id)}
+            className={`
+                flex items-center gap-2 px-6 py-3 rounded-full font-medium transition-all duration-300
+                ${activeTab === id
+                    ? 'bg-gradient-to-r from-modern-blue to-modern-purple text-white shadow-lg shadow-modern-blue/30 scale-105'
+                    : 'bg-modern-card/50 text-modern-text-secondary hover:bg-modern-card hover:text-white border border-white/5'}
+            `}
+        >
+            <Icon size={18} />
+            {label}
+        </button>
+    );
+
+    const ActionButton = ({ onClick, icon: Icon, colorClass }) => (
+        <button
+            onClick={onClick}
+            className={`p-2 rounded-xl transition-colors ${colorClass}`}
+        >
+            <Icon size={18} />
+        </button>
+    );
+
     return (
-        <div className="min-h-screen bg-gray-50 p-8">
-            <Toaster />
-            <div className="max-w-6xl mx-auto">
-                <h1 className="text-3xl font-bold text-gray-800 mb-8">Master Data Management</h1>
+        <div className="min-h-screen bg-modern-bg p-8 font-sans relative overflow-hidden">
+            {/* Background Mesh Gradient */}
+            <div className="absolute top-0 left-0 w-full h-full overflow-hidden -z-10 pointer-events-none">
+                <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-modern-blue/10 rounded-full blur-[100px]"></div>
+                <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-modern-purple/10 rounded-full blur-[100px]"></div>
+            </div>
 
-                {/* Tabs */}
-                <div className="flex space-x-4 mb-6 border-b border-gray-200">
-                    <button
-                        className={`pb-2 px-4 font-medium transition-colors ${activeTab === 'poliklinik'
-                            ? 'border-b-2 border-blue-600 text-blue-600'
-                            : 'text-gray-500 hover:text-gray-700'
-                            }`}
-                        onClick={() => setActiveTab('poliklinik')}
-                    >
-                        Kelola Poliklinik
-                    </button>
-                    <button
-                        className={`pb-2 px-4 font-medium transition-colors ${activeTab === 'doctors'
-                            ? 'border-b-2 border-blue-600 text-blue-600'
-                            : 'text-gray-500 hover:text-gray-700'
-                            }`}
-                        onClick={() => setActiveTab('doctors')}
-                    >
-                        Kelola Dokter
-                    </button>
-                    <button
-                        className={`pb-2 px-4 font-medium transition-colors ${activeTab === 'counters'
-                            ? 'border-b-2 border-blue-600 text-blue-600'
-                            : 'text-gray-500 hover:text-gray-700'
-                            }`}
-                        onClick={() => setActiveTab('counters')}
-                    >
-                        Kelola Loket
-                    </button>
-                </div>
+            <Toaster position="top-center" />
 
-                {/* Content */}
-                {activeTab === 'poliklinik' && (
+            <div className="max-w-7xl mx-auto">
+                {/* Header */}
+                <header className="flex flex-col md:flex-row justify-between items-center mb-10 gap-6">
                     <div>
-                        <div className="flex justify-end mb-4">
-                            <button
-                                onClick={() => openPoliModal()}
-                                className="bg-blue-600 text-white px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-blue-700 transition"
-                            >
-                                <Plus size={20} /> Tambah Poli
-                            </button>
-                        </div>
-                        <div className="bg-white rounded-xl shadow-sm overflow-hidden border border-gray-100">
-                            <table className="w-full text-left">
-                                <thead className="bg-gray-50 border-b border-gray-100">
-                                    <tr>
-                                        <th className="p-4 font-semibold text-gray-600">ID</th>
-                                        <th className="p-4 font-semibold text-gray-600">Nama Poli</th>
-                                        <th className="p-4 font-semibold text-gray-600">Kode Antrian</th>
-                                        <th className="p-4 font-semibold text-gray-600 text-right">Actions</th>
-                                    </tr>
-                                </thead>
-                                <tbody className="divide-y divide-gray-100">
-                                    {polies.map((poli) => (
-                                        <tr key={poli.id} className="hover:bg-gray-50 transition">
-                                            <td className="p-4 text-gray-600">#{poli.id}</td>
-                                            <td className="p-4 font-medium text-gray-800">{poli.name}</td>
-                                            <td className="p-4 text-gray-600">
-                                                <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded text-sm font-bold">
-                                                    {poli.queue_code}
-                                                </span>
-                                            </td>
-                                            <td className="p-4 text-right space-x-2">
-                                                <button
-                                                    onClick={() => openPoliModal(poli)}
-                                                    className="text-gray-400 hover:text-blue-600 transition"
-                                                >
-                                                    <Edit size={18} />
-                                                </button>
-                                                <button
-                                                    onClick={() => handleDeletePoli(poli.id)}
-                                                    className="text-gray-400 hover:text-red-600 transition"
-                                                >
-                                                    <Trash2 size={18} />
-                                                </button>
-                                            </td>
-                                        </tr>
-                                    ))}
-                                </tbody>
-                            </table>
-                        </div>
+                        <h1 className="text-4xl font-bold text-modern-text tracking-tight mb-2">Master Data</h1>
+                        <p className="text-modern-text-secondary text-lg">Manage your hospital resources</p>
                     </div>
-                )}
 
-                {activeTab === 'doctors' && (
-                    <div>
-                        <div className="flex justify-end mb-4">
-                            <button
-                                onClick={() => openDoctorModal()}
-                                className="bg-blue-600 text-white px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-blue-700 transition"
-                            >
-                                <Plus size={20} /> Tambah Dokter
-                            </button>
+                    {/* Segmented Control */}
+                    <div className="flex p-1 bg-modern-card/50 backdrop-blur-md rounded-full border border-white/5">
+                        <TabButton id="poliklinik" label="Poliklinik" icon={LayoutGrid} />
+                        <TabButton id="doctors" label="Dokter" icon={Stethoscope} />
+                        <TabButton id="counters" label="Loket" icon={Store} />
+                    </div>
+                </header>
+
+                {/* Main Content Card */}
+                <div className="bg-modern-card/70 backdrop-blur-xl rounded-[2.5rem] shadow-2xl border border-white/10 overflow-hidden min-h-[600px] flex flex-col">
+                    {/* Toolbar */}
+                    <div className="p-8 border-b border-white/5 flex justify-between items-center bg-white/5">
+                        <div className="relative">
+                            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-modern-text-secondary w-5 h-5" />
+                            <input
+                                type="text"
+                                placeholder="Search..."
+                                className="pl-12 pr-4 py-3 bg-modern-bg/50 border border-white/5 rounded-2xl w-64 focus:ring-2 focus:ring-modern-blue/50 outline-none transition-all text-modern-text placeholder-modern-text-secondary"
+                            />
                         </div>
-                        <div className="bg-white rounded-xl shadow-sm overflow-hidden border border-gray-100">
-                            <table className="w-full text-left">
-                                <thead className="bg-gray-50 border-b border-gray-100">
-                                    <tr>
-                                        <th className="p-4 font-semibold text-gray-600">Doctor</th>
-                                        <th className="p-4 font-semibold text-gray-600">Spesialis</th>
-                                        <th className="p-4 font-semibold text-gray-600">Poliklinik</th>
-                                        <th className="p-4 font-semibold text-gray-600 text-right">Actions</th>
+                        <button
+                            onClick={() => {
+                                if (activeTab === 'poliklinik') openPoliModal();
+                                if (activeTab === 'doctors') openDoctorModal();
+                                if (activeTab === 'counters') openCounterModal();
+                            }}
+                            className="bg-modern-text text-modern-bg px-6 py-3 rounded-2xl font-semibold flex items-center gap-2 hover:bg-white transition-all shadow-lg hover:shadow-xl active:scale-95"
+                        >
+                            <Plus size={20} />
+                            Add New
+                        </button>
+                    </div>
+
+                    {/* Table Content */}
+                    <div className="flex-1 overflow-auto p-2">
+                        <table className="w-full text-left border-collapse">
+                            <thead className="sticky top-0 bg-modern-card/90 backdrop-blur-md z-10">
+                                <tr>
+                                    {activeTab === 'poliklinik' && (
+                                        <>
+                                            <th className="p-6 text-xs font-bold text-modern-text-secondary uppercase tracking-wider">ID</th>
+                                            <th className="p-6 text-xs font-bold text-modern-text-secondary uppercase tracking-wider">Nama Poli</th>
+                                            <th className="p-6 text-xs font-bold text-modern-text-secondary uppercase tracking-wider">Kode</th>
+                                        </>
+                                    )}
+                                    {activeTab === 'doctors' && (
+                                        <>
+                                            <th className="p-6 text-xs font-bold text-modern-text-secondary uppercase tracking-wider">Doctor</th>
+                                            <th className="p-6 text-xs font-bold text-modern-text-secondary uppercase tracking-wider">Spesialis</th>
+                                            <th className="p-6 text-xs font-bold text-modern-text-secondary uppercase tracking-wider">Poli</th>
+                                        </>
+                                    )}
+                                    {activeTab === 'counters' && (
+                                        <>
+                                            <th className="p-6 text-xs font-bold text-modern-text-secondary uppercase tracking-wider">ID</th>
+                                            <th className="p-6 text-xs font-bold text-modern-text-secondary uppercase tracking-wider">Nama Loket</th>
+                                            <th className="p-6 text-xs font-bold text-modern-text-secondary uppercase tracking-wider">Status</th>
+                                        </>
+                                    )}
+                                    <th className="p-6 text-xs font-bold text-modern-text-secondary uppercase tracking-wider text-right">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-white/5">
+                                {activeTab === 'poliklinik' && polies.map((poli) => (
+                                    <tr key={poli.id} className="hover:bg-white/5 transition-colors group">
+                                        <td className="p-6 text-modern-text-secondary font-mono text-sm">#{poli.id}</td>
+                                        <td className="p-6 font-semibold text-modern-text">{poli.name}</td>
+                                        <td className="p-6">
+                                            <span className="bg-modern-blue/10 text-modern-blue px-3 py-1 rounded-lg text-xs font-bold tracking-wide border border-modern-blue/20">
+                                                {poli.queue_code}
+                                            </span>
+                                        </td>
+                                        <td className="p-6 text-right">
+                                            <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                <ActionButton onClick={() => openPoliModal(poli)} icon={Edit} colorClass="text-modern-blue hover:bg-modern-blue/10" />
+                                                <ActionButton onClick={() => handleDeletePoli(poli.id)} icon={Trash2} colorClass="text-red-500 hover:bg-red-500/10" />
+                                            </div>
+                                        </td>
                                     </tr>
-                                </thead>
-                                <tbody className="divide-y divide-gray-100">
-                                    {doctors.map((doc) => (
-                                        <tr key={doc.id} className="hover:bg-gray-50 transition">
-                                            <td className="p-4">
-                                                <div className="flex items-center gap-3">
-                                                    <img
-                                                        src={doc.photo_url || 'https://via.placeholder.com/40'}
-                                                        alt={doc.name}
-                                                        className="w-10 h-10 rounded-full object-cover border border-gray-200"
-                                                    />
-                                                    <span className="font-medium text-gray-800">{doc.name}</span>
-                                                </div>
-                                            </td>
-                                            <td className="p-4 text-gray-600">{doc.specialist}</td>
-                                            <td className="p-4 text-gray-600">
+                                ))}
+
+                                {activeTab === 'doctors' && doctors.map((doc) => (
+                                    <tr key={doc.id} className="hover:bg-white/5 transition-colors group">
+                                        <td className="p-6">
+                                            <div className="flex items-center gap-4">
+                                                <img src={doc.photo_url || 'https://via.placeholder.com/40'} alt={doc.name} className="w-12 h-12 rounded-2xl object-cover shadow-sm bg-modern-bg" />
+                                                <span className="font-bold text-modern-text">{doc.name}</span>
+                                            </div>
+                                        </td>
+                                        <td className="p-6 text-modern-text-secondary">{doc.specialist}</td>
+                                        <td className="p-6">
+                                            <span className="bg-modern-purple/10 text-modern-purple px-3 py-1 rounded-lg text-xs font-bold tracking-wide border border-modern-purple/20">
                                                 {doc.poliklinik ? doc.poliklinik.name : '-'}
-                                            </td>
-                                            <td className="p-4 text-right space-x-2">
-                                                <button
-                                                    onClick={() => openDoctorModal(doc)}
-                                                    className="text-gray-400 hover:text-blue-600 transition"
-                                                >
-                                                    <Edit size={18} />
-                                                </button>
-                                                <button
-                                                    onClick={() => handleDeleteDoctor(doc.id)}
-                                                    className="text-gray-400 hover:text-red-600 transition"
-                                                >
-                                                    <Trash2 size={18} />
-                                                </button>
-                                            </td>
-                                        </tr>
-                                    ))}
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-                )}
-
-                {activeTab === 'counters' && (
-                    <div>
-                        <div className="flex justify-end mb-4">
-                            <button
-                                onClick={() => openCounterModal()}
-                                className="bg-blue-600 text-white px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-blue-700 transition"
-                            >
-                                <Plus size={20} /> Tambah Loket
-                            </button>
-                        </div>
-                        <div className="bg-white rounded-xl shadow-sm overflow-hidden border border-gray-100">
-                            <table className="w-full text-left">
-                                <thead className="bg-gray-50 border-b border-gray-100">
-                                    <tr>
-                                        <th className="p-4 font-semibold text-gray-600">ID</th>
-                                        <th className="p-4 font-semibold text-gray-600">Nama Loket</th>
-                                        <th className="p-4 font-semibold text-gray-600 text-right">Actions</th>
+                                            </span>
+                                        </td>
+                                        <td className="p-6 text-right">
+                                            <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                <ActionButton onClick={() => openDoctorModal(doc)} icon={Edit} colorClass="text-modern-blue hover:bg-modern-blue/10" />
+                                                <ActionButton onClick={() => handleDeleteDoctor(doc.id)} icon={Trash2} colorClass="text-red-500 hover:bg-red-500/10" />
+                                            </div>
+                                        </td>
                                     </tr>
-                                </thead>
-                                <tbody className="divide-y divide-gray-100">
-                                    {counters.map((counter) => (
-                                        <tr key={counter.id} className="hover:bg-gray-50 transition">
-                                            <td className="p-4 text-gray-600">#{counter.id}</td>
-                                            <td className="p-4 font-medium text-gray-800">{counter.name}</td>
-                                            <td className="p-4 text-right space-x-2">
-                                                <button
-                                                    onClick={() => openCounterModal(counter)}
-                                                    className="text-gray-400 hover:text-blue-600 transition"
-                                                >
-                                                    <Edit size={18} />
-                                                </button>
-                                                <button
-                                                    onClick={() => handleDeleteCounter(counter.id)}
-                                                    className="text-gray-400 hover:text-red-600 transition"
-                                                >
-                                                    <Trash2 size={18} />
-                                                </button>
-                                            </td>
-                                        </tr>
-                                    ))}
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-                )}
+                                ))}
 
-                {/* Poliklinik Modal */}
-                {isPoliModalOpen && (
-                    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 backdrop-blur-sm">
-                        <div className="bg-white rounded-xl shadow-xl w-full max-w-md p-6 relative animate-in fade-in zoom-in duration-200">
-                            <button
-                                onClick={() => setIsPoliModalOpen(false)}
-                                className="absolute top-4 right-4 text-gray-400 hover:text-gray-600"
-                            >
-                                <X size={20} />
-                            </button>
-                            <h2 className="text-xl font-bold mb-4">
-                                {editingItem ? 'Edit Poliklinik' : 'Tambah Poliklinik'}
-                            </h2>
-                            <form onSubmit={handlePoliSubmit} className="space-y-4">
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">Nama Poli</label>
-                                    <input
-                                        type="text"
-                                        required
-                                        className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 outline-none"
-                                        value={poliForm.name}
-                                        onChange={(e) => setPoliForm({ ...poliForm, name: e.target.value })}
-                                    />
-                                </div>
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                                        Kode Antrian (Max 3 chars)
-                                    </label>
-                                    <input
-                                        type="text"
-                                        required
-                                        maxLength={3}
-                                        className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 outline-none uppercase"
-                                        value={poliForm.queue_code}
-                                        onChange={(e) =>
-                                            setPoliForm({ ...poliForm, queue_code: e.target.value.toUpperCase() })
-                                        }
-                                    />
-                                </div>
-                                <button
-                                    type="submit"
-                                    className="w-full bg-blue-600 text-white py-2 rounded-lg font-medium hover:bg-blue-700 transition"
-                                >
-                                    Simpan
-                                </button>
-                            </form>
-                        </div>
-                    </div>
-                )}
+                                {activeTab === 'counters' && counters.map((counter) => (
+                                    <tr key={counter.id} className="hover:bg-white/5 transition-colors group">
+                                        <td className="p-6 text-modern-text-secondary font-mono text-sm">#{counter.id}</td>
+                                        <td className="p-6 font-semibold text-modern-text">{counter.name}</td>
+                                        <td className="p-6">
+                                            <span className={`
+                                                px-3 py-1 rounded-lg text-xs font-bold tracking-wide border
+                                                ${counter.status === 'OPEN' ? 'bg-modern-green/10 text-modern-green border-modern-green/20' :
+                                                    counter.status === 'BUSY' ? 'bg-yellow-500/10 text-yellow-500 border-yellow-500/20' :
+                                                        'bg-red-500/10 text-red-500 border-red-500/20'}
+                                            `}>
+                                                {counter.status || 'CLOSED'}
+                                            </span>
+                                        </td>
+                                        <td className="p-6 text-right">
+                                            <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                <ActionButton onClick={() => openCounterModal(counter)} icon={Edit} colorClass="text-modern-blue hover:bg-modern-blue/10" />
+                                                <ActionButton onClick={() => handleDeleteCounter(counter.id)} icon={Trash2} colorClass="text-red-500 hover:bg-red-500/10" />
+                                            </div>
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
 
-                {/* Doctor Modal */}
-                {isDoctorModalOpen && (
-                    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 backdrop-blur-sm">
-                        <div className="bg-white rounded-xl shadow-xl w-full max-w-md p-6 relative animate-in fade-in zoom-in duration-200">
+                        {/* Empty States */}
+                        {activeTab === 'poliklinik' && polies.length === 0 && <EmptyState />}
+                        {activeTab === 'doctors' && doctors.length === 0 && <EmptyState />}
+                        {activeTab === 'counters' && counters.length === 0 && <EmptyState />}
+                    </div>
+                </div>
+            </div>
+
+            {/* Modals - Reusing similar structure for all */}
+            <Modal isOpen={isPoliModalOpen} onClose={() => setIsPoliModalOpen(false)} title={editingItem ? 'Edit Poliklinik' : 'New Poliklinik'}>
+                <form onSubmit={handlePoliSubmit} className="space-y-6">
+                    <Input label="Nama Poli" value={poliForm.name} onChange={e => setPoliForm({ ...poliForm, name: e.target.value })} />
+                    <Input label="Kode Antrian (Max 3)" value={poliForm.queue_code} onChange={e => setPoliForm({ ...poliForm, queue_code: e.target.value.toUpperCase() })} maxLength={3} />
+                    <SubmitButton />
+                </form>
+            </Modal>
+
+            <Modal isOpen={isDoctorModalOpen} onClose={() => setIsDoctorModalOpen(false)} title={editingItem ? 'Edit Dokter' : 'New Dokter'}>
+                <form onSubmit={handleDoctorSubmit} className="space-y-6">
+                    <Input label="Nama Dokter" value={doctorForm.name} onChange={e => setDoctorForm({ ...doctorForm, name: e.target.value })} />
+                    <Input label="Spesialis" value={doctorForm.specialist} onChange={e => setDoctorForm({ ...doctorForm, specialist: e.target.value })} />
+                    <div>
+                        <label className="block text-sm font-medium text-modern-text-secondary mb-2">Poliklinik</label>
+                        <select
+                            required
+                            className="w-full bg-modern-bg border border-white/10 text-modern-text rounded-xl px-4 py-3 focus:ring-2 focus:ring-modern-blue outline-none transition-all"
+                            value={doctorForm.poliklinik_id}
+                            onChange={e => setDoctorForm({ ...doctorForm, poliklinik_id: e.target.value })}
+                        >
+                            <option value="">Pilih Poliklinik</option>
+                            {polies.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+                        </select>
+                    </div>
+                    <Input label="Photo URL" value={doctorForm.photo_url} onChange={e => setDoctorForm({ ...doctorForm, photo_url: e.target.value })} required={false} />
+
+                    {/* Schedule Inputs */}
+                    <div>
+                        <div className="flex justify-between items-center mb-2">
+                            <label className="text-sm font-medium text-modern-text-secondary ml-1">Jadwal Praktik</label>
                             <button
-                                onClick={() => setIsDoctorModalOpen(false)}
-                                className="absolute top-4 right-4 text-gray-400 hover:text-gray-600"
+                                type="button"
+                                onClick={() => setDoctorForm({
+                                    ...doctorForm,
+                                    schedules: [...(doctorForm.schedules || []), { day: 1, time: '' }]
+                                })}
+                                className="text-xs bg-modern-blue/10 text-modern-blue px-2 py-1 rounded-lg hover:bg-modern-blue/20 transition-colors"
                             >
-                                <X size={20} />
+                                + Add Day
                             </button>
-                            <h2 className="text-xl font-bold mb-4">
-                                {editingItem ? 'Edit Dokter' : 'Tambah Dokter'}
-                            </h2>
-                            <form onSubmit={handleDoctorSubmit} className="space-y-4">
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">Nama Dokter</label>
-                                    <input
-                                        type="text"
-                                        required
-                                        className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 outline-none"
-                                        value={doctorForm.name}
-                                        onChange={(e) => setDoctorForm({ ...doctorForm, name: e.target.value })}
-                                    />
-                                </div>
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">Spesialis</label>
-                                    <input
-                                        type="text"
-                                        required
-                                        className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 outline-none"
-                                        value={doctorForm.specialist}
-                                        onChange={(e) => setDoctorForm({ ...doctorForm, specialist: e.target.value })}
-                                    />
-                                </div>
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">Poliklinik</label>
+                        </div>
+                        <div className="space-y-2">
+                            {(doctorForm.schedules || []).map((schedule, idx) => (
+                                <div key={idx} className="flex gap-2">
                                     <select
-                                        required
-                                        className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 outline-none"
-                                        value={doctorForm.poliklinik_id}
-                                        onChange={(e) => setDoctorForm({ ...doctorForm, poliklinik_id: e.target.value })}
+                                        className="bg-modern-bg border border-white/10 text-modern-text rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-modern-blue outline-none w-1/3"
+                                        value={schedule.day}
+                                        onChange={(e) => {
+                                            const newSchedules = [...doctorForm.schedules];
+                                            newSchedules[idx].day = parseInt(e.target.value);
+                                            setDoctorForm({ ...doctorForm, schedules: newSchedules });
+                                        }}
                                     >
-                                        <option value="">Pilih Poliklinik</option>
-                                        {polies.map((p) => (
-                                            <option key={p.id} value={p.id}>
-                                                {p.name}
-                                            </option>
-                                        ))}
+                                        <option value={1}>Senin</option>
+                                        <option value={2}>Selasa</option>
+                                        <option value={3}>Rabu</option>
+                                        <option value={4}>Kamis</option>
+                                        <option value={5}>Jumat</option>
+                                        <option value={6}>Sabtu</option>
+                                        <option value={0}>Minggu</option>
                                     </select>
-                                </div>
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">Photo URL</label>
                                     <input
                                         type="text"
-                                        className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 outline-none"
-                                        value={doctorForm.photo_url}
-                                        onChange={(e) => setDoctorForm({ ...doctorForm, photo_url: e.target.value })}
+                                        placeholder="e.g. 08.00 - 12.00"
+                                        className="bg-modern-bg border border-white/10 text-modern-text rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-modern-blue outline-none flex-1"
+                                        value={schedule.time}
+                                        onChange={(e) => {
+                                            const newSchedules = [...doctorForm.schedules];
+                                            newSchedules[idx].time = e.target.value;
+                                            setDoctorForm({ ...doctorForm, schedules: newSchedules });
+                                        }}
                                     />
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            const newSchedules = doctorForm.schedules.filter((_, i) => i !== idx);
+                                            setDoctorForm({ ...doctorForm, schedules: newSchedules });
+                                        }}
+                                        className="text-red-500 hover:bg-red-500/10 p-2 rounded-lg transition-colors"
+                                    >
+                                        <Trash2 size={16} />
+                                    </button>
                                 </div>
-                                <button
-                                    type="submit"
-                                    className="w-full bg-blue-600 text-white py-2 rounded-lg font-medium hover:bg-blue-700 transition"
-                                >
-                                    Simpan
-                                </button>
-                            </form>
+                            ))}
                         </div>
                     </div>
-                )}
 
-                {/* Counter Modal */}
-                {isCounterModalOpen && (
-                    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 backdrop-blur-sm">
-                        <div className="bg-white rounded-xl shadow-xl w-full max-w-md p-6 relative animate-in fade-in zoom-in duration-200">
-                            <button
-                                onClick={() => setIsCounterModalOpen(false)}
-                                className="absolute top-4 right-4 text-gray-400 hover:text-gray-600"
-                            >
-                                <X size={20} />
-                            </button>
-                            <h2 className="text-xl font-bold mb-4">
-                                {editingItem ? 'Edit Loket' : 'Tambah Loket'}
-                            </h2>
-                            <form onSubmit={handleCounterSubmit} className="space-y-4">
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">Nama Loket</label>
-                                    <input
-                                        type="text"
-                                        required
-                                        placeholder="Contoh: Loket 1"
-                                        className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 outline-none"
-                                        value={counterForm.name}
-                                        onChange={(e) => setCounterForm({ ...counterForm, name: e.target.value })}
-                                    />
-                                </div>
-                                <button
-                                    type="submit"
-                                    className="w-full bg-blue-600 text-white py-2 rounded-lg font-medium hover:bg-blue-700 transition"
-                                >
-                                    Simpan
-                                </button>
-                            </form>
-                        </div>
-                    </div>
-                )}
+                    <SubmitButton />
+                </form>
+            </Modal>
+
+            <Modal isOpen={isCounterModalOpen} onClose={() => setIsCounterModalOpen(false)} title={editingItem ? 'Edit Loket' : 'New Loket'}>
+                <form onSubmit={handleCounterSubmit} className="space-y-6">
+                    <Input label="Nama Loket" value={counterForm.name} onChange={e => setCounterForm({ ...counterForm, name: e.target.value })} placeholder="e.g. Loket 1" />
+                    <SubmitButton />
+                </form>
+            </Modal>
+        </div>
+    );
+};
+
+// UI Components
+const EmptyState = () => (
+    <div className="p-12 text-center text-modern-text-secondary flex flex-col items-center">
+        <div className="w-16 h-16 bg-modern-bg rounded-full flex items-center justify-center mb-4 border border-white/5">
+            <Search size={24} className="opacity-50" />
+        </div>
+        <p>No data found</p>
+    </div>
+);
+
+const Modal = ({ isOpen, onClose, title, children }) => {
+    if (!isOpen) return null;
+    return (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-in fade-in duration-200">
+            <div className="bg-modern-card rounded-[2rem] shadow-2xl w-full max-w-md p-8 relative animate-in zoom-in-95 duration-200 border border-white/10">
+                <button onClick={onClose} className="absolute top-6 right-6 text-modern-text-secondary hover:text-white transition-colors">
+                    <X size={24} />
+                </button>
+                <h2 className="text-2xl font-bold text-modern-text mb-6">{title}</h2>
+                {children}
             </div>
         </div>
     );
 };
+
+const Input = ({ label, value, onChange, type = "text", required = true, maxLength, placeholder }) => (
+    <div>
+        <label className="block text-sm font-medium text-modern-text-secondary mb-2 ml-1">{label}</label>
+        <input
+            type={type}
+            required={required}
+            maxLength={maxLength}
+            placeholder={placeholder}
+            className="w-full bg-modern-bg border border-white/10 text-modern-text rounded-xl px-4 py-3 focus:ring-2 focus:ring-modern-blue outline-none transition-all focus:bg-modern-bg/80 placeholder-modern-text-secondary/50"
+            value={value}
+            onChange={onChange}
+        />
+    </div>
+);
+
+const SubmitButton = () => (
+    <button type="submit" className="w-full bg-modern-text text-modern-bg py-4 rounded-xl font-bold text-lg hover:bg-white transition-all shadow-lg hover:shadow-xl active:scale-95">
+        Save Changes
+    </button>
+);
 
 export default MasterData;

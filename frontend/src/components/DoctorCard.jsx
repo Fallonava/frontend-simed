@@ -8,16 +8,16 @@ const DoctorCard = ({ doctor }) => {
     const [newQuota, setNewQuota] = useState(doctor.quota?.max_quota || 30);
 
     const statusConfig = {
-        OPEN: { color: 'bg-green-500', label: 'Active', bg: 'bg-green-50' },
-        CLOSED: { color: 'bg-red-500', label: 'Closed', bg: 'bg-red-50' },
-        FULL: { color: 'bg-orange-500', label: 'Full', bg: 'bg-orange-50' },
-        BREAK: { color: 'bg-yellow-500', label: 'Break', bg: 'bg-yellow-50' },
+        OPEN: { color: 'bg-modern-green', label: 'Active', bg: 'bg-modern-green/10' },
+        CLOSED: { color: 'bg-red-500', label: 'Closed', bg: 'bg-red-500/10' },
+        FULL: { color: 'bg-orange-500', label: 'Full', bg: 'bg-orange-500/10' },
+        BREAK: { color: 'bg-yellow-500', label: 'Break', bg: 'bg-yellow-500/10' },
     };
 
     const currentStatus = statusConfig[doctor.quota?.status] || statusConfig.CLOSED;
 
     const handleStatusChange = (newStatus) => {
-        toggleStatus(doctor.id, newStatus, doctor.quota?.max_quota);
+        toggleStatus(doctor.id, newStatus, doctor.quota?.max_quota || 30);
     };
 
     const handleQuotaUpdate = () => {
@@ -33,16 +33,16 @@ const DoctorCard = ({ doctor }) => {
             <div className="relative z-10">
                 <div className="flex items-start justify-between mb-6">
                     <div className="flex items-center gap-4">
-                        <div className="w-14 h-14 rounded-2xl bg-gray-100 flex items-center justify-center overflow-hidden shadow-inner shrink-0">
+                        <div className="w-14 h-14 rounded-2xl bg-modern-bg flex items-center justify-center overflow-hidden shadow-inner shrink-0 border border-white/5">
                             {doctor.photo_url ? (
                                 <img src={doctor.photo_url} alt={doctor.name} className="w-full h-full object-cover" />
                             ) : (
-                                <User className="w-6 h-6 text-gray-400" />
+                                <User className="w-6 h-6 text-modern-text-secondary" />
                             )}
                         </div>
                         <div>
-                            <h3 className="font-semibold text-lg text-[#1D1D1F] leading-tight">{doctor.name}</h3>
-                            <p className="text-sm text-gray-500 mt-1">{doctor.specialist}</p>
+                            <h3 className="font-semibold text-lg text-modern-text leading-tight">{doctor.name}</h3>
+                            <p className="text-sm text-modern-text-secondary mt-1">{doctor.specialist}</p>
                         </div>
                     </div>
                     <div className="flex flex-col items-end">
@@ -55,18 +55,18 @@ const DoctorCard = ({ doctor }) => {
 
                 <div className="space-y-6">
                     {/* Counter */}
-                    <div className="bg-gray-50/50 rounded-2xl p-4 border border-gray-100">
+                    <div className="bg-modern-bg/50 rounded-2xl p-4 border border-white/5">
                         <div className="flex items-center justify-between mb-2">
-                            <span className="text-xs font-medium text-gray-400 uppercase tracking-wider">Patients</span>
-                            <Users className="w-4 h-4 text-gray-400" />
+                            <span className="text-xs font-medium text-modern-text-secondary uppercase tracking-wider">Patients</span>
+                            <Users className="w-4 h-4 text-modern-text-secondary" />
                         </div>
                         <div className="flex items-baseline gap-1">
-                            <span className="text-3xl font-bold text-[#1D1D1F]">{doctor.quota?.current_count || 0}</span>
-                            <span className="text-sm text-gray-400 font-medium">/ {doctor.quota?.max_quota || 0}</span>
+                            <span className="text-3xl font-bold text-modern-text">{doctor.quota?.current_count || 0}</span>
+                            <span className="text-sm text-modern-text-secondary font-medium">/ {doctor.quota?.max_quota || 0}</span>
                         </div>
 
                         {/* Progress Bar */}
-                        <div className="w-full h-1.5 bg-gray-200 rounded-full mt-3 overflow-hidden">
+                        <div className="w-full h-1.5 bg-white/10 rounded-full mt-3 overflow-hidden">
                             <div
                                 className={`h-full rounded-full transition-all duration-500 ${currentStatus.color}`}
                                 style={{ width: `${Math.min(((doctor.quota?.current_count || 0) / (doctor.quota?.max_quota || 1)) * 100, 100)}%` }}
@@ -76,28 +76,38 @@ const DoctorCard = ({ doctor }) => {
 
                     {/* Controls */}
                     <div className="space-y-3">
-                        <div className="grid grid-cols-3 gap-2 bg-gray-100/80 p-1 rounded-xl">
-                            {['OPEN', 'BREAK', 'CLOSED'].map((status) => (
-                                <button
-                                    key={status}
-                                    onClick={() => handleStatusChange(status)}
-                                    className={`
-                            py-1.5 rounded-lg text-xs font-medium transition-all duration-200
-                            ${doctor.quota?.status === status
-                                            ? 'bg-white text-black shadow-sm scale-[1.02]'
-                                            : 'text-gray-500 hover:text-gray-700 hover:bg-gray-200/50'}
-                        `}
-                                >
-                                    {status === 'OPEN' ? 'Open' : status === 'BREAK' ? 'Break' : 'Close'}
-                                </button>
-                            ))}
+                        <div className="grid grid-cols-3 gap-2 bg-modern-bg/80 p-1 rounded-xl border border-white/5">
+                            {['OPEN', 'BREAK', 'CLOSED'].map((status) => {
+                                const isActive = doctor.quota?.status === status;
+                                let activeClass = '';
+                                if (isActive) {
+                                    if (status === 'OPEN') activeClass = 'bg-modern-green text-white shadow-lg shadow-modern-green/25';
+                                    else if (status === 'BREAK') activeClass = 'bg-yellow-500 text-white shadow-lg shadow-yellow-500/25';
+                                    else activeClass = 'bg-red-500 text-white shadow-lg shadow-red-500/25';
+                                }
+
+                                return (
+                                    <button
+                                        key={status}
+                                        onClick={() => handleStatusChange(status)}
+                                        className={`
+                                            py-1.5 rounded-lg text-xs font-bold transition-all duration-200
+                                            ${isActive
+                                                ? `${activeClass} scale-[1.02]`
+                                                : 'text-modern-text-secondary hover:text-modern-text hover:bg-white/5'}
+                                        `}
+                                    >
+                                        {status === 'OPEN' ? 'Open' : status === 'BREAK' ? 'Break' : 'Close'}
+                                    </button>
+                                );
+                            })}
                         </div>
 
                         <button
                             onClick={() => callNext(doctor.id)}
-                            className="w-full py-2 bg-black text-white rounded-xl text-sm font-semibold hover:bg-gray-800 active:scale-[0.98] transition-all flex items-center justify-center gap-2 shadow-sm"
+                            className="w-full py-2 bg-modern-text text-modern-bg rounded-xl text-sm font-semibold hover:bg-white active:scale-[0.98] transition-all flex items-center justify-center gap-2 shadow-lg shadow-modern-blue/10"
                         >
-                            <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
+                            <span className="w-2 h-2 bg-modern-green rounded-full animate-pulse shadow-[0_0_5px_rgba(0,230,118,0.8)]"></span>
                             Call Next Patient
                         </button>
 
@@ -108,20 +118,20 @@ const DoctorCard = ({ doctor }) => {
                                         type="number"
                                         value={newQuota}
                                         onChange={(e) => setNewQuota(e.target.value)}
-                                        className="w-full px-3 py-1.5 text-sm bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0071E3]/20 focus:border-[#0071E3]"
+                                        className="w-full px-3 py-1.5 text-sm bg-modern-bg border border-white/10 rounded-lg focus:outline-none focus:ring-2 focus:ring-modern-blue/50 focus:border-modern-blue text-modern-text"
                                         autoFocus
                                     />
-                                    <button onClick={handleQuotaUpdate} className="p-1.5 bg-[#0071E3] text-white rounded-lg hover:bg-[#0077ED]">
+                                    <button onClick={handleQuotaUpdate} className="p-1.5 bg-modern-blue text-white rounded-lg hover:bg-modern-blue/80">
                                         <Check className="w-4 h-4" />
                                     </button>
-                                    <button onClick={() => setIsEditing(false)} className="p-1.5 bg-gray-200 text-gray-600 rounded-lg hover:bg-gray-300">
+                                    <button onClick={() => setIsEditing(false)} className="p-1.5 bg-white/10 text-modern-text-secondary rounded-lg hover:bg-white/20">
                                         <X className="w-4 h-4" />
                                     </button>
                                 </div>
                             ) : (
                                 <button
                                     onClick={() => setIsEditing(true)}
-                                    className="flex items-center gap-2 text-xs font-medium text-gray-400 hover:text-[#0071E3] transition-colors group/edit"
+                                    className="flex items-center gap-2 text-xs font-medium text-modern-text-secondary hover:text-modern-blue transition-colors group/edit"
                                 >
                                     <Edit2 className="w-3 h-3" />
                                     <span>Edit Max Quota</span>

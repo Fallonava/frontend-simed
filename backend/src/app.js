@@ -71,31 +71,51 @@ app.put('/api/counters/:id', counterController.update);
 app.delete('/api/counters/:id', counterController.delete);
 
 // Socket.io Connection
-// Socket.io Connection
 const activeCounters = new Map(); // socketId -> { name, poliId }
 
 io.on('connection', (socket) => {
     console.log('A user connected:', socket.id);
 
-    socket.on('join_counter', (data) => {
+    socket.on('join_counter', async (data) => {
         const { counterName, poliId } = data;
         activeCounters.set(socket.id, { name: counterName, poliId });
 
+        // Update DB status to OPEN
+        try {
+            await prisma.counter.update({
+                where: { name: counterName },
+                data: { status: 'OPEN' }
+            });
+        } catch (error) {
+            console.error(`Failed to update status for ${counterName}:`, error);
+        }
+
         // Broadcast active counters list
         const countersList = Array.from(activeCounters.values());
-        // Remove duplicates (if multiple tabs open for same counter, take latest)
-        // Actually, Map by socketId handles multiple tabs as separate connections. 
-        // We might want to deduplicate by name for the display.
         const uniqueCounters = Array.from(new Map(countersList.map(item => [item.name, item])).values());
 
         io.emit('active_counters_update', uniqueCounters);
         console.log(`Counter joined: ${counterName}`);
     });
 
-    socket.on('disconnect', () => {
+    socket.on('disconnect', async () => {
         if (activeCounters.has(socket.id)) {
             const { name } = activeCounters.get(socket.id);
             activeCounters.delete(socket.id);
+
+            // Update DB status to CLOSED
+            try {
+                // Only set to CLOSED if no other active socket is using this counter name
+                const isStillActive = Array.from(activeCounters.values()).some(c => c.name === name);
+                if (!isStillActive) {
+                    await prisma.counter.update({
+                        where: { name: name },
+                        data: { status: 'CLOSED' }
+                    });
+                }
+            } catch (error) {
+                console.error(`Failed to update status for ${name}:`, error);
+            }
 
             const countersList = Array.from(activeCounters.values());
             const uniqueCounters = Array.from(new Map(countersList.map(item => [item.name, item])).values());

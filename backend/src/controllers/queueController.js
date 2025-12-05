@@ -52,16 +52,22 @@ exports.toggleStatus = async (req, res) => {
     const today = getToday();
 
     try {
-        const updatedQuota = await prisma.dailyQuota.update({
+        const updatedQuota = await prisma.dailyQuota.upsert({
             where: {
                 doctor_id_date: {
                     doctor_id: parseInt(doctor_id),
                     date: today
                 }
             },
-            data: {
+            update: {
                 status: status,
                 max_quota: max_quota ? parseInt(max_quota) : undefined
+            },
+            create: {
+                doctor_id: parseInt(doctor_id),
+                date: today,
+                status: status,
+                max_quota: max_quota ? parseInt(max_quota) : 30 // Default if not provided
             },
             include: {
                 doctor: true
@@ -374,6 +380,8 @@ exports.getDoctors = async (req, res) => {
         // Fetch doctors with their today's quota
         const doctors = await prisma.doctor.findMany({
             include: {
+                poliklinik: true,
+                schedules: true,
                 DailyQuota: {
                     where: { date: today }
                 }
