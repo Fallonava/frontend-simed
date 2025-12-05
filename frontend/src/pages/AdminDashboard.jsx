@@ -7,7 +7,7 @@ import ScheduleCalendar from '../components/ScheduleCalendar';
 import DoctorLeaveCalendar from '../components/DoctorLeaveCalendar';
 import ThemeToggle from '../components/ThemeToggle';
 import { LayoutGrid, RefreshCw, Activity, Database, Monitor, Download, Calendar as ScheduleCalendarIcon, Search, Bell, User } from 'lucide-react';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 
 const AdminDashboard = () => {
     const { doctors, initialize, generateQuota, isConnected } = useQueueStore();
@@ -42,20 +42,7 @@ const AdminDashboard = () => {
     };
 
     const scrollToSection = (id) => {
-        if (id === 'leave-calendar') {
-            setActiveTab('leave-calendar');
-            return;
-        }
-
         setActiveTab(id);
-
-        // Short timeout to allow state update and re-render if switching from calendar
-        setTimeout(() => {
-            const element = document.getElementById(id);
-            if (element) {
-                element.scrollIntoView({ behavior: 'smooth' });
-            }
-        }, 50);
     };
 
     return (
@@ -152,13 +139,15 @@ const AdminDashboard = () => {
                 </div>
 
                 {/* Content Area */}
-                <div className={`flex-1 w-full ${activeTab === 'leave-calendar' ? 'overflow-hidden' : 'overflow-y-auto scroll-smooth custom-scrollbar'}`}>
-                    {activeTab === 'leave-calendar' ? (
+                <div className="flex-1 w-full overflow-y-auto scroll-smooth custom-scrollbar">
+                    {activeTab === 'leave-calendar' && (
                         <div className="max-w-[1600px] mx-auto h-full flex flex-col min-h-[600px] bg-gray-50">
                             <DoctorLeaveCalendar />
                         </div>
-                    ) : (
-                        <div className="max-w-[1600px] mx-auto pb-10">
+                    )}
+
+                    {activeTab === 'dashboard' && (
+                        <div className="max-w-[1600px] mx-auto pb-10 fade-in animate-in duration-300">
                             <div id="dashboard">
                                 {/* Banner */}
                                 <div className="w-full bg-salm-gradient rounded-[30px] p-8 mb-10 relative overflow-hidden shadow-xl shadow-salm-purple/20 flex items-center justify-between">
@@ -238,19 +227,25 @@ const AdminDashboard = () => {
                                     </div>
                                 </div>
                             </div>
+                        </div>
+                    )}
 
-                            {/* Doctor Schedule Section */}
-                            <div className="mb-10" id="schedule">
+                    {activeTab === 'schedule' && (
+                        <div className="max-w-[1600px] mx-auto pb-10 fade-in animate-in duration-300">
+                            <div className="mb-10">
                                 <div className="flex items-center justify-between mb-6">
                                     <h2 className="text-2xl font-bold text-theme-text">Weekly Schedule</h2>
-                                    <button className="text-theme-purple font-semibold hover:underline">View All</button>
                                 </div>
                                 <div className="card-soft p-8">
                                     <ScheduleCalendar />
                                 </div>
                             </div>
+                        </div>
+                    )}
 
-                            <div id="live-status">
+                    {activeTab === 'live-status' && (
+                        <div className="max-w-[1600px] mx-auto pb-10 fade-in animate-in duration-300">
+                            <div>
                                 <div className="flex items-center justify-between mb-6">
                                     <h2 className="text-2xl font-bold text-theme-text">Live Doctor Status</h2>
                                     <div className={`flex items-center gap-2 px-4 py-2 rounded-full text-xs font-bold transition-colors border ${isConnected ? 'bg-green-50 text-green-600 border-green-100' : 'bg-red-50 text-red-600 border-red-100'}`}>

@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Moon, Sun, Palette, X, check, Check } from 'lucide-react';
+import { Moon, Sun, Palette, X, Check } from 'lucide-react';
 import useThemeStore from '../store/useThemeStore';
 
 const ThemeToggle = () => {
