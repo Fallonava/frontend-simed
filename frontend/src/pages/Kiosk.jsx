@@ -39,7 +39,7 @@ const Kiosk = () => {
             <div className="bg-white/80 backdrop-blur-xl border-b border-black/5 sticky top-0 z-50">
                 <div className="max-w-[1920px] mx-auto px-8 h-20 flex items-center justify-between">
                     <div className="flex items-center gap-4">
-                        <div className="w-10 h-10 bg-blue-600 rounded-xl flex items-center justify-center shadow-lg shadow-blue-600/20">
+                        <div className="w-10 h-10 bg-salm-gradient rounded-xl flex items-center justify-center shadow-lg shadow-salm-purple/20">
                             <Activity className="text-white w-6 h-6" />
                         </div>
                         <div>
@@ -107,8 +107,8 @@ const Kiosk = () => {
                                             {doctor.photo_url ? (
                                                 <img src={doctor.photo_url} alt={doctor.name} className="w-full h-full rounded-full object-cover aspect-square" />
                                             ) : (
-                                                <div className="w-full h-full rounded-full bg-gradient-to-br from-blue-50 to-indigo-50 flex items-center justify-center aspect-square">
-                                                    <Stethoscope className="w-12 h-12 text-blue-300" />
+                                                <div className="w-full h-full rounded-full bg-gradient-to-br from-salm-light-blue/20 to-salm-light-pink/20 flex items-center justify-center aspect-square">
+                                                    <Stethoscope className="w-12 h-12 text-salm-blue/50" />
                                                 </div>
                                             )}
                                         </div>
@@ -118,7 +118,7 @@ const Kiosk = () => {
                                     </div>
 
                                     <h3 className="text-2xl font-bold text-[#1D1D1F] mb-2 leading-tight px-4">{doctor.name}</h3>
-                                    <p className="text-blue-600 font-semibold text-lg bg-blue-50 px-4 py-1 rounded-full">{doctor.specialist}</p>
+                                    <p className="text-salm-blue font-semibold text-lg bg-salm-light-blue/20 px-4 py-1 rounded-full">{doctor.specialist}</p>
                                 </div>
 
                                 {/* Bottom Info */}
@@ -138,7 +138,7 @@ const Kiosk = () => {
                                     </div>
 
                                     {isAvailable ? (
-                                        <div className="w-full bg-[#0071E3] text-white py-4 rounded-2xl font-semibold flex items-center justify-center gap-2 group-hover:bg-[#0077ED] transition-colors shadow-lg shadow-blue-500/30">
+                                        <div className="w-full bg-salm-gradient text-white py-4 rounded-2xl font-semibold flex items-center justify-center gap-2 group-hover:opacity-90 transition-all shadow-lg shadow-salm-purple/30">
                                             <span>Ambil Antrian</span>
                                             <ChevronRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
                                         </div>

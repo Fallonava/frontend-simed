@@ -86,7 +86,7 @@ const ScheduleCalendar = () => {
                         className={`
                             px-4 py-2 rounded-xl text-sm font-semibold transition-all whitespace-nowrap
                             ${selectedDay === day.id
-                                ? 'bg-modern-purple text-white shadow-lg shadow-modern-purple/25'
+                                ? 'bg-salm-gradient text-white shadow-lg shadow-salm-purple/25'
                                 : 'bg-modern-bg text-modern-text-secondary hover:bg-white/5 hover:text-modern-text'}
                         `}
                     >
@@ -101,21 +101,21 @@ const ScheduleCalendar = () => {
                 {filteredSchedule.length > 0 ? (
                     filteredSchedule.map((category, idx) => (
                         <div key={idx} className="animate-in fade-in slide-in-from-bottom-4 duration-500" style={{ animationDelay: `${idx * 100}ms` }}>
-                            <h3 className="text-sm font-bold text-modern-purple mb-3 uppercase tracking-wider flex items-center gap-2">
-                                <span className="w-1.5 h-1.5 rounded-full bg-modern-purple"></span>
+                            <h3 className="text-sm font-bold text-salm-purple mb-3 uppercase tracking-wider flex items-center gap-2">
+                                <span className="w-1.5 h-1.5 rounded-full bg-salm-purple"></span>
                                 {category.category}
                             </h3>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                                 {category.doctors.map((doc, docIdx) => (
-                                    <div key={docIdx} className="bg-modern-bg/50 p-4 rounded-xl border border-white/5 hover:border-modern-purple/30 transition-colors group">
+                                    <div key={docIdx} className="bg-modern-bg/50 p-4 rounded-xl border border-white/5 hover:border-salm-purple/30 transition-colors group">
                                         <div className="flex justify-between items-start">
                                             <div>
-                                                <h4 className="font-semibold text-modern-text group-hover:text-modern-purple transition-colors">{doc.name}</h4>
+                                                <h4 className="font-semibold text-modern-text group-hover:text-salm-purple transition-colors">{doc.name}</h4>
                                                 <p className="text-xs text-modern-text-secondary mt-1">{doc.role}</p>
                                             </div>
-                                            <div className="flex items-center gap-1.5 bg-modern-purple/10 px-2.5 py-1 rounded-lg border border-modern-purple/10">
-                                                <Clock className="w-3.5 h-3.5 text-modern-purple" />
-                                                <span className="text-xs font-medium text-modern-purple">{doc.todayTime}</span>
+                                            <div className="flex items-center gap-1.5 bg-salm-purple/10 px-2.5 py-1 rounded-lg border border-salm-purple/10">
+                                                <Clock className="w-3.5 h-3.5 text-salm-purple" />
+                                                <span className="text-xs font-medium text-salm-purple">{doc.todayTime}</span>
                                             </div>
                                         </div>
                                     </div>

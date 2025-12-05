@@ -1,7 +1,7 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import useAuthStore from '../store/useAuthStore';
-import { LayoutDashboard, Users, Database, LogOut, Monitor } from 'lucide-react';
+import { LayoutDashboard, Users, Database, LogOut, Monitor, Calendar } from 'lucide-react';
 
 const MainMenu = () => {
     const { user, logout } = useAuthStore();
@@ -19,7 +19,7 @@ const MainMenu = () => {
             icon: <LayoutDashboard size={40} />,
             path: '/admin/dashboard',
             roles: ['ADMIN'],
-            color: 'bg-blue-600'
+            color: 'bg-salm-blue'
         },
         {
             title: 'Counter Staff',
@@ -27,7 +27,7 @@ const MainMenu = () => {
             icon: <Users size={40} />,
             path: '/admin/counter',
             roles: ['ADMIN', 'STAFF'],
-            color: 'bg-green-600'
+            color: 'bg-salm-light-blue'
         },
         {
             title: 'Master Data',
@@ -35,15 +35,16 @@ const MainMenu = () => {
             icon: <Database size={40} />,
             path: '/admin/master-data',
             roles: ['ADMIN'],
-            color: 'bg-purple-600'
+            color: 'bg-salm-purple'
         },
+
         {
             title: 'Public Display',
             description: 'Open TV Display view',
             icon: <Monitor size={40} />,
             path: '/counter',
             roles: ['ADMIN', 'STAFF'],
-            color: 'bg-orange-600',
+            color: 'bg-salm-pink',
             external: true // Opens in new tab usually, but here just navigate
         },
         {
@@ -52,7 +53,7 @@ const MainMenu = () => {
             icon: <Monitor size={40} />,
             path: '/kiosk',
             roles: ['ADMIN', 'STAFF'],
-            color: 'bg-indigo-600'
+            color: 'bg-salm-gradient'
         }
     ];
 
@@ -64,7 +65,7 @@ const MainMenu = () => {
                 <header className="flex justify-between items-center mb-12">
                     <div>
                         <h1 className="text-3xl font-bold text-gray-800">Main Menu</h1>
-                        <p className="text-gray-500">Welcome back, <span className="font-semibold text-blue-600">{user?.username}</span></p>
+                        <p className="text-gray-500">Welcome back, <span className="font-semibold text-salm-purple">{user?.username}</span></p>
                     </div>
                     <button
                         onClick={handleLogout}

@@ -187,7 +187,7 @@ const MasterData = () => {
             className={`
                 flex items-center gap-2 px-6 py-3 rounded-full font-medium transition-all duration-300
                 ${activeTab === id
-                    ? 'bg-gradient-to-r from-modern-blue to-modern-purple text-white shadow-lg shadow-modern-blue/30 scale-105'
+                    ? 'bg-salm-gradient text-white shadow-lg shadow-salm-purple/30 scale-105'
                     : 'bg-modern-card/50 text-modern-text-secondary hover:bg-modern-card hover:text-white border border-white/5'}
             `}
         >

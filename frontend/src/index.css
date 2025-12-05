@@ -4,74 +4,71 @@
 
 @layer base {
   :root {
-    /* Light Mode (Default) */
-    --modern-bg: 243 244 246;
-    /* gray-100 */
-    --modern-card: 255 255 255;
-    /* white */
-    --modern-text: 31 41 55;
-    /* gray-800 */
-    --modern-text-secondary: 107 114 128;
-    /* gray-500 */
+    /* Dynamic Theme Variables - Controlled by JS */
+    --color-primary: #738fbd;
+    --color-secondary: #cc8eb1;
+    --bg-gradient-start: #738fbd;
+    --bg-gradient-end: #cc8eb1;
 
-    /* Accents - slightly darker for visibility on light */
-    --modern-purple: 147 51 234;
-    /* purple-600 */
-    --modern-blue: 37 99 235;
-    /* blue-600 */
-    --modern-teal: 13 148 136;
-    /* teal-600 */
-    --modern-green: 22 163 74;
-    /* green-600 */
+    /* Base Layout Colors */
+    --theme-bg: #F8F9FD;
+    --theme-card: #FFFFFF;
+    --theme-text: #2D3436;
+    --theme-text-secondary: #A0A0A0;
+    --theme-border: #F3F4F6;
   }
 
   .dark {
-    /* Dark Mode (Original) */
-    --modern-bg: 24 24 36;
-    /* #181824 */
-    --modern-card: 37 37 58;
-    /* #25253A */
-    --modern-text: 255 255 255;
-    /* #FFFFFF */
-    --modern-text-secondary: 160 160 176;
-    /* #A0A0B0 */
+    --theme-bg: #0f172a;
+    --theme-card: #1e293b;
+    --theme-text: #f8fafc;
+    --theme-text-secondary: #94a3b8;
+    --theme-border: #334155;
+  }
 
-    /* Accents (Original Neon) */
-    --modern-purple: 213 0 249;
-    /* #D500F9 */
-    --modern-blue: 41 121 255;
-    /* #2979FF */
-    --modern-teal: 24 255 255;
-    /* #18FFFF */
-    --modern-green: 0 230 118;
-    /* #00E676 */
+  /* Utility class to apply the dynamic gradient or solid color */
+  .bg-custom-theme {
+    background: linear-gradient(135deg, var(--bg-gradient-start) 0%, var(--bg-gradient-end) 100%);
+  }
+
+  /* Fallback for solid mode handled via JS toggling this class or just changing vars */
+  .bg-custom-solid {
+    background: var(--color-primary);
   }
 
   body {
-    @apply bg-modern-bg text-modern-text font-sans antialiased selection:bg-modern-purple/30 selection:text-modern-purple transition-colors duration-300;
+    @apply bg-theme-bg text-theme-text font-sans antialiased transition-colors duration-300;
   }
 }
 
 @layer utilities {
+  .card-soft {
+    @apply bg-white rounded-[24px] shadow-sm border border-gray-100 hover:shadow-md transition-all duration-300;
+  }
+
+  .btn-theme {
+    @apply bg-theme-purple text-white rounded-xl hover:bg-theme-purple-dark transition-colors shadow-lg shadow-theme-purple/20;
+  }
+
   .glass {
-    @apply bg-modern-card/70 backdrop-blur-xl border border-white/10 shadow-lg;
-  }
-
-  .glass-card {
-    @apply bg-modern-card/80 backdrop-blur-md border border-white/5 shadow-lg hover:shadow-modern-purple/20 hover:border-modern-purple/30 transition-all duration-300;
-  }
-
-  .btn-primary {
-    @apply bg-gradient-to-r from-modern-blue to-modern-purple text-white hover:opacity-90 active:scale-95 transition-all duration-200 shadow-lg shadow-modern-blue/20;
-  }
-
-  .btn-secondary {
-    @apply bg-white/5 text-modern-text hover:bg-white/10 active:scale-95 transition-all duration-200 border border-white/10;
+    @apply bg-white/70 backdrop-blur-xl border border-white/20 shadow-lg;
   }
 }
 
 /* Custom Scrollbar */
 ::-webkit-scrollbar {
-  width: 0px;
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
   background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  @apply bg-gray-200 rounded-full;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  @apply bg-gray-300;
 }

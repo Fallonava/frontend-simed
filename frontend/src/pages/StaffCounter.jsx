@@ -25,13 +25,7 @@ const StaffCounter = () => {
     const socketRef = useRef(null);
 
     useEffect(() => {
-        // Load config from localStorage
-        const savedConfig = localStorage.getItem('staffCounterConfig');
-        if (savedConfig) {
-            setConfig(JSON.parse(savedConfig));
-            setIsInitialized(true);
-        }
-
+        // Always fetch initial data
         fetchPolies();
         fetchCounters();
 
@@ -253,7 +247,7 @@ const StaffCounter = () => {
                         </div>
                         <button
                             type="submit"
-                            className="w-full bg-gradient-to-r from-modern-blue to-modern-purple text-white py-3 rounded-xl font-bold hover:opacity-90 transition shadow-lg shadow-modern-blue/20"
+                            className="w-full bg-salm-gradient text-white py-3 rounded-xl font-bold hover:opacity-90 transition shadow-lg shadow-salm-purple/20"
                         >
                             Mulai Bertugas
                         </button>
@@ -355,7 +349,7 @@ const StaffCounter = () => {
                 <div className="flex-1 flex flex-col items-center justify-center">
                     {currentTicket ? (
                         <div className="bg-modern-card rounded-[3rem] shadow-2xl p-12 w-full max-w-2xl text-center border border-white/5 animate-in zoom-in duration-300 relative overflow-hidden">
-                            <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-modern-blue via-modern-purple to-modern-teal"></div>
+                            <div className="absolute top-0 left-0 w-full h-2 bg-salm-gradient"></div>
                             <p className="text-modern-text-secondary font-medium uppercase tracking-widest mb-4">Current Ticket</p>
                             <div className="text-9xl font-black text-modern-blue tracking-tighter mb-6 font-mono drop-shadow-[0_0_15px_rgba(41,121,255,0.3)]">
                                 {currentTicket.queue_code}
@@ -407,7 +401,7 @@ const StaffCounter = () => {
               flex items-center gap-4 px-12 py-6 rounded-3xl font-bold text-2xl shadow-lg transition-all transform hover:scale-105 active:scale-95
               ${loading || currentTicket
                                 ? 'bg-modern-card text-modern-text-secondary cursor-not-allowed border border-white/5'
-                                : 'bg-gradient-to-r from-modern-blue to-modern-purple text-white hover:shadow-modern-blue/40 shadow-modern-blue/20'}
+                                : 'bg-salm-gradient text-white hover:shadow-salm-purple/40 shadow-salm-purple/20'}
             `}
                     >
                         <Bell className="w-8 h-8" />

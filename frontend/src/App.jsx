@@ -9,6 +9,7 @@ import StaffCounter from './pages/StaffCounter';
 import MainMenu from './pages/MainMenu';
 import ProtectedRoute from './components/ProtectedRoute';
 import ThemeToggle from './components/ThemeToggle';
+import DoctorLeaveCalendar from './components/DoctorLeaveCalendar';
 
 function App() {
   return (
@@ -31,6 +32,7 @@ function App() {
         <Route element={<ProtectedRoute allowedRoles={['ADMIN']} />}>
           <Route path="/admin/dashboard" element={<AdminDashboard />} />
           <Route path="/admin/master-data" element={<MasterData />} />
+          <Route path="/admin/leave-calendar" element={<DoctorLeaveCalendar />} />
         </Route>
 
         {/* Staff Routes */}

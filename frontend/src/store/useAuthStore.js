@@ -1,7 +1,5 @@
 import { create } from 'zustand';
-import axios from 'axios';
-
-const API_URL = 'http://localhost:3000/api';
+import api from '../utils/axiosConfig';
 
 const useAuthStore = create((set) => ({
     user: JSON.parse(localStorage.getItem('user')) || null,
@@ -13,7 +11,7 @@ const useAuthStore = create((set) => ({
     login: async (username, password) => {
         set({ isLoading: true, error: null });
         try {
-            const res = await axios.post(`${API_URL}/auth/login`, { username, password });
+            const res = await api.post('/auth/login', { username, password });
             const { token, user } = res.data;
 
             localStorage.setItem('token', token);

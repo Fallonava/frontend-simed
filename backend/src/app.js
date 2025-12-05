@@ -2,7 +2,12 @@ const express = require('express');
 const http = require('http');
 const { Server } = require('socket.io');
 const cors = require('cors');
+const helmet = require('helmet');
+const compression = require('compression');
+const morgan = require('morgan');
 const { PrismaClient } = require('@prisma/client');
+
+// ... Controllers imports ...
 const queueController = require('./controllers/queueController');
 const poliklinikController = require('./controllers/poliklinikController');
 const doctorController = require('./controllers/doctorController');
@@ -15,16 +20,27 @@ require('dotenv').config();
 
 const app = express();
 const server = http.createServer(app);
+
+// Security & Performance Middleware
+app.use(helmet());
+app.use(compression());
+app.use(morgan('dev')); // Log requests
+
+const allowedOrigins = process.env.CORS_ORIGIN ? process.env.CORS_ORIGIN.split(',') : "*";
+
 const io = new Server(server, {
     cors: {
-        origin: "*", // Allow all for now, restrict in production
+        origin: allowedOrigins,
         methods: ["GET", "POST"]
     }
 });
 
 const prisma = new PrismaClient();
 
-app.use(cors());
+app.use(cors({
+    origin: allowedOrigins,
+    credentials: true
+}));
 app.use(express.json());
 
 // Inject io and prisma into req for controllers
@@ -64,6 +80,12 @@ app.get('/api/doctors-master', doctorController.getAll); // Different endpoint t
 app.post('/api/doctors', doctorController.create);
 app.put('/api/doctors/:id', doctorController.update);
 app.delete('/api/doctors/:id', doctorController.delete);
+
+// Doctor Leave Routes
+const doctorLeaveController = require('./controllers/doctorLeaveController');
+app.get('/api/doctor-leaves', doctorLeaveController.getLeaves);
+app.post('/api/doctor-leaves', doctorLeaveController.addLeave);
+app.delete('/api/doctor-leaves/:id', doctorLeaveController.deleteLeave);
 
 app.get('/api/counters', counterController.getAll);
 app.post('/api/counters', counterController.create);

@@ -86,15 +86,29 @@ const initScheduler = (io) => {
                     const hasScheduleToday = doc.schedules.some(s => s.day === dbDay);
 
                     if (hasScheduleToday) {
-                        quota = await prisma.dailyQuota.create({
-                            data: {
-                                doctor_id: doc.id,
-                                date: new Date(new Date().setHours(0, 0, 0, 0)),
-                                max_quota: 30, // Default
-                                status: 'OPEN' // Initialize as OPEN per user request "live buka"
+                        // CHECK FOR LEAVE
+                        const isOnLeave = await prisma.doctorLeave.findUnique({
+                            where: {
+                                doctor_id_date: {
+                                    doctor_id: doc.id,
+                                    date: new Date(new Date().setHours(0, 0, 0, 0))
+                                }
                             }
                         });
-                        console.log(`[Scheduler] Created quota for ${doc.name}`);
+
+                        if (!isOnLeave) {
+                            quota = await prisma.dailyQuota.create({
+                                data: {
+                                    doctor_id: doc.id,
+                                    date: new Date(new Date().setHours(0, 0, 0, 0)),
+                                    max_quota: 30, // Default
+                                    status: 'OPEN' // Initialize as OPEN per user request "live buka"
+                                }
+                            });
+                            console.log(`[Scheduler] Created quota for ${doc.name}`);
+                        } else {
+                            console.log(`[Scheduler] Skipped quota for ${doc.name} (On Leave)`);
+                        }
                     }
                 }
 
@@ -111,7 +125,17 @@ const initScheduler = (io) => {
                         // We will enforce OPEN if currently CLOSED. 
                         // We respect BREAK if manually set.
 
-                        if (quota.status === 'CLOSED') {
+                        // CHECK FOR LEAVE AGAIN (in case it was added later)
+                        const isOnLeave = await prisma.doctorLeave.findUnique({
+                            where: {
+                                doctor_id_date: {
+                                    doctor_id: doc.id,
+                                    date: new Date(new Date().setHours(0, 0, 0, 0))
+                                }
+                            }
+                        });
+
+                        if (!isOnLeave && quota.status === 'CLOSED') {
                             const updated = await prisma.dailyQuota.update({
                                 where: { id: quota.id },
                                 data: { status: 'OPEN' },
@@ -120,6 +144,15 @@ const initScheduler = (io) => {
 
                             io.emit('status_update', updated);
                             console.log(`[Scheduler] Updated ${doc.name} to OPEN (Day Match)`);
+                        } else if (isOnLeave && quota.status !== 'CLOSED') {
+                            // Force close if on leave
+                            const updated = await prisma.dailyQuota.update({
+                                where: { id: quota.id },
+                                data: { status: 'CLOSED' },
+                                include: { doctor: true }
+                            });
+                            io.emit('status_update', updated);
+                            console.log(`[Scheduler] Updated ${doc.name} to CLOSED (On Leave)`);
                         }
                     }
                 }
