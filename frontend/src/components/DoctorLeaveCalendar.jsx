@@ -1,14 +1,34 @@
 import React, { useState, useEffect } from 'react';
-import { ChevronLeft, ChevronRight, Search, Plus, MoreHorizontal, Clock, Calendar as CalendarIcon, X, Check, Trash2, User } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Search, Plus, MoreHorizontal, Clock, Calendar as CalendarIcon, X, Check, Trash2, User, Briefcase, Coffee } from 'lucide-react';
 import axios from 'axios';
 import toast from 'react-hot-toast';
 
 const DoctorLeaveCalendar = () => {
     // --- State ---
     const [currentDate, setCurrentDate] = useState(new Date());
+    const [view, setView] = useState('month'); // 'month', 'week', 'day'
+    const [searchQuery, setSearchQuery] = useState('');
     const [doctors, setDoctors] = useState([]);
     const [selectedDoctor, setSelectedDoctor] = useState(null);
     const [leaves, setLeaves] = useState([]);
+
+    // Derived state for filtered doctors
+    const filteredDoctors = React.useMemo(() => {
+        let result = doctors;
+
+        // Filter by Search
+        if (searchQuery) {
+            result = result.filter(doc => doc.name.toLowerCase().includes(searchQuery.toLowerCase()));
+        }
+
+        // Filter by Day Schedule (only in Day View)
+        if (view === 'day') {
+            const dayOfWeek = currentDate.getDay(); // 0 = Sun, 1 = Mon...
+            const dbDay = dayOfWeek === 0 ? 7 : dayOfWeek; // Convert to database format (1-7, Sun=7)
+            result = result.filter(doc => doc.schedules?.some(s => s.day === dbDay));
+        }
+        return result;
+    }, [doctors, view, currentDate, searchQuery]);
 
     // Modal State
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -18,6 +38,18 @@ const DoctorLeaveCalendar = () => {
     useEffect(() => {
         fetchDoctors();
     }, []);
+
+    // Auto-select first doctor from filtered list if current selection is invalid
+    useEffect(() => {
+        if (filteredDoctors.length > 0) {
+            // If no doctor selected or selected doctor is not in current list
+            if (!selectedDoctor || !filteredDoctors.find(d => d.id === selectedDoctor.id)) {
+                setSelectedDoctor(filteredDoctors[0]);
+            }
+        } else {
+            setSelectedDoctor(null);
+        }
+    }, [filteredDoctors, selectedDoctor]);
 
     useEffect(() => {
         if (selectedDoctor) {
@@ -32,9 +64,10 @@ const DoctorLeaveCalendar = () => {
         try {
             const res = await axios.get('http://localhost:3000/api/doctors-master');
             setDoctors(res.data);
-            if (res.data.length > 0) {
-                setSelectedDoctor(res.data[0]);
-            }
+            // Initial selection handled by effect
+            // if (res.data.length > 0) {
+            //     setSelectedDoctor(res.data[0]);
+            // }
         } catch (error) {
             console.error('Failed to fetch doctors', error);
             toast.error('Gagal memuat data dokter');
@@ -96,8 +129,29 @@ const DoctorLeaveCalendar = () => {
     const getDaysInMonth = (date) => new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate();
     const getFirstDayOfMonth = (date) => new Date(date.getFullYear(), date.getMonth(), 1).getDay(); // 0=Sun
 
-    const changeMonth = (offset) => {
-        setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + offset, 1));
+    const getStartOfWeek = (date) => {
+        const d = new Date(date);
+        const day = d.getDay();
+        const diff = d.getDate() - day + (day === 0 ? -6 : 1); // Adjust to Monday start
+        return new Date(d.setDate(diff));
+    };
+
+    const navigateDate = (direction) => {
+        const newDate = new Date(currentDate);
+        if (view === 'month') {
+            newDate.setMonth(newDate.getMonth() + direction);
+        } else if (view === 'week') {
+            newDate.setDate(newDate.getDate() + (direction * 7));
+        } else if (view === 'day') {
+            newDate.setDate(newDate.getDate() + direction);
+        }
+        setCurrentDate(newDate);
+    };
+
+    const changeMiniCalendarMonth = (offset) => {
+        const newDate = new Date(currentDate);
+        newDate.setMonth(newDate.getMonth() + offset);
+        setCurrentDate(newDate);
     };
 
     const isSameDay = (d1, d2) => {
@@ -124,7 +178,7 @@ const DoctorLeaveCalendar = () => {
     };
 
     // --- Renderers ---
-    const renderCalendarGrid = () => {
+    const renderMonthView = () => {
         const daysInMonth = getDaysInMonth(currentDate);
         const firstDay = getFirstDayOfMonth(currentDate);
         const days = [];
@@ -146,12 +200,17 @@ const DoctorLeaveCalendar = () => {
                     key={day}
                     onClick={() => handleDateClick(day)}
                     className={`
-                        min-h-[120px] p-3 border border-gray-100 relative group transition-all hover:bg-gray-50 cursor-pointer
-                        ${isToday ? 'bg-salm-light-blue/20' : 'bg-white'}
+                        min-h-[120px] p-3 border relative group transition-all hover:bg-gray-50 cursor-pointer
+                        ${isToday
+                            ? 'bg-white ring-2 ring-salm-blue ring-offset-2 border-transparent z-10 shadow-lg shadow-salm-blue/10 rounded-2xl'
+                            : 'bg-white border-gray-100'}
                     `}
                 >
                     <div className="flex justify-between items-center mb-2">
-                        <span className={`text-sm font-semibold ${isToday ? 'text-salm-blue w-7 h-7 flex items-center justify-center bg-salm-light-blue/30 rounded-full' : 'text-gray-700'}`}>
+                        <span className={`text-sm font-semibold transition-all ${isToday
+                            ? 'bg-salm-blue text-white w-8 h-8 flex items-center justify-center rounded-full shadow-lg shadow-salm-blue/30 scale-110'
+                            : 'text-gray-700'
+                            }`}>
                             {day}
                         </span>
                     </div>
@@ -178,19 +237,211 @@ const DoctorLeaveCalendar = () => {
         return days;
     };
 
+    const renderWeekView = () => {
+        const startOfWeek = getStartOfWeek(currentDate);
+        const days = [];
+
+        // Helper to get schedule for a specific day using DB convention (1-7, Sun=7)
+        const getScheduleForDay = (date) => {
+            if (!selectedDoctor?.schedules) return null;
+            const dayIndex = date.getDay(); // 0-6
+            const dbDay = dayIndex === 0 ? 7 : dayIndex;
+            return selectedDoctor.schedules.find(s => s.day === dbDay);
+        };
+
+        for (let i = 0; i < 7; i++) {
+            const dayDate = new Date(startOfWeek);
+            dayDate.setDate(startOfWeek.getDate() + i);
+            const isToday = isSameDay(new Date(), dayDate);
+            const dayLeaves = leaves.filter(l => isSameDay(new Date(l.date), dayDate));
+            const schedule = getScheduleForDay(dayDate);
+            const isWorkingDay = !!schedule;
+
+            days.push(
+                <div
+                    key={i}
+                    onClick={() => handleDateClick(dayDate.getDate())}
+                    className={`
+                        min-h-[240px] border-r border-gray-100 p-4 relative group transition-all duration-300 flex flex-col
+                        hover:bg-gray-50/80 cursor-pointer
+                        ${isToday ? 'bg-salm-light-blue/5' : ''}
+                    `}
+                >
+                    {/* Date Header */}
+                    <div className="text-center mb-6 z-10">
+                        <div className={`text-xs font-bold uppercase tracking-wider mb-2 ${isToday ? 'text-salm-blue' : 'text-gray-400'}`}>
+                            {dayDate.toLocaleString('default', { weekday: 'short' })}
+                        </div>
+                        <div className={`
+                            w-10 h-10 mx-auto flex items-center justify-center rounded-full text-lg font-bold transition-all
+                            ${isToday
+                                ? 'bg-salm-blue text-white shadow-lg shadow-salm-blue/30 scale-110'
+                                : 'text-gray-700 group-hover:bg-white group-hover:shadow-md'}
+                        `}>
+                            {dayDate.getDate()}
+                        </div>
+                    </div>
+
+                    {/* Content Container */}
+                    <div className="flex-1 flex flex-col gap-3 relative">
+
+                        {/* 1. Schedule Card (Base Layer) */}
+                        <div className={`
+                            p-3 rounded-xl border flex flex-col gap-1 transition-all
+                            ${isWorkingDay
+                                ? 'bg-white border-gray-100 shadow-sm opacity-100'
+                                : 'bg-gray-50 border-transparent opacity-60'}
+                        `}>
+                            <div className="flex items-center gap-1.5 min-w-0">
+                                {isWorkingDay ? (
+                                    <>
+                                        <Briefcase className="w-3 h-3 text-salm-purple shrink-0" />
+                                        <span className="text-[10px] font-bold text-salm-purple uppercase tracking-tight">Praktek</span>
+                                    </>
+                                ) : (
+                                    <>
+                                        <Coffee className="w-3 h-3 text-gray-400 shrink-0" />
+                                        <span className="text-[10px] font-bold text-gray-400 uppercase tracking-tight">Libur</span>
+                                    </>
+                                )}
+                            </div>
+                            <div className={`text-xs font-semibold truncate ${isWorkingDay ? 'text-gray-700' : 'text-gray-400'}`}>
+                                {isWorkingDay ? schedule.time : 'Tidak ada jadwal'}
+                            </div>
+                        </div>
+
+                        {/* 2. Leave Overlay (Top Layer) */}
+                        {dayLeaves.map((leave, idx) => (
+                            <div
+                                key={idx}
+                                className="
+                                    absolute inset-x-0 -top-1 -bottom-1 z-20 
+                                    bg-salm-light-pink/90 backdrop-blur-sm border border-salm-light-pink 
+                                    p-3 rounded-xl shadow-md flex flex-col justify-center gap-1
+                                    animate-in fade-in slide-in-from-bottom-2 duration-300
+                                "
+                            >
+                                <div className="flex items-center gap-1.5 text-salm-pink font-bold">
+                                    <div className="w-1.5 h-1.5 rounded-full bg-salm-pink animate-pulse" />
+                                    <span className="text-[10px] uppercase tracking-wider">Sedang Cuti</span>
+                                </div>
+                                <div className="text-xs font-medium text-salm-pink/90 line-clamp-2 leading-relaxed">
+                                    "{leave.reason || 'Izin Cuti'}"
+                                </div>
+                            </div>
+                        ))}
+
+                        {/* Hover Add Button (Only if no leave) */}
+                        {dayLeaves.length === 0 && (
+                            <div className="absolute inset-x-0 bottom-0 top-auto flex justify-center py-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                                <div className="bg-salm-gradient text-white p-1.5 rounded-full shadow-lg transform translate-y-2 group-hover:translate-y-0 transition-transform">
+                                    <Plus className="w-4 h-4" />
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                </div>
+            )
+        }
+        return (
+            <div className="h-full flex flex-col">
+                <div className="grid grid-cols-7 border-b border-gray-100 flex-1">{days}</div>
+            </div>
+        );
+    };
+
+
+    const renderDayView = () => {
+        const isToday = isSameDay(new Date(), currentDate);
+        const dayLeaves = leaves.filter(l => isSameDay(new Date(l.date), currentDate));
+
+        return (
+            <div className="h-full p-6">
+                <div className={`p-6 border border-gray-100 rounded-2xl h-full flex flex-col ${isToday ? 'bg-salm-light-blue/10' : 'bg-white'}`}>
+                    <div className="flex items-center gap-4 mb-6">
+                        <div className={`text-4xl font-bold ${isToday ? 'text-salm-blue' : 'text-gray-900'}`}>{currentDate.getDate()}</div>
+                        <div>
+                            <div className="text-lg font-bold text-gray-700">{currentDate.toLocaleString('default', { weekday: 'long' })}</div>
+                            <div className="text-sm text-gray-500">{currentDate.toLocaleString('default', { month: 'long', year: 'numeric' })}</div>
+                        </div>
+                    </div>
+
+                    <div className="flex-1 space-y-3">
+                        {dayLeaves.length > 0 ? dayLeaves.map((leave, idx) => (
+                            <div key={idx} className="bg-salm-light-pink/30 border border-salm-light-pink p-4 rounded-2xl shadow-sm flex items-start gap-4">
+                                <div className="w-12 h-12 rounded-full bg-salm-pink/20 flex items-center justify-center shrink-0">
+                                    <CalendarIcon className="w-6 h-6 text-salm-pink" />
+                                </div>
+                                <div>
+                                    <div className="font-bold text-salm-pink text-lg">On Leave</div>
+                                    <div className="text-salm-pink/80">{leave.reason || 'No specific reason'}</div>
+                                </div>
+                            </div>
+                        )) : (
+                            <div className="h-full flex flex-col items-center justify-center text-gray-400">
+                                <CalendarIcon className="w-12 h-12 mb-3 opacity-20" />
+                                <p>No leaves scheduled for this day</p>
+                                <button onClick={() => setModalData({ date: currentDate, existingLeave: null, reason: '' }) || setIsModalOpen(true)} className="mt-4 text-salm-blue font-semibold hover:underline">Add Schedule</button>
+                            </div>
+                        )}
+                    </div>
+                </div>
+            </div>
+        );
+    };
+
+    const renderMiniCalendar = () => {
+        const daysInMonth = getDaysInMonth(currentDate);
+        const firstDay = getFirstDayOfMonth(currentDate);
+        const days = [];
+
+        // Empty slots
+        for (let i = 0; i < firstDay; i++) {
+            days.push(<div key={`empty-mini-${i}`} className="w-full aspect-square"></div>);
+        }
+
+        // Days
+        for (let day = 1; day <= daysInMonth; day++) {
+            const dayDate = new Date(currentDate.getFullYear(), currentDate.getMonth(), day);
+            const isSelected = isSameDay(currentDate, dayDate);
+            const isToday = isSameDay(new Date(), dayDate);
+
+            days.push(
+                <div
+                    key={`mini-${day}`}
+                    onClick={() => setCurrentDate(dayDate)}
+                    className={`
+                        w-full aspect-square flex items-center justify-center rounded-full cursor-pointer text-xs font-medium transition-all
+                        ${isSelected
+                            ? 'bg-salm-gradient text-white shadow-md shadow-salm-purple/30'
+                            : isToday
+                                ? 'bg-salm-light-blue/20 text-salm-blue font-bold'
+                                : 'text-gray-600 hover:bg-gray-100'
+                        }
+                    `}
+                >
+                    {day}
+                </div>
+            );
+        }
+        return days;
+    };
+
     return (
         <div className="w-full h-full flex flex-col lg:flex-row gap-8 relative z-10 pb-6 text-gray-800 font-sans">
 
             {/* --- Left Sidebar --- */}
             <div className="w-full lg:w-[320px] flex flex-col gap-6 shrink-0">
 
-                {/* Search / Filter Header (Mockup) */}
+                {/* Search / Filter Header */}
                 <div className="flex items-center gap-3">
                     <div className="relative flex-1">
                         <Search className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
                         <input
                             type="text"
                             placeholder="Filter"
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
                             className="w-full pl-9 pr-4 py-2 bg-white border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-salm-purple transition-colors"
                         />
                     </div>
@@ -201,18 +452,14 @@ const DoctorLeaveCalendar = () => {
                     <div className="flex items-center justify-between mb-4">
                         <h3 className="font-bold text-gray-800">{currentDate.toLocaleString('default', { month: 'long', year: 'numeric' })}</h3>
                         <div className="flex gap-1">
-                            <button onClick={() => changeMonth(-1)} className="p-1 hover:bg-gray-100 rounded-full"><ChevronLeft className="w-4 h-4 text-gray-500" /></button>
-                            <button onClick={() => changeMonth(1)} className="p-1 hover:bg-gray-100 rounded-full"><ChevronRight className="w-4 h-4 text-gray-500" /></button>
+                            <button onClick={() => changeMiniCalendarMonth(-1)} className="p-1 hover:bg-gray-100 rounded-full"><ChevronLeft className="w-4 h-4 text-gray-500" /></button>
+                            <button onClick={() => changeMiniCalendarMonth(1)} className="p-1 hover:bg-gray-100 rounded-full"><ChevronRight className="w-4 h-4 text-gray-500" /></button>
                         </div>
                     </div>
-                    {/* Simplified Mini Grid just for visualization */}
+
                     <div className="grid grid-cols-7 text-center text-xs gap-y-3">
                         {['Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa', 'Su'].map(d => <span key={d} className="text-gray-400 font-medium">{d}</span>)}
-                        {Array.from({ length: 35 }).map((_, i) => (
-                            <div key={i} className={`w-full aspect-square flex items-center justify-center rounded-full hover:bg-salm-light-blue/20 cursor-pointer ${i === 12 ? 'bg-salm-gradient text-white shadow-md shadow-salm-purple/30' : 'text-gray-600'}`}>
-                                {(i % 30) + 1}
-                            </div>
-                        ))}
+                        {renderMiniCalendar()}
                     </div>
                 </div>
 
@@ -223,7 +470,11 @@ const DoctorLeaveCalendar = () => {
                         <button className="text-gray-400 hover:text-gray-600"><MoreHorizontal className="w-4 h-4" /></button>
                     </div>
                     <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar space-y-3">
-                        {doctors.map(doc => (
+                        {filteredDoctors.length === 0 ? (
+                            <div className="text-center text-gray-400 py-8 text-sm">
+                                No doctors scheduled for this day
+                            </div>
+                        ) : filteredDoctors.map(doc => (
                             <div
                                 key={doc.id}
                                 onClick={() => setSelectedDoctor(doc)}
@@ -258,38 +509,46 @@ const DoctorLeaveCalendar = () => {
                             {currentDate.toLocaleString('default', { month: 'long', year: 'numeric' })}
                         </h2>
                         <div className="flex items-center gap-2 bg-gray-100 rounded-full p-1 pl-4">
-                            <span className="text-xs font-semibold text-gray-500">Today</span>
+                            <span className="text-xs font-semibold text-gray-500">
+                                {view === 'day' ? 'Today' : view === 'week' ? 'This Week' : 'This Month'}
+                            </span>
                             <div className="flex">
-                                <button onClick={() => changeMonth(-1)} className="w-8 h-8 flex items-center justify-center bg-white rounded-full shadow-sm hover:scale-105 transition-transform"><ChevronLeft className="w-4 h-4" /></button>
-                                <button onClick={() => changeMonth(1)} className="w-8 h-8 flex items-center justify-center bg-white rounded-full shadow-sm ml-1 hover:scale-105 transition-transform"><ChevronRight className="w-4 h-4" /></button>
+                                <button onClick={() => navigateDate(-1)} className="w-8 h-8 flex items-center justify-center bg-white rounded-full shadow-sm hover:scale-105 transition-transform"><ChevronLeft className="w-4 h-4" /></button>
+                                <button onClick={() => navigateDate(1)} className="w-8 h-8 flex items-center justify-center bg-white rounded-full shadow-sm ml-1 hover:scale-105 transition-transform"><ChevronRight className="w-4 h-4" /></button>
                             </div>
                         </div>
                     </div>
 
                     <div className="flex gap-4">
-                        <button className="px-5 py-2.5 rounded-xl text-sm font-semibold text-gray-500 hover:bg-gray-50">Month</button>
-                        <button className="px-5 py-2.5 rounded-xl text-sm font-semibold text-gray-500 hover:bg-gray-50">Week</button>
-                        <button className="px-5 py-2.5 rounded-xl text-sm font-semibold text-gray-500 hover:bg-gray-50">Day</button>
+                        <button onClick={() => setView('month')} className={`px-5 py-2.5 rounded-xl text-sm font-semibold transition-colors ${view === 'month' ? 'bg-gray-100 text-gray-900' : 'text-gray-500 hover:bg-gray-50'}`}>Month</button>
+                        <button onClick={() => setView('week')} className={`px-5 py-2.5 rounded-xl text-sm font-semibold transition-colors ${view === 'week' ? 'bg-gray-100 text-gray-900' : 'text-gray-500 hover:bg-gray-50'}`}>Week</button>
+                        <button onClick={() => setView('day')} className={`px-5 py-2.5 rounded-xl text-sm font-semibold transition-colors ${view === 'day' ? 'bg-gray-100 text-gray-900' : 'text-gray-500 hover:bg-gray-50'}`}>Day</button>
                         <button className="bg-salm-gradient text-white px-6 py-2.5 rounded-xl text-sm font-semibold shadow-lg shadow-salm-purple/30 hover:opacity-90 transition-colors flex items-center gap-2">
                             <Plus className="w-4 h-4" /> Add Schedule
                         </button>
                     </div>
                 </div>
 
-                {/* Weekday Header */}
-                <div className="grid grid-cols-7 border-b border-gray-100 pb-4 mb-4 shrink-0">
-                    {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map(day => (
-                        <div key={day} className="px-3">
-                            <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">{day}</span>
-                        </div>
-                    ))}
-                </div>
+                {/* Weekday Header - Only show for Month View */}
+                {view === 'month' && (
+                    <div className="grid grid-cols-7 border-b border-gray-100 pb-4 mb-4 shrink-0">
+                        {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map(day => (
+                            <div key={day} className="px-3">
+                                <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">{day}</span>
+                            </div>
+                        ))}
+                    </div>
+                )}
 
                 {/* Calendar Grid */}
                 <div className="flex-1 overflow-y-auto custom-scrollbar">
-                    <div className="grid grid-cols-7 auto-rows-fr">
-                        {renderCalendarGrid()}
-                    </div>
+                    {view === 'month' && (
+                        <div className="grid grid-cols-7 auto-rows-fr">
+                            {renderMonthView()}
+                        </div>
+                    )}
+                    {view === 'week' && renderWeekView()}
+                    {view === 'day' && renderDayView()}
                 </div>
             </div>
 

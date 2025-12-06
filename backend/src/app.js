@@ -26,7 +26,7 @@ app.use(helmet());
 app.use(compression());
 app.use(morgan('dev')); // Log requests
 
-const allowedOrigins = process.env.CORS_ORIGIN ? process.env.CORS_ORIGIN.split(',') : "*";
+const allowedOrigins = process.env.CORS_ORIGIN ? process.env.CORS_ORIGIN.split(',') : ["http://localhost:5173", "http://127.0.0.1:5173"];
 
 const io = new Server(server, {
     cors: {

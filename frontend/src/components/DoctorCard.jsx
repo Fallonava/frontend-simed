@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { User, Users, MoreHorizontal, Edit2, Check, X } from 'lucide-react';
+import { Users, MoreHorizontal, Edit2, Check, X } from 'lucide-react';
 import useQueueStore from '../store/useQueueStore';
 
 const DoctorCard = ({ doctor }) => {
@@ -26,7 +26,7 @@ const DoctorCard = ({ doctor }) => {
     };
 
     return (
-        <div className="glass-card rounded-3xl p-6 flex flex-col h-full relative overflow-hidden group">
+        <div className="glass-card rounded-[2rem] p-6 flex flex-col h-full relative overflow-hidden group shadow-[0_8px_32px_0_rgba(31,38,135,0.07)] hover:shadow-[0_8px_32px_0_rgba(31,38,135,0.15)] backdrop-blur-xl border border-white/20 transition-all duration-500">
             {/* Background decoration */}
             <div className={`absolute top-0 right-0 w-32 h-32 ${currentStatus.bg} rounded-full blur-3xl -mr-16 -mt-16 transition-colors duration-500 opacity-50`}></div>
 
@@ -34,10 +34,12 @@ const DoctorCard = ({ doctor }) => {
                 <div className="flex items-start justify-between mb-6">
                     <div className="flex items-center gap-4">
                         <div className="w-14 h-14 rounded-2xl bg-modern-bg flex items-center justify-center overflow-hidden shadow-inner shrink-0 border border-white/5">
-                            {doctor.photo_url ? (
+                            {doctor.photo_url && !doctor.photo_url.includes('via.placeholder') ? (
                                 <img src={doctor.photo_url} alt={doctor.name} className="w-full h-full object-cover" />
                             ) : (
-                                <User className="w-6 h-6 text-modern-text-secondary" />
+                                <span className="material-symbols-outlined text-3xl text-modern-text-secondary">
+                                    account_circle
+                                </span>
                             )}
                         </div>
                         <div>

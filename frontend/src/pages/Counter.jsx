@@ -189,7 +189,7 @@ const Counter = () => {
                             {/* Status Badge */}
                             <div className="flex justify-between items-start">
                                 <div className="bg-modern-blue/10 text-modern-blue px-8 py-3 rounded-full text-2xl font-bold tracking-wide border border-modern-blue/20">
-                                    {mainCounter.name}
+                                    {mainCounter.name.toString().match(/^loket/i) ? mainCounter.name : `Loket ${mainCounter.name}`}
                                 </div>
                                 {mainCounter.status === 'BUSY' && (
                                     <motion.div
