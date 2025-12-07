@@ -4,8 +4,8 @@ import { io } from 'socket.io-client';
 import { Monitor, Volume2, Clock, History } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
-const API_URL = 'http://localhost:3000/api';
-const SOCKET_URL = 'http://localhost:3000';
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
+const SOCKET_URL = import.meta.env.VITE_SOCKET_URL || 'http://localhost:3000';
 
 const Counter = () => {
     const [counters, setCounters] = useState({});

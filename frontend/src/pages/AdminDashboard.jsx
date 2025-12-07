@@ -21,7 +21,7 @@ const AdminDashboard = () => {
 
     const fetchAnalytics = async () => {
         try {
-            const res = await axios.get('http://localhost:3000/api/analytics/daily');
+            const res = await axios.get(`${import.meta.env.VITE_API_URL || 'http://localhost:3000/api'}/analytics/daily`);
             setAnalytics(res.data);
         } catch (error) {
             console.error('Failed to fetch analytics', error);

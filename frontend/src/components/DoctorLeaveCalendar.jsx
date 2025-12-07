@@ -62,7 +62,7 @@ const DoctorLeaveCalendar = () => {
     // --- API Calls ---
     const fetchDoctors = async () => {
         try {
-            const res = await axios.get('http://localhost:3000/api/doctors-master');
+            const res = await axios.get(`${import.meta.env.VITE_API_URL || 'http://localhost:3000/api'}/doctors-master`);
             setDoctors(res.data);
             // Initial selection handled by effect
             // if (res.data.length > 0) {
@@ -76,7 +76,7 @@ const DoctorLeaveCalendar = () => {
 
     const fetchLeaves = async (doctorId) => {
         try {
-            const res = await axios.get(`http://localhost:3000/api/doctor-leaves?doctor_id=${doctorId}`);
+            const res = await axios.get(`${import.meta.env.VITE_API_URL || 'http://localhost:3000/api'}/doctor-leaves?doctor_id=${doctorId}`);
             setLeaves(res.data);
         } catch (error) {
             console.error('Failed to fetch leaves', error);
@@ -96,7 +96,7 @@ const DoctorLeaveCalendar = () => {
                 toast('Use the delete button to remove leave.');
             } else {
                 // Create
-                await axios.post('http://localhost:3000/api/doctor-leaves', {
+                await axios.post(`${import.meta.env.VITE_API_URL || 'http://localhost:3000/api'}/doctor-leaves`, {
                     doctor_id: selectedDoctor.id,
                     date: modalData.date,
                     reason: modalData.reason || 'Manual Leave'
@@ -116,7 +116,7 @@ const DoctorLeaveCalendar = () => {
         if (!window.confirm('Are you sure you want to delete this leave?')) return;
 
         try {
-            await axios.delete(`http://localhost:3000/api/doctor-leaves/${modalData.existingLeave.id}`);
+            await axios.delete(`${import.meta.env.VITE_API_URL || 'http://localhost:3000/api'}/doctor-leaves/${modalData.existingLeave.id}`);
             toast.success('Cuti dihapus');
             fetchLeaves(selectedDoctor.id);
             setIsModalOpen(false);

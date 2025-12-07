@@ -4,8 +4,8 @@ import { io } from 'socket.io-client';
 import { Toaster, toast } from 'react-hot-toast';
 import { Mic, Bell, CheckCircle, Users, LogOut, Volume2 } from 'lucide-react';
 
-const API_URL = 'http://localhost:3000/api';
-const SOCKET_URL = 'http://localhost:3000';
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
+const SOCKET_URL = import.meta.env.VITE_SOCKET_URL || 'http://localhost:3000';
 const CHIME_URL = '/airport-chime.mp3';
 
 const StaffCounter = () => {
