@@ -29,6 +29,27 @@ const StaffCounter = () => {
     const chimeRef = useRef(new Audio(CHIME_URL));
     const socketRef = useRef(null);
 
+    // --- FETCH FUNCTIONS ---
+    const fetchPolies = async () => { try { const res = await axios.get(`${API_URL}/polies`); setPolies(res.data); } catch (error) { } };
+    const fetchCounters = async () => { try { const res = await axios.get(`${API_URL}/counters`); setCounters(res.data); } catch (error) { } };
+
+    // Wrapped in useCallback to handle dependencies correctly
+    const fetchWaitingList = React.useCallback(async () => {
+        if (!config.poliId) return;
+        try {
+            const res = await axios.get(`${API_URL}/queues/waiting`, { params: { poli_id: config.poliId } });
+            setWaitingList(res.data);
+        } catch (error) { }
+    }, [config.poliId]);
+
+    const fetchSkippedList = React.useCallback(async () => {
+        if (!config.poliId) return;
+        try {
+            const res = await axios.get(`${API_URL}/queues/skipped`, { params: { poli_id: config.poliId } });
+            setSkippedList(res.data);
+        } catch (error) { }
+    }, [config.poliId]);
+
     // --- LOAD VOICES & DATA ---
     useEffect(() => {
         const loadVoices = () => {
@@ -54,10 +75,7 @@ const StaffCounter = () => {
         fetchCounters();
 
         socketRef.current = io(SOCKET_URL);
-        socketRef.current.on('queue_update', () => {
-            fetchWaitingList();
-            fetchSkippedList();
-        });
+        // Listener moved to separate useEffect
 
         const savedConfig = localStorage.getItem('staffCounterConfig');
         if (savedConfig) {
@@ -85,10 +103,23 @@ const StaffCounter = () => {
         }
     }, [isInitialized, config.poliId]);
 
-    const fetchPolies = async () => { try { const res = await axios.get(`${API_URL}/polies`); setPolies(res.data); } catch (error) { } };
-    const fetchCounters = async () => { try { const res = await axios.get(`${API_URL}/counters`); setCounters(res.data); } catch (error) { } };
-    const fetchWaitingList = async () => { if (!config.poliId) return; try { const res = await axios.get(`${API_URL}/queues/waiting`, { params: { poli_id: config.poliId } }); setWaitingList(res.data); } catch (error) { } };
-    const fetchSkippedList = async () => { if (!config.poliId) return; try { const res = await axios.get(`${API_URL}/queues/skipped`, { params: { poli_id: config.poliId } }); setSkippedList(res.data); } catch (error) { } };
+    // --- SOCKET LISTENER ---
+    // Re-bind listener when dependencies (config/fetch functions) change
+    useEffect(() => {
+        if (!socketRef.current) return;
+
+        const handleUpdate = () => {
+            fetchWaitingList();
+            fetchSkippedList();
+        };
+
+        socketRef.current.on('queue_update', handleUpdate);
+        return () => {
+            socketRef.current.off('queue_update', handleUpdate);
+        };
+    }, [fetchWaitingList, fetchSkippedList]);
+
+
 
     const handleInitSubmit = (e) => {
         e.preventDefault();
