@@ -38,7 +38,9 @@ app.get('/', (req, res) => {
     res.json({ message: "Hospital API is running", status: "OK", timestamp: new Date() });
 });
 
-const allowedOrigins = process.env.CORS_ORIGIN ? process.env.CORS_ORIGIN.split(',') : ["http://localhost:5173", "http://127.0.0.1:5173", "https://frontend-simed.vercel.app"];
+const defaultOrigins = ["http://localhost:5173", "http://127.0.0.1:5173", "https://frontend-simed.vercel.app"];
+const envOrigins = process.env.CORS_ORIGIN ? process.env.CORS_ORIGIN.split(',') : [];
+const allowedOrigins = [...new Set([...defaultOrigins, ...envOrigins])];
 
 const io = new Server(server, {
     cors: {
