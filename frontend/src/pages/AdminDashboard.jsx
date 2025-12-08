@@ -57,6 +57,12 @@ const AdminDashboard = () => {
         setActiveTab(id);
     };
 
+    const isSameDay = (d1, d2) => {
+        return d1.getDate() === d2.getDate() &&
+            d1.getMonth() === d2.getMonth() &&
+            d1.getFullYear() === d2.getFullYear();
+    };
+
     return (
         <div className="min-h-screen bg-theme-bg flex font-sans text-theme-text">
             {/* Sidebar */}
