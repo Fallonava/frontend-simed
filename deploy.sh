@@ -14,7 +14,7 @@ echo "========================================"
 
 # Step 1: Push changes
 echo "[1/4] Pushing local changes to GitHub..."
-git push
+# git push
 if [ $? -ne 0 ]; then
     echo "ERROR: Git push failed. Please authenticate and run again."
     exit 1
