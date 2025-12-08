@@ -22,9 +22,21 @@ const app = express();
 const server = http.createServer(app);
 
 // Security & Performance Middleware
-app.use(helmet());
+app.use(helmet({
+    contentSecurityPolicy: {
+        directives: {
+            defaultSrc: ["'self'"],
+            scriptSrc: ["'self'", "https://static.cloudflareinsights.com"],
+            connectSrc: ["'self'", "https://cloudflareinsights.com"],
+        },
+    },
+}));
 app.use(compression());
 app.use(morgan('dev')); // Log requests
+
+app.get('/', (req, res) => {
+    res.json({ message: "Hospital API is running", status: "OK", timestamp: new Date() });
+});
 
 const allowedOrigins = process.env.CORS_ORIGIN ? process.env.CORS_ORIGIN.split(',') : ["http://localhost:5173", "http://127.0.0.1:5173"];
 
