@@ -8,8 +8,16 @@ export const injectStore = (_store) => {
     store = _store;
 };
 
+const getBaseUrl = () => {
+    const url = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
+    // Ensure URL ends with /api
+    if (url.endsWith('/api')) return url;
+    // Remove trailing slash if present and add /api
+    return `${url.replace(/\/$/, '')}/api`;
+};
+
 const api = axios.create({
-    baseURL: import.meta.env.VITE_API_URL || 'http://localhost:3000/api',
+    baseURL: getBaseUrl(),
     headers: {
         'Content-Type': 'application/json'
     }
