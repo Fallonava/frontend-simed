@@ -10,7 +10,15 @@ const DoctorLeaveCalendar = () => {
     const [searchQuery, setSearchQuery] = useState('');
     const [doctors, setDoctors] = useState([]);
     const [selectedDoctor, setSelectedDoctor] = useState(null);
-    const [leaves, setLeaves] = useState([]);
+    const [allLeaves, setAllLeaves] = useState([]); // Store ALL leaves
+    const [filterByDate, setFilterByDate] = useState(true); // Toggle for strict filtering
+
+    // Helper for date comparison (ignore time)
+    const isSameDay = (d1, d2) => {
+        return d1.getDate() === d2.getDate() &&
+            d1.getMonth() === d2.getMonth() &&
+            d1.getFullYear() === d2.getFullYear();
+    };
 
     // Derived state for filtered doctors
     const filteredDoctors = React.useMemo(() => {
@@ -21,14 +29,21 @@ const DoctorLeaveCalendar = () => {
             result = result.filter(doc => doc.name.toLowerCase().includes(searchQuery.toLowerCase()));
         }
 
-        // Filter by Day Schedule (only in Day View)
-        if (view === 'day') {
-            const dayOfWeek = currentDate.getDay(); // 0 = Sun, 1 = Mon...
-            const dbDay = dayOfWeek === 0 ? 7 : dayOfWeek; // Convert to database format (1-7, Sun=7)
-            result = result.filter(doc => doc.schedules?.some(s => s.day === dbDay));
+        // Filter by Day Schedule (only in Day View) -> REMOVED in favor of Leave Logic if needed, or keep?
+        // User request: "only display doctors on leave on the selected date"
+        // This implies overriding the schedule filter or combining it?
+        // Let's implement the "On Leave" filter primarily.
+
+        if (filterByDate) {
+            result = result.filter(doc => {
+                // Check if doctor has a leave on 'currentDate'
+                const onLeave = allLeaves.some(l => l.doctor_id === doc.id && isSameDay(new Date(l.date), currentDate));
+                return onLeave;
+            });
         }
+
         return result;
-    }, [doctors, view, currentDate, searchQuery]);
+    }, [doctors, view, currentDate, searchQuery, allLeaves, filterByDate]);
 
     // Modal State
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -37,72 +52,68 @@ const DoctorLeaveCalendar = () => {
     // --- Effects ---
     useEffect(() => {
         fetchDoctors();
+        fetchAllLeaves();
     }, []);
 
-    // Auto-select first doctor from filtered list if current selection is invalid
+    // Auto-select first doctor logic - Adjusted to handle empty lists smoothly
     useEffect(() => {
         if (filteredDoctors.length > 0) {
-            // If no doctor selected or selected doctor is not in current list
+            // If currently selected doctor is NOT in the filtered list, switch.
+            // If selected doctor IS in the list, keep them.
             if (!selectedDoctor || !filteredDoctors.find(d => d.id === selectedDoctor.id)) {
                 setSelectedDoctor(filteredDoctors[0]);
             }
         } else {
+            // No doctors match filter
             setSelectedDoctor(null);
         }
     }, [filteredDoctors, selectedDoctor]);
 
-    useEffect(() => {
-        if (selectedDoctor) {
-            fetchLeaves(selectedDoctor.id);
-        } else {
-            setLeaves([]); // Clear leaves if no doctor selected
-        }
-    }, [selectedDoctor]);
+    // Leaves for selected doctor (Derived from allLeaves)
+    const leaves = React.useMemo(() => {
+        if (!selectedDoctor) return [];
+        return allLeaves.filter(l => l.doctor_id === selectedDoctor.id);
+    }, [selectedDoctor, allLeaves]);
 
     // --- API Calls ---
     const fetchDoctors = async () => {
         try {
             const res = await axios.get(`${import.meta.env.VITE_API_URL || 'http://localhost:3000/api'}/doctors-master`);
             setDoctors(res.data);
-            // Initial selection handled by effect
-            // if (res.data.length > 0) {
-            //     setSelectedDoctor(res.data[0]);
-            // }
         } catch (error) {
             console.error('Failed to fetch doctors', error);
             toast.error('Gagal memuat data dokter');
         }
     };
 
-    const fetchLeaves = async (doctorId) => {
+    const fetchAllLeaves = async () => {
         try {
-            const res = await axios.get(`${import.meta.env.VITE_API_URL || 'http://localhost:3000/api'}/doctor-leaves?doctor_id=${doctorId}`);
-            setLeaves(res.data);
+            // Get ALL leaves (no doctor_id param)
+            const res = await axios.get(`${import.meta.env.VITE_API_URL || 'http://localhost:3000/api'}/doctor-leaves`);
+            setAllLeaves(res.data);
         } catch (error) {
             console.error('Failed to fetch leaves', error);
             toast.error('Gagal memuat data cuti');
         }
     };
 
+    // Keep fetchLeaves for single doctor update compatibility? 
+    // Better to re-fetch ALL to keep sync if we edit.
+    // Or just manually update local state. Re-fetching all is safer.
+
     const handleSaveLeave = async () => {
         if (!selectedDoctor || !modalData.date) return;
-
         try {
             if (modalData.existingLeave) {
-                // Update logic if needed, currently API only supports Add/Delete.
-                // For now, we'll treat "Save" on existing as "Do nothing" or implement update if API supports.
-                // Assuming we just want to add notes? 
-                // Let's implement Delete here if it exists.
                 toast('Use the delete button to remove leave.');
             } else {
-                // Create
                 await axios.post(`${import.meta.env.VITE_API_URL || 'http://localhost:3000/api'}/doctor-leaves`, {
                     doctor_id: selectedDoctor.id,
                     date: modalData.date,
                     reason: modalData.reason || 'Manual Leave'
                 });
                 toast.success('Cuti berhasil ditambahkan');
-                fetchLeaves(selectedDoctor.id);
+                fetchAllLeaves(); // Refresh all
             }
             setIsModalOpen(false);
         } catch (error) {
@@ -112,13 +123,11 @@ const DoctorLeaveCalendar = () => {
 
     const handleDeleteLeave = async () => {
         if (!modalData.existingLeave) return;
-
         if (!window.confirm('Are you sure you want to delete this leave?')) return;
-
         try {
             await axios.delete(`${import.meta.env.VITE_API_URL || 'http://localhost:3000/api'}/doctor-leaves/${modalData.existingLeave.id}`);
             toast.success('Cuti dihapus');
-            fetchLeaves(selectedDoctor.id);
+            fetchAllLeaves(); // Refresh all
             setIsModalOpen(false);
         } catch (error) {
             toast.error('Gagal menghapus data');
@@ -444,6 +453,18 @@ const DoctorLeaveCalendar = () => {
                             onChange={(e) => setSearchQuery(e.target.value)}
                             className="w-full pl-9 pr-4 py-2 bg-white border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-salm-purple transition-colors"
                         />
+                    </div>
+                    <div className="flex items-center gap-2 mt-3 px-1">
+                        <input
+                            type="checkbox"
+                            checked={filterByDate}
+                            onChange={(e) => setFilterByDate(e.target.checked)}
+                            className="w-4 h-4 text-salm-purple rounded focus:ring-salm-purple/50 border-gray-300"
+                            id="filterByDate"
+                        />
+                        <label htmlFor="filterByDate" className="text-xs text-gray-500 font-medium cursor-pointer select-none">
+                            Show only absent doctors
+                        </label>
                     </div>
                 </div>
 
