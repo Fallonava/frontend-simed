@@ -10,6 +10,7 @@ import MainMenu from './pages/MainMenu';
 import ProtectedRoute from './components/ProtectedRoute';
 import ThemeToggle from './components/ThemeToggle';
 import DoctorLeaveCalendar from './components/DoctorLeaveCalendar';
+import Welcome from './pages/Welcome';
 
 function App() {
   return (
@@ -19,7 +20,7 @@ function App() {
         <Route path="/login" element={<Login />} />
 
         {/* Public Routes */}
-        <Route path="/" element={<Navigate to="/login" replace />} />
+        <Route path="/" element={<Welcome />} />
         <Route path="/kiosk" element={<Kiosk />} />
         <Route path="/counter" element={<Counter />} />
 

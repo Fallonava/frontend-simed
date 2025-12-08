@@ -6,6 +6,7 @@ import DoctorCard from '../components/DoctorCard';
 import ScheduleCalendar from '../components/ScheduleCalendar';
 import DoctorLeaveCalendar from '../components/DoctorLeaveCalendar';
 import ThemeToggle from '../components/ThemeToggle';
+import UserManagement from '../components/UserManagement';
 import { LayoutGrid, RefreshCw, Activity, Database, Monitor, Download, Calendar as ScheduleCalendarIcon, Search, Bell, User } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 
@@ -84,6 +85,13 @@ const AdminDashboard = () => {
                     >
                         <ScheduleCalendarIcon className="w-5 h-5" />
                         Calendar
+                    </button>
+                    <button
+                        onClick={() => setActiveTab('users')}
+                        className={`w-full flex items-center gap-4 px-4 py-3.5 rounded-2xl transition-all text-left font-medium ${activeTab === 'users' ? 'bg-salm-gradient text-white shadow-lg shadow-salm-purple/30' : 'text-theme-gray hover:bg-salm-light-pink/20 hover:text-salm-pink'}`}
+                    >
+                        <User className="w-5 h-5" />
+                        User Management
                     </button>
                 </nav>
 
@@ -284,6 +292,8 @@ const AdminDashboard = () => {
                             </div>
                         </div>
                     )}
+
+                    {activeTab === 'users' && <UserManagement />}
                 </div>
             </main>
             <ThemeToggle />

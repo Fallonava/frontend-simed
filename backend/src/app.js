@@ -14,6 +14,7 @@ const doctorController = require('./controllers/doctorController');
 const counterController = require('./controllers/counterController');
 const authController = require('./controllers/authController');
 const analyticsController = require('./controllers/analyticsController');
+const userController = require('./controllers/userController');
 const authMiddleware = require('./middleware/authMiddleware');
 
 require('dotenv').config();
@@ -38,7 +39,7 @@ app.get('/', (req, res) => {
     res.json({ message: "Hospital API is running", status: "OK", timestamp: new Date() });
 });
 
-const defaultOrigins = ["http://localhost:5173", "http://127.0.0.1:5173", "https://frontend-simed.vercel.app"];
+const defaultOrigins = ["http://localhost:5173", "http://127.0.0.1:5173", "https://frontend-simed.vercel.app", "http://13.210.197.247"];
 const envOrigins = process.env.CORS_ORIGIN ? process.env.CORS_ORIGIN.split(',') : [];
 const allowedOrigins = [...new Set([...defaultOrigins, ...envOrigins])];
 
@@ -67,6 +68,12 @@ app.use((req, res, next) => {
 // Auth Routes
 app.post('/api/auth/login', authController.login);
 app.get('/api/auth/me', authMiddleware, authController.me);
+
+// User Management Routes
+app.get('/api/users', authMiddleware, userController.getAll);
+app.post('/api/users', authMiddleware, userController.create);
+app.put('/api/users/:id', authMiddleware, userController.update);
+app.delete('/api/users/:id', authMiddleware, userController.delete);
 
 // Analytics Routes
 app.get('/api/analytics/daily', analyticsController.getDailyStats);
