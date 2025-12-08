@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Users, MoreHorizontal, Edit2, Check, X } from 'lucide-react';
 import useQueueStore from '../store/useQueueStore';
 
-const DoctorCard = ({ doctor }) => {
+const DoctorCard = ({ doctor, onLeave = false, leaveReason = '' }) => {
     const { toggleStatus, callNext } = useQueueStore();
     const [isEditing, setIsEditing] = useState(false);
     const [newQuota, setNewQuota] = useState(doctor.quota?.max_quota || 30);
@@ -12,11 +12,13 @@ const DoctorCard = ({ doctor }) => {
         CLOSED: { color: 'bg-red-500', label: 'Closed', bg: 'bg-red-500/10' },
         FULL: { color: 'bg-orange-500', label: 'Full', bg: 'bg-orange-500/10' },
         BREAK: { color: 'bg-yellow-500', label: 'Break', bg: 'bg-yellow-500/10' },
+        LEAVE: { color: 'bg-indigo-500', label: 'Cuti / Libur', bg: 'bg-indigo-500/10' },
     };
 
-    const currentStatus = statusConfig[doctor.quota?.status] || statusConfig.CLOSED;
+    const currentStatus = onLeave ? statusConfig.LEAVE : (statusConfig[doctor.quota?.status] || statusConfig.CLOSED);
 
     const handleStatusChange = (newStatus) => {
+        if (onLeave) return;
         toggleStatus(doctor.id, newStatus, doctor.quota?.max_quota || 30);
     };
 
@@ -26,7 +28,7 @@ const DoctorCard = ({ doctor }) => {
     };
 
     return (
-        <div className="glass-card rounded-[2rem] p-6 flex flex-col h-full relative overflow-hidden group shadow-[0_8px_32px_0_rgba(31,38,135,0.07)] hover:shadow-[0_8px_32px_0_rgba(31,38,135,0.15)] backdrop-blur-xl border border-white/20 transition-all duration-500">
+        <div className={`glass-card rounded-[2rem] p-6 flex flex-col h-full relative overflow-hidden group shadow-[0_8px_32px_0_rgba(31,38,135,0.07)] hover:shadow-[0_8px_32px_0_rgba(31,38,135,0.15)] backdrop-blur-xl border border-white/20 transition-all duration-500 ${onLeave ? 'opacity-80 grayscale-[0.5]' : ''}`}>
             {/* Background decoration */}
             <div className={`absolute top-0 right-0 w-32 h-32 ${currentStatus.bg} rounded-full blur-3xl -mr-16 -mt-16 transition-colors duration-500 opacity-50`}></div>
 
@@ -45,6 +47,7 @@ const DoctorCard = ({ doctor }) => {
                         <div>
                             <h3 className="font-semibold text-lg text-modern-text leading-tight">{doctor.name}</h3>
                             <p className="text-sm text-modern-text-secondary mt-1">{doctor.specialist}</p>
+                            {onLeave && <p className="text-xs text-indigo-400 font-bold mt-1 line-clamp-1">{leaveReason}</p>}
                         </div>
                     </div>
                     <div className="flex flex-col items-end">
@@ -80,7 +83,7 @@ const DoctorCard = ({ doctor }) => {
                     <div className="space-y-3">
                         <div className="grid grid-cols-3 gap-2 bg-modern-bg/80 p-1 rounded-xl border border-white/5">
                             {['OPEN', 'BREAK', 'CLOSED'].map((status) => {
-                                const isActive = doctor.quota?.status === status;
+                                const isActive = !onLeave && doctor.quota?.status === status; // Force inactive if onLeave
                                 let activeClass = '';
                                 if (isActive) {
                                     if (status === 'OPEN') activeClass = 'bg-modern-green text-white shadow-lg shadow-modern-green/25';
@@ -92,11 +95,13 @@ const DoctorCard = ({ doctor }) => {
                                     <button
                                         key={status}
                                         onClick={() => handleStatusChange(status)}
+                                        disabled={onLeave}
                                         className={`
                                             py-1.5 rounded-lg text-xs font-bold transition-all duration-200
                                             ${isActive
                                                 ? `${activeClass} scale-[1.02]`
-                                                : 'text-modern-text-secondary hover:text-modern-text hover:bg-white/5'}
+                                                : onLeave ? 'text-gray-400 cursor-not-allowed opacity-50'
+                                                    : 'text-modern-text-secondary hover:text-modern-text hover:bg-white/5'}
                                         `}
                                     >
                                         {status === 'OPEN' ? 'Open' : status === 'BREAK' ? 'Break' : 'Close'}
@@ -107,9 +112,14 @@ const DoctorCard = ({ doctor }) => {
 
                         <button
                             onClick={() => callNext(doctor.id)}
-                            className="w-full py-2 bg-modern-text text-modern-bg rounded-xl text-sm font-semibold hover:bg-white active:scale-[0.98] transition-all flex items-center justify-center gap-2 shadow-lg shadow-modern-blue/10"
+                            disabled={onLeave}
+                            className={`w-full py-2 rounded-xl text-sm font-semibold transition-all flex items-center justify-center gap-2 shadow-lg
+                                ${onLeave
+                                    ? 'bg-gray-100 text-gray-400 cursor-not-allowed border border-gray-200 shadow-none'
+                                    : 'bg-modern-text text-modern-bg hover:bg-white active:scale-[0.98] shadow-modern-blue/10'}
+                             `}
                         >
-                            <span className="w-2 h-2 bg-modern-green rounded-full animate-pulse shadow-[0_0_5px_rgba(0,230,118,0.8)]"></span>
+                            {!onLeave && <span className="w-2 h-2 bg-modern-green rounded-full animate-pulse shadow-[0_0_5px_rgba(0,230,118,0.8)]"></span>}
                             Call Next Patient
                         </button>
 

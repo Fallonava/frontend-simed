@@ -14,11 +14,22 @@ const AdminDashboard = () => {
     const { doctors, initialize, generateQuota, isConnected } = useQueueStore();
     const [analytics, setAnalytics] = useState({ totalPatients: 0, pieChartData: [], barChartData: [] });
     const [activeTab, setActiveTab] = useState('dashboard');
+    const [leaves, setLeaves] = useState([]);
 
     useEffect(() => {
         initialize();
         fetchAnalytics();
+        fetchLeaves();
     }, [initialize]);
+
+    const fetchLeaves = async () => {
+        try {
+            const res = await axios.get(`${import.meta.env.VITE_API_URL || 'http://localhost:3000/api'}/doctor-leaves`);
+            setLeaves(res.data);
+        } catch (error) {
+            console.error('Failed to fetch leaves', error);
+        }
+    };
 
     const fetchAnalytics = async () => {
         try {
@@ -264,6 +275,34 @@ const AdminDashboard = () => {
 
                                 {/* Grid */}
                                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                                    const [leaves, setLeaves] = useState([]);
+    
+    useEffect(() => {
+                                        initialize();
+                                    fetchAnalytics();
+                                    fetchLeaves();
+    }, [initialize]);
+
+    const fetchLeaves = async () => {
+         try {
+            const res = await axios.get(`${import.meta.env.VITE_API_URL || 'http://localhost:3000/api'}/doctor-leaves`);
+                                    setLeaves(res.data);
+        } catch (error) {
+                                        console.error('Failed to fetch leaves', error);
+        }
+    }
+
+    // ... (rest of code)
+
+     // Helper for date comparison (ignore time)
+    const isSameDay = (d1, d2) => {
+        return d1.getDate() === d2.getDate() &&
+                                    d1.getMonth() === d2.getMonth() &&
+                                    d1.getFullYear() === d2.getFullYear();
+    };
+
+                                    // ... inside return ...
+
                                     {doctors.filter(doctor => {
                                         // Get current day (1=Senin ... 6=Sabtu, 0=Minggu -> 7)
                                         const today = new Date().getDay();
@@ -271,9 +310,19 @@ const AdminDashboard = () => {
 
                                         // Check if doctor has schedule for today
                                         return doctor.schedules?.some(s => s.day === dbDay);
-                                    }).map((doctor) => (
-                                        <DoctorCard key={doctor.id} doctor={doctor} />
-                                    ))}
+                                    }).map((doctor) => {
+                                        // Check if On Leave
+                                        const todayLeave = leaves.find(l => l.doctor_id === doctor.id && isSameDay(new Date(l.date), new Date()));
+
+                                        return (
+                                            <DoctorCard
+                                                key={doctor.id}
+                                                doctor={doctor}
+                                                onLeave={!!todayLeave}
+                                                leaveReason={todayLeave?.reason || 'Cuti'}
+                                            />
+                                        );
+                                    })}
                                 </div>
 
                                 {doctors.filter(d => {
