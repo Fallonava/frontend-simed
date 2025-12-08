@@ -230,6 +230,7 @@ const MasterData = () => {
                         <TabButton id="poliklinik" label="Poliklinik" icon={LayoutGrid} />
                         <TabButton id="doctors" label="Dokter" icon={Stethoscope} />
                         <TabButton id="counters" label="Loket" icon={Store} />
+                        <TabButton id="leave" label="Cuti Dokter" icon={CalendarOff} />
                     </div>
                 </header>
 
