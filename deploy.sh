@@ -3,7 +3,7 @@
 # SIMED Deployment Script (Clean Wipe & Install - Specific Auth)
 SERVER_IP="13.210.197.247"
 SSH_USER="ubuntu"
-PEM_KEY="~/hospital-api.pem"
+PEM_KEY="./hospital-api.pem"
 REPO_URL="https://github.com/Fallonava/frontend-simed.git"
 SSH_CMD="ssh -i $PEM_KEY $SSH_USER@$SERVER_IP"
 
