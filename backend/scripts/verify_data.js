@@ -3,24 +3,21 @@ const prisma = new PrismaClient();
 
 async function main() {
     try {
-        const poliCount = await prisma.poliklinik.count();
-        const doctorCount = await prisma.doctor.count();
-        const scheduleCount = await prisma.doctorSchedule.count();
+        const polies = await prisma.poliklinik.findMany();
+        console.log("=== POLIKLINIK LIST ===");
+        polies.forEach(p => console.log(`${p.id}: ${p.name} (${p.queue_code})`));
 
-        console.log("=== VERIFICATION RESULTS ===");
-        console.log(`Poliklinik Count: ${poliCount}`);
-        console.log(`Doctor Count:     ${doctorCount}`);
-        console.log(`Schedule Count:   ${scheduleCount}`);
-
-        if (doctorCount > 0) {
-            const sample = await prisma.doctor.findFirst({
-                include: { poliklinik: true, schedules: true }
-            });
-            console.log("Sample Doctor:", JSON.stringify(sample, null, 2));
-        }
+        // Check specific doctor
+        const doctorName = "dr. RR Irma Rossyana, Sp. A";
+        const docs = await prisma.doctor.findMany({
+            where: { name: { contains: "Irma" } },
+            include: { poliklinik: true, schedules: true }
+        });
+        console.log(`\n=== DOCTORS matching 'Irma' ===`);
+        console.log(JSON.stringify(docs, null, 2));
 
     } catch (e) {
-        console.error("Verification Error:", e);
+        console.error(e);
     } finally {
         await prisma.$disconnect();
     }
