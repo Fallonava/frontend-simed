@@ -17,20 +17,28 @@ exports.getSettings = async (req, res) => {
 };
 
 exports.updateSetting = async (req, res) => {
-    const { key, value } = req.body;
     try {
-        const setting = await prisma.setting.upsert({
-            where: { key: key },
-            update: { value: value },
-            create: { key: key, value: value }
-        });
+        const updates = req.body;
+        const results = [];
 
-        // Broadcast update via Socket.io
-        req.io.emit('setting_update', { key, value });
+        for (const [key, value] of Object.entries(updates)) {
+            // Skip system fields if any (though unlikely in req.body)
+            if (key === 'id') continue;
 
-        res.json(setting);
+            const setting = await prisma.setting.upsert({
+                where: { key: key },
+                update: { value: String(value) },
+                create: { key: key, value: String(value) }
+            });
+            results.push(setting);
+
+            // Broadcast update via Socket.io
+            req.io.emit('setting_update', { key, value: String(value) });
+        }
+
+        res.json(results);
     } catch (error) {
         console.error(error);
-        res.status(500).json({ error: 'Failed to update setting' });
+        res.status(500).json({ error: 'Failed to update settings' });
     }
 };

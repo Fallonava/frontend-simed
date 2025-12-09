@@ -235,7 +235,7 @@ const AdminDashboard = () => {
                                 </div>
 
                                 {/* Analytics Section */}
-                                <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-10">
+                                <div className="grid grid-cols-1 xl:grid-cols-3 gap-8 mb-10">
                                     {/* Stats Cards */}
                                     <div className="space-y-6">
                                         <div className="card-soft p-6 flex items-center justify-between group hover:border-theme-purple/30">
@@ -270,7 +270,7 @@ const AdminDashboard = () => {
                                     </div>
 
                                     {/* Charts Grid */}
-                                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+                                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8 xl:col-span-2">
                                         {/* Poliklinik Distribution */}
                                         <div className="card-soft p-6 flex flex-col">
                                             <h3 className="text-lg font-bold text-theme-text mb-4">Patients by Poliklinik</h3>
@@ -281,7 +281,7 @@ const AdminDashboard = () => {
                                                             data={analytics.pieChartData}
                                                             cx="50%"
                                                             cy="50%"
-                                                            outerRadius={80}
+                                                            outerRadius={65}
                                                             fill="#8884d8"
                                                             dataKey="value"
                                                             label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
@@ -306,8 +306,8 @@ const AdminDashboard = () => {
                                                             data={analytics.queueStatusData || []}
                                                             cx="50%"
                                                             cy="50%"
-                                                            innerRadius={60}
-                                                            outerRadius={80}
+                                                            innerRadius={45}
+                                                            outerRadius={65}
                                                             fill="#82ca9d"
                                                             paddingAngle={5}
                                                             dataKey="value"
@@ -377,7 +377,7 @@ const AdminDashboard = () => {
                                 </div>
 
                                 {/* Grid */}
-                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-6">
 
                                     {doctors.filter(doctor => {
                                         // Get current day (1=Senin ... 6=Sabtu, 0=Minggu -> 7)

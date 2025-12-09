@@ -201,18 +201,14 @@ const Counter = () => {
                                             : `https://www.youtube.com/watch?v=${currentMedia.url}`}
                                         playing={isPlaying && showVideo}
                                         volume={volume}
-                                        muted={volume === 0}
+                                        muted={false} /* Try unmuted, but browsers might block autoplay */
                                         width="100%"
                                         height="100%"
                                         onEnded={handleMediaEnded}
+                                        onError={(e) => console.error("ReactPlayer Error:", e)}
                                         config={{
                                             youtube: {
-                                                playerVars: { showinfo: 0, controls: 0, modestbranding: 1 }
-                                            },
-                                            file: {
-                                                attributes: {
-                                                    style: { objectFit: 'cover', width: '100%', height: '100%' }
-                                                }
+                                                playerVars: { showinfo: 0, controls: 0, modestbranding: 1, autoplay: 1 }
                                             }
                                         }}
                                     />
