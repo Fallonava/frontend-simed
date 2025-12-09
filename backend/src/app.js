@@ -132,6 +132,11 @@ app.post('/api/playlist', playlistController.create);
 app.put('/api/playlist/:id', playlistController.update);
 app.delete('/api/playlist/:id', playlistController.delete);
 
+// Setting Routes
+const settingController = require('./controllers/settingController');
+app.get('/api/settings', settingController.getSettings);
+app.put('/api/settings', settingController.updateSetting);
+
 // Socket.io Connection
 const activeCounters = new Map(); // socketId -> { name, poliId }
 

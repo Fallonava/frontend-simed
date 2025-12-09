@@ -33,6 +33,7 @@ const MasterData = () => {
     const [counterForm, setCounterForm] = useState({ name: '' });
     const [leaveForm, setLeaveForm] = useState({ doctor_id: '', date: '', reason: '' });
     const [playlistForm, setPlaylistForm] = useState({ type: 'VIDEO', url: '', duration: 10, order: 0 });
+    const [settings, setSettings] = useState({ running_text: '' });
 
     useEffect(() => {
         fetchPolies();
@@ -40,7 +41,13 @@ const MasterData = () => {
         fetchCounters();
         fetchLeaves();
         fetchPlaylist();
+        fetchSettings();
     }, []);
+
+    const fetchSettings = async () => {
+        try { const res = await axios.get(`${API_URL}/settings`); if (res.data) setSettings(res.data); }
+        catch (error) { console.error('Failed to fetch settings', error); }
+    };
 
     const fetchPolies = async () => {
         try { const res = await axios.get(`${API_URL}/polies`); setPolies(res.data); }
@@ -360,6 +367,7 @@ const MasterData = () => {
                         <TabButton id="counters" label="Loket" icon={Store} />
                         <TabButton id="leave" label="Cuti" icon={CalendarOff} />
                         <TabButton id="playlist" label="TV Display" icon={Play} />
+                        <TabButton id="settings" label="Settings" icon={Search} />
                     </div>
                 </header>
 
@@ -392,153 +400,177 @@ const MasterData = () => {
 
                     {/* Table Content */}
                     <div className="flex-1 overflow-auto p-2">
-                        <table className="w-full text-left border-collapse">
-                            <thead className="sticky top-0 bg-white/90 dark:bg-gray-900/90 backdrop-blur-md z-10">
-                                <tr>
-                                    {activeTab === 'poliklinik' && (
-                                        <>
-                                            <th className="p-6 text-xs font-bold text-modern-text-secondary uppercase tracking-wider">ID</th>
-                                            <th className="p-6 text-xs font-bold text-modern-text-secondary uppercase tracking-wider">Nama Poli</th>
-                                            <th className="p-6 text-xs font-bold text-modern-text-secondary uppercase tracking-wider">Kode</th>
-                                        </>
-                                    )}
-                                    {activeTab === 'doctors' && (
-                                        <>
-                                            <th className="p-6 text-xs font-bold text-modern-text-secondary uppercase tracking-wider">Doctor</th>
-                                            <th className="p-6 text-xs font-bold text-modern-text-secondary uppercase tracking-wider">Spesialis</th>
-                                            <th className="p-6 text-xs font-bold text-modern-text-secondary uppercase tracking-wider">Poli</th>
-                                        </>
-                                    )}
-                                    {activeTab === 'counters' && (
-                                        <>
-                                            <th className="p-6 text-xs font-bold text-modern-text-secondary uppercase tracking-wider">ID</th>
-                                            <th className="p-6 text-xs font-bold text-modern-text-secondary uppercase tracking-wider">Nama Loket</th>
-                                            <th className="p-6 text-xs font-bold text-modern-text-secondary uppercase tracking-wider">Status</th>
-                                        </>
-                                    )}
-                                    {activeTab === 'leave' && (
-                                        <>
-                                            <th className="p-6 text-xs font-bold text-modern-text-secondary uppercase tracking-wider">Doctor</th>
-                                            <th className="p-6 text-xs font-bold text-modern-text-secondary uppercase tracking-wider">Tanggal</th>
-                                            <th className="p-6 text-xs font-bold text-modern-text-secondary uppercase tracking-wider">Keterangan</th>
-                                        </>
-                                    )}
-                                    {activeTab === 'playlist' && (
-                                        <>
-                                            <th className="p-6 text-xs font-bold text-modern-text-secondary uppercase tracking-wider">Order</th>
-                                            <th className="p-6 text-xs font-bold text-modern-text-secondary uppercase tracking-wider">Type</th>
-                                            <th className="p-6 text-xs font-bold text-modern-text-secondary uppercase tracking-wider">URL / ID</th>
-                                            <th className="p-6 text-xs font-bold text-modern-text-secondary uppercase tracking-wider">Duration</th>
-                                        </>
-                                    )}
-                                    <th className="p-6 text-xs font-bold text-modern-text-secondary uppercase tracking-wider text-right">Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody className="divide-y divide-gray-100 dark:divide-white/5">
-                                {activeTab === 'poliklinik' && polies.map((poli) => (
-                                    <tr key={poli.id} className="hover:bg-gray-50 dark:hover:bg-white/5 transition-colors group">
-                                        <td className="p-6 text-modern-text-secondary font-mono text-sm">#{poli.id}</td>
-                                        <td className="p-6 font-semibold text-modern-text">{poli.name}</td>
-                                        <td className="p-6">
-                                            <span className="bg-modern-blue/10 text-modern-blue px-3 py-1 rounded-lg text-xs font-bold tracking-wide border border-modern-blue/20">
-                                                {poli.queue_code}
-                                            </span>
-                                        </td>
-                                        <td className="p-6 text-right">
-                                            <div className="flex justify-end gap-2">
-                                                <ActionButton onClick={() => openPoliModal(poli)} icon={Edit} colorClass="text-modern-blue hover:bg-modern-blue/10" />
-                                                <ActionButton onClick={() => handleDeletePoli(poli.id)} icon={Trash2} colorClass="text-red-500 hover:bg-red-500/10" />
-                                            </div>
-                                        </td>
+                        {activeTab === 'settings' ? (
+                            <div className="p-8 max-w-2xl mx-auto">
+                                <form onSubmit={handleSettingSubmit} className="space-y-6">
+                                    <div className="space-y-2">
+                                        <label className="block text-sm font-medium text-modern-text-secondary">Running Text (TV Display)</label>
+                                        <textarea
+                                            rows="4"
+                                            className="w-full bg-modern-bg border border-white/10 text-modern-text rounded-xl px-4 py-3 focus:ring-2 focus:ring-modern-blue outline-none transition-all resize-none"
+                                            placeholder="Enter text to scroll on the TV display..."
+                                            value={settings.running_text || ''}
+                                            onChange={e => setSettings({ ...settings, running_text: e.target.value })}
+                                        />
+                                        <p className="text-xs text-modern-text-secondary">This text will appear at the bottom of the TV Display.</p>
+                                    </div>
+                                    <button
+                                        type="submit"
+                                        className="w-full bg-modern-blue hover:bg-modern-blue/90 text-white font-bold py-4 rounded-xl shadow-lg hover:shadow-modern-blue/20 transition-all active:scale-[0.98]"
+                                    >
+                                        Save Settings
+                                    </button>
+                                </form>
+                            </div>
+                        ) : (
+                            <table className="w-full text-left border-collapse">
+                                <thead className="sticky top-0 bg-white/90 dark:bg-gray-900/90 backdrop-blur-md z-10">
+                                    <tr>
+                                        {activeTab === 'poliklinik' && (
+                                            <>
+                                                <th className="p-6 text-xs font-bold text-modern-text-secondary uppercase tracking-wider">ID</th>
+                                                <th className="p-6 text-xs font-bold text-modern-text-secondary uppercase tracking-wider">Nama Poli</th>
+                                                <th className="p-6 text-xs font-bold text-modern-text-secondary uppercase tracking-wider">Kode</th>
+                                            </>
+                                        )}
+                                        {activeTab === 'doctors' && (
+                                            <>
+                                                <th className="p-6 text-xs font-bold text-modern-text-secondary uppercase tracking-wider">Doctor</th>
+                                                <th className="p-6 text-xs font-bold text-modern-text-secondary uppercase tracking-wider">Spesialis</th>
+                                                <th className="p-6 text-xs font-bold text-modern-text-secondary uppercase tracking-wider">Poli</th>
+                                            </>
+                                        )}
+                                        {activeTab === 'counters' && (
+                                            <>
+                                                <th className="p-6 text-xs font-bold text-modern-text-secondary uppercase tracking-wider">ID</th>
+                                                <th className="p-6 text-xs font-bold text-modern-text-secondary uppercase tracking-wider">Nama Loket</th>
+                                                <th className="p-6 text-xs font-bold text-modern-text-secondary uppercase tracking-wider">Status</th>
+                                            </>
+                                        )}
+                                        {activeTab === 'leave' && (
+                                            <>
+                                                <th className="p-6 text-xs font-bold text-modern-text-secondary uppercase tracking-wider">Doctor</th>
+                                                <th className="p-6 text-xs font-bold text-modern-text-secondary uppercase tracking-wider">Tanggal</th>
+                                                <th className="p-6 text-xs font-bold text-modern-text-secondary uppercase tracking-wider">Keterangan</th>
+                                            </>
+                                        )}
+                                        {activeTab === 'playlist' && (
+                                            <>
+                                                <th className="p-6 text-xs font-bold text-modern-text-secondary uppercase tracking-wider">Order</th>
+                                                <th className="p-6 text-xs font-bold text-modern-text-secondary uppercase tracking-wider">Type</th>
+                                                <th className="p-6 text-xs font-bold text-modern-text-secondary uppercase tracking-wider">URL / ID</th>
+                                                <th className="p-6 text-xs font-bold text-modern-text-secondary uppercase tracking-wider">Duration</th>
+                                            </>
+                                        )}
+                                        <th className="p-6 text-xs font-bold text-modern-text-secondary uppercase tracking-wider text-right">Actions</th>
                                     </tr>
-                                ))}
+                                </thead>
+                                <tbody className="divide-y divide-gray-100 dark:divide-white/5">
+                                    {activeTab === 'poliklinik' && polies.map((poli) => (
+                                        <tr key={poli.id} className="hover:bg-gray-50 dark:hover:bg-white/5 transition-colors group">
+                                            <td className="p-6 text-modern-text-secondary font-mono text-sm">#{poli.id}</td>
+                                            <td className="p-6 font-semibold text-modern-text">{poli.name}</td>
+                                            <td className="p-6">
+                                                <span className="bg-modern-blue/10 text-modern-blue px-3 py-1 rounded-lg text-xs font-bold tracking-wide border border-modern-blue/20">
+                                                    {poli.queue_code}
+                                                </span>
+                                            </td>
+                                            <td className="p-6 text-right">
+                                                <div className="flex justify-end gap-2">
+                                                    <ActionButton onClick={() => openPoliModal(poli)} icon={Edit} colorClass="text-modern-blue hover:bg-modern-blue/10" />
+                                                    <ActionButton onClick={() => handleDeletePoli(poli.id)} icon={Trash2} colorClass="text-red-500 hover:bg-red-500/10" />
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    ))}
 
-                                {activeTab === 'doctors' && doctors.map((doc) => (
-                                    <tr key={doc.id} className="hover:bg-gray-50 dark:hover:bg-white/5 transition-colors group">
-                                        <td className="p-6">
-                                            <div className="flex items-center gap-4">
-                                                <img src={doc.photo_url || 'https://via.placeholder.com/40'} alt={doc.name} className="w-12 h-12 rounded-2xl object-cover shadow-sm bg-modern-bg" />
-                                                <span className="font-bold text-modern-text">{doc.name}</span>
-                                            </div>
-                                        </td>
-                                        <td className="p-6 text-modern-text-secondary">{doc.specialist}</td>
-                                        <td className="p-6">
-                                            <span className="bg-modern-purple/10 text-modern-purple px-3 py-1 rounded-lg text-xs font-bold tracking-wide border border-modern-purple/20">
-                                                {doc.poliklinik ? doc.poliklinik.name : '-'}
-                                            </span>
-                                        </td>
-                                        <td className="p-6 text-right">
-                                            <div className="flex justify-end gap-2">
-                                                <ActionButton onClick={() => openDoctorModal(doc)} icon={Edit} colorClass="text-modern-blue hover:bg-modern-blue/10" />
-                                                <ActionButton onClick={() => handleDeleteDoctor(doc.id)} icon={Trash2} colorClass="text-red-500 hover:bg-red-500/10" />
-                                            </div>
-                                        </td>
-                                    </tr>
-                                ))}
+                                    {activeTab === 'doctors' && doctors.map((doc) => (
+                                        <tr key={doc.id} className="hover:bg-gray-50 dark:hover:bg-white/5 transition-colors group">
+                                            <td className="p-6">
+                                                <div className="flex items-center gap-4">
+                                                    <img src={doc.photo_url || 'https://via.placeholder.com/40'} alt={doc.name} className="w-12 h-12 rounded-2xl object-cover shadow-sm bg-modern-bg" />
+                                                    <span className="font-bold text-modern-text">{doc.name}</span>
+                                                </div>
+                                            </td>
+                                            <td className="p-6 text-modern-text-secondary">{doc.specialist}</td>
+                                            <td className="p-6">
+                                                <span className="bg-modern-purple/10 text-modern-purple px-3 py-1 rounded-lg text-xs font-bold tracking-wide border border-modern-purple/20">
+                                                    {doc.poliklinik ? doc.poliklinik.name : '-'}
+                                                </span>
+                                            </td>
+                                            <td className="p-6 text-right">
+                                                <div className="flex justify-end gap-2">
+                                                    <ActionButton onClick={() => openDoctorModal(doc)} icon={Edit} colorClass="text-modern-blue hover:bg-modern-blue/10" />
+                                                    <ActionButton onClick={() => handleDeleteDoctor(doc.id)} icon={Trash2} colorClass="text-red-500 hover:bg-red-500/10" />
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    ))}
 
-                                {activeTab === 'counters' && counters.map((counter) => (
-                                    <tr key={counter.id} className="hover:bg-gray-50 dark:hover:bg-white/5 transition-colors group">
-                                        <td className="p-6 text-modern-text-secondary font-mono text-sm">#{counter.id}</td>
-                                        <td className="p-6 font-semibold text-modern-text">{counter.name}</td>
-                                        <td className="p-6">
-                                            <span className={`
+                                    {activeTab === 'counters' && counters.map((counter) => (
+                                        <tr key={counter.id} className="hover:bg-gray-50 dark:hover:bg-white/5 transition-colors group">
+                                            <td className="p-6 text-modern-text-secondary font-mono text-sm">#{counter.id}</td>
+                                            <td className="p-6 font-semibold text-modern-text">{counter.name}</td>
+                                            <td className="p-6">
+                                                <span className={`
                                                 px-3 py-1 rounded-lg text-xs font-bold tracking-wide border
                                                 ${counter.status === 'OPEN' ? 'bg-modern-green/10 text-modern-green border-modern-green/20' :
-                                                    counter.status === 'BUSY' ? 'bg-yellow-500/10 text-yellow-500 border-yellow-500/20' :
-                                                        'bg-red-500/10 text-red-500 border-red-500/20'}
+                                                        counter.status === 'BUSY' ? 'bg-yellow-500/10 text-yellow-500 border-yellow-500/20' :
+                                                            'bg-red-500/10 text-red-500 border-red-500/20'}
                                             `}>
-                                                {counter.status || 'CLOSED'}
-                                            </span>
-                                        </td>
-                                        <td className="p-6 text-right">
-                                            <div className="flex justify-end gap-2">
-                                                <ActionButton onClick={() => openCounterModal(counter)} icon={Edit} colorClass="text-modern-blue hover:bg-modern-blue/10" />
-                                                <ActionButton onClick={() => handleDeleteCounter(counter.id)} icon={Trash2} colorClass="text-red-500 hover:bg-red-500/10" />
-                                            </div>
-                                        </td>
-                                    </tr>
-                                ))}
+                                                    {counter.status || 'CLOSED'}
+                                                </span>
+                                            </td>
+                                            <td className="p-6 text-right">
+                                                <div className="flex justify-end gap-2">
+                                                    <ActionButton onClick={() => openCounterModal(counter)} icon={Edit} colorClass="text-modern-blue hover:bg-modern-blue/10" />
+                                                    <ActionButton onClick={() => handleDeleteCounter(counter.id)} icon={Trash2} colorClass="text-red-500 hover:bg-red-500/10" />
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    ))}
 
-                                {activeTab === 'leave' && leaves.map((leave) => (
-                                    <tr key={leave.id} className="hover:bg-gray-50 dark:hover:bg-white/5 transition-colors group">
-                                        <td className="p-6">
-                                            <div className="font-bold text-modern-text">{leave.doctor?.name || `Doctor #${leave.doctor_id}`}</div>
-                                        </td>
-                                        <td className="p-6 text-modern-text-secondary">
-                                            {new Date(leave.date).toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
-                                        </td>
-                                        <td className="p-6 text-modern-text-secondary">{leave.reason}</td>
-                                        <td className="p-6 text-right">
-                                            <div className="flex justify-end gap-2">
-                                                <ActionButton onClick={() => handleDeleteLeave(leave.id)} icon={Trash2} colorClass="text-red-500 hover:bg-red-500/10" />
-                                            </div>
-                                        </td>
-                                    </tr>
-                                ))}
+                                    {activeTab === 'leave' && leaves.map((leave) => (
+                                        <tr key={leave.id} className="hover:bg-gray-50 dark:hover:bg-white/5 transition-colors group">
+                                            <td className="p-6">
+                                                <div className="font-bold text-modern-text">{leave.doctor?.name || `Doctor #${leave.doctor_id}`}</div>
+                                            </td>
+                                            <td className="p-6 text-modern-text-secondary">
+                                                {new Date(leave.date).toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
+                                            </td>
+                                            <td className="p-6 text-modern-text-secondary">{leave.reason}</td>
+                                            <td className="p-6 text-right">
+                                                <div className="flex justify-end gap-2">
+                                                    <ActionButton onClick={() => handleDeleteLeave(leave.id)} icon={Trash2} colorClass="text-red-500 hover:bg-red-500/10" />
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    ))}
 
-                                {activeTab === 'playlist' && playlist.map((item) => (
-                                    <tr key={item.id} className="hover:bg-gray-50 dark:hover:bg-white/5 transition-colors group">
-                                        <td className="p-6 text-modern-text-secondary font-mono">{item.order}</td>
-                                        <td className="p-6">
-                                            <span className={`
+                                    {activeTab === 'playlist' && playlist.map((item) => (
+                                        <tr key={item.id} className="hover:bg-gray-50 dark:hover:bg-white/5 transition-colors group">
+                                            <td className="p-6 text-modern-text-secondary font-mono">{item.order}</td>
+                                            <td className="p-6">
+                                                <span className={`
                                                 px-3 py-1 rounded-lg text-xs font-bold tracking-wide border
                                                 ${item.type === 'VIDEO' ? 'bg-red-100 text-red-600 border-red-200' : 'bg-blue-100 text-blue-600 border-blue-200'}
                                             `}>
-                                                {item.type}
-                                            </span>
-                                        </td>
-                                        <td className="p-6 font-mono text-xs text-modern-text max-w-[200px] truncate">{item.url}</td>
-                                        <td className="p-6 text-modern-text-secondary">{item.duration}s</td>
-                                        <td className="p-6 text-right">
-                                            <div className="flex justify-end gap-2">
-                                                <ActionButton onClick={() => openPlaylistModal(item)} icon={Edit} colorClass="text-modern-blue hover:bg-modern-blue/10" />
-                                                <ActionButton onClick={() => handleDeletePlaylist(item.id)} icon={Trash2} colorClass="text-red-500 hover:bg-red-500/10" />
-                                            </div>
-                                        </td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
+                                                    {item.type}
+                                                </span>
+                                            </td>
+                                            <td className="p-6 font-mono text-xs text-modern-text max-w-[200px] truncate">{item.url}</td>
+                                            <td className="p-6 text-modern-text-secondary">{item.duration}s</td>
+                                            <td className="p-6 text-right">
+                                                <div className="flex justify-end gap-2">
+                                                    <ActionButton onClick={() => openPlaylistModal(item)} icon={Edit} colorClass="text-modern-blue hover:bg-modern-blue/10" />
+                                                    <ActionButton onClick={() => handleDeletePlaylist(item.id)} icon={Trash2} colorClass="text-red-500 hover:bg-red-500/10" />
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        )}
 
                         {/* Empty States */}
                         {activeTab === 'poliklinik' && polies.length === 0 && <EmptyState />}

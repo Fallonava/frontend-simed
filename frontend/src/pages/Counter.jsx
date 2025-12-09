@@ -19,6 +19,7 @@ const Counter = () => {
     const [currentMediaIndex, setCurrentMediaIndex] = useState(0);
     const [isPlaying, setIsPlaying] = useState(true);
     const [volume, setVolume] = useState(0.8);
+    const [runningText, setRunningText] = useState('Budayakan antri untuk kenyamanan bersama. Terima kasih telah menunggu.');
 
     // Layout State
     const [showVideo, setShowVideo] = useState(true);
@@ -33,9 +34,10 @@ const Counter = () => {
         // Fetch initial state & playlist
         const fetchInitialData = async () => {
             try {
-                const [countersRes, playlistRes] = await Promise.all([
+                const [countersRes, playlistRes, settingsRes] = await Promise.all([
                     axios.get(`${API_URL}/counters`),
-                    axios.get(`${API_URL}/playlist`)
+                    axios.get(`${API_URL}/playlist`),
+                    axios.get(`${API_URL}/settings`)
                 ]);
 
                 // Process Counters
@@ -55,6 +57,11 @@ const Counter = () => {
                 // Process Playlist
                 if (playlistRes.data.length > 0) {
                     setPlaylist(playlistRes.data);
+                }
+
+                // Process Settings
+                if (settingsRes.data && settingsRes.data.running_text) {
+                    setRunningText(settingsRes.data.running_text);
                 }
             } catch (error) {
                 console.error('Failed to fetch initial data', error);
@@ -109,6 +116,12 @@ const Counter = () => {
                 setPlaylist(res.data);
                 setCurrentMediaIndex(0);
             } catch (e) { console.error(e); }
+        });
+
+        socketRef.current.on('setting_update', (data) => {
+            if (data.key === 'running_text') {
+                setRunningText(data.value);
+            }
         });
 
         return () => {
@@ -330,7 +343,7 @@ const Counter = () => {
                     <div className="mt-4 pt-4 border-t border-white/5">
                         <div className="whitespace-nowrap overflow-hidden text-modern-text-secondary text-sm font-medium">
                             <div className="animate-marquee inline-block">
-                                Budayakan antri untuk kenyamanan bersama. Terima kasih telah menunggu. • Jagalah kebersihan area rumah sakit. • Dilarang merokok di area rumah sakit.
+                                {runningText}
                             </div>
                         </div>
                     </div>

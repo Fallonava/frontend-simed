@@ -8,19 +8,22 @@ import DoctorLeaveCalendar from '../components/DoctorLeaveCalendar';
 import ThemeToggle from '../components/ThemeToggle';
 import UserManagement from '../components/UserManagement';
 import { LayoutGrid, RefreshCw, Activity, Database, Monitor, Download, Calendar as ScheduleCalendarIcon, Search, Bell, User } from 'lucide-react';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
+
+const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8', '#82ca9d'];
 
 const AdminDashboard = () => {
     const { doctors, initialize, generateQuota, isConnected } = useQueueStore();
-    const [analytics, setAnalytics] = useState({ totalPatients: 0, pieChartData: [], barChartData: [] });
+    const [analytics, setAnalytics] = useState({ totalPatients: 0, pieChartData: [], barChartData: [], queueStatusData: [] });
     const [activeTab, setActiveTab] = useState('dashboard');
     const [leaves, setLeaves] = useState([]);
+    const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
 
     useEffect(() => {
         initialize();
         fetchAnalytics();
         fetchLeaves();
-    }, [initialize]);
+    }, [initialize, selectedDate]); // Re-fetch when date changes
 
     const fetchLeaves = async () => {
         try {
@@ -33,7 +36,7 @@ const AdminDashboard = () => {
 
     const fetchAnalytics = async () => {
         try {
-            const res = await axios.get(`${import.meta.env.VITE_API_URL || 'http://localhost:3000/api'}/analytics/daily`);
+            const res = await axios.get(`${import.meta.env.VITE_API_URL || 'http://localhost:3000/api'}/analytics/daily?date=${selectedDate}`);
             setAnalytics(res.data);
         } catch (error) {
             console.error('Failed to fetch analytics', error);
@@ -143,6 +146,14 @@ const AdminDashboard = () => {
                                 <input type="text" placeholder="Search here..." className="bg-transparent border-none outline-none text-sm w-full text-theme-text placeholder-gray-400" />
                             </div>
 
+                            {/* Date Filter */}
+                            <input
+                                type="date"
+                                value={selectedDate}
+                                onChange={(e) => setSelectedDate(e.target.value)}
+                                className="bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 text-theme-text rounded-full px-4 py-2.5 shadow-sm focus:outline-none focus:ring-2 focus:ring-salm-pink/50 transition-all font-medium text-sm"
+                            />
+
                             {/* Actions */}
                             <div className="flex items-center gap-4">
                                 <button className="w-10 h-10 bg-white dark:bg-gray-800 rounded-full flex items-center justify-center border border-gray-100 dark:border-gray-700 shadow-sm hover:shadow-md transition-all relative">
@@ -227,10 +238,65 @@ const AdminDashboard = () => {
                                         </div>
                                     </div>
 
-                                    {/* Charts */}
+                                    {/* Charts Grid */}
+                                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+                                        {/* Poliklinik Distribution */}
+                                        <div className="card-soft p-6 flex flex-col">
+                                            <h3 className="text-lg font-bold text-theme-text mb-4">Patients by Poliklinik</h3>
+                                            <div className="flex-1 min-h-[300px]">
+                                                <ResponsiveContainer width="100%" height="100%">
+                                                    <PieChart>
+                                                        <Pie
+                                                            data={analytics.pieChartData}
+                                                            cx="50%"
+                                                            cy="50%"
+                                                            outerRadius={80}
+                                                            fill="#8884d8"
+                                                            dataKey="value"
+                                                            label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                                                        >
+                                                            {analytics.pieChartData?.map((entry, index) => (
+                                                                <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                                                            ))}
+                                                        </Pie>
+                                                        <Tooltip contentStyle={{ backgroundColor: 'var(--theme-card)', borderRadius: '12px', border: 'none', color: 'var(--theme-text)' }} />
+                                                    </PieChart>
+                                                </ResponsiveContainer>
+                                            </div>
+                                        </div>
+
+                                        {/* Queue Status */}
+                                        <div className="card-soft p-6 flex flex-col">
+                                            <h3 className="text-lg font-bold text-theme-text mb-4">Queue Status Overview</h3>
+                                            <div className="flex-1 min-h-[300px]">
+                                                <ResponsiveContainer width="100%" height="100%">
+                                                    <PieChart>
+                                                        <Pie
+                                                            data={analytics.queueStatusData || []}
+                                                            cx="50%"
+                                                            cy="50%"
+                                                            innerRadius={60}
+                                                            outerRadius={80}
+                                                            fill="#82ca9d"
+                                                            paddingAngle={5}
+                                                            dataKey="value"
+                                                            label={({ name, value }) => `${name}: ${value}`}
+                                                        >
+                                                            {analytics.queueStatusData?.map((entry, index) => (
+                                                                <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                                                            ))}
+                                                        </Pie>
+                                                        <Tooltip contentStyle={{ backgroundColor: 'var(--theme-card)', borderRadius: '12px', border: 'none', color: 'var(--theme-text)' }} />
+                                                    </PieChart>
+                                                </ResponsiveContainer>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* Bar Chart Section */}
                                     <div className="card-soft p-8 lg:col-span-2 flex flex-col">
                                         <div className="flex items-center justify-between mb-6">
-                                            <h3 className="text-xl font-bold text-theme-text">Patient Arrival Statistics</h3>
+                                            <h3 className="text-xl font-bold text-theme-text">Hourly Traffic</h3>
                                             <div className="flex gap-2">
                                                 <span className="flex items-center gap-1 text-xs text-theme-gray"><span className="w-2 h-2 rounded-full bg-theme-purple"></span> Patients</span>
                                             </div>

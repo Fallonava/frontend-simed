@@ -91,3 +91,10 @@ model Playlist {
   isActive  Boolean  @default(true)
   created_at DateTime @default(now())
 }
+
+model Setting {
+  id        Int      @id @default(autoincrement())
+  key       String   @unique
+  value     String
+  updatedAt DateTime @updatedAt
+}

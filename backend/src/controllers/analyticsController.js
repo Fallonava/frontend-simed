@@ -1,34 +1,31 @@
 const { PrismaClient } = require('@prisma/client');
 
-// Helper to get today's date at 00:00:00
-const getToday = () => {
-    const date = new Date();
+// Helper to get target date at 00:00:00
+const getTargetDate = (queryDate) => {
+    const date = queryDate ? new Date(queryDate) : new Date();
     date.setHours(0, 0, 0, 0);
     return date;
 };
 
 exports.getDailyStats = async (req, res) => {
     const { prisma } = req;
-    const today = getToday();
+    const targetDate = getTargetDate(req.query.date);
 
     try {
-        // 1. Total Patients Today
+        // 1. Total Patients
         const totalPatients = await prisma.queue.count({
             where: {
                 daily_quota: {
-                    date: today
+                    date: targetDate
                 }
             }
         });
 
         // 2. Patients per Poliklinik (Pie Chart)
-        // We need to group by Poliklinik. Prisma doesn't support deep relation grouping easily,
-        // so we'll fetch all today's queues with relations and aggregate in JS or use raw query.
-        // For simplicity and small scale, fetching and aggregating in JS is fine.
         const queues = await prisma.queue.findMany({
             where: {
                 daily_quota: {
-                    date: today
+                    date: targetDate
                 }
             },
             include: {
@@ -63,12 +60,28 @@ exports.getDailyStats = async (req, res) => {
         const barChartData = hourlyStats.map((count, hour) => ({
             hour: `${String(hour).padStart(2, '0')}:00`,
             patients: count
-        })).filter(d => d.patients > 0); // Optional: filter empty hours or keep them
+        })).filter(d => d.patients > 0);
+
+        // 4. Queue Status Distribution (Doughnut Chart)
+        const statusCounts = { WAITING: 0, CALLED: 0, SERVED: 0, SKIPPED: 0 };
+        queues.forEach(q => {
+            if (statusCounts[q.status] !== undefined) {
+                statusCounts[q.status]++;
+            }
+        });
+
+        const queueStatusData = [
+            { name: 'Waiting', value: statusCounts.WAITING },
+            { name: 'Called', value: statusCounts.CALLED },
+            { name: 'Served', value: statusCounts.SERVED },
+            { name: 'Skipped', value: statusCounts.SKIPPED }
+        ].filter(d => d.value > 0);
 
         res.json({
             totalPatients,
             pieChartData,
-            barChartData
+            barChartData,
+            queueStatusData
         });
     } catch (error) {
         console.error(error);
