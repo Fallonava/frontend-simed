@@ -41,11 +41,20 @@ app.get('/', (req, res) => {
 
 const defaultOrigins = ["http://localhost:5173", "http://127.0.0.1:5173", "http://localhost:5174", "https://frontend-simed.vercel.app", "http://13.210.197.247"];
 const envOrigins = process.env.CORS_ORIGIN ? process.env.CORS_ORIGIN.split(',') : [];
-const allowedOrigins = [...new Set([...defaultOrigins, ...envOrigins])];
+
+const checkOrigin = (origin, callback) => {
+    if (!origin) return callback(null, true);
+    const allowed = [...defaultOrigins, ...envOrigins];
+    if (allowed.includes(origin) || origin.startsWith('http://192.168.') || origin.startsWith('http://172.') || origin.startsWith('http://10.')) {
+        callback(null, true);
+    } else {
+        callback(new Error('Not allowed by CORS'));
+    }
+};
 
 const io = new Server(server, {
     cors: {
-        origin: allowedOrigins,
+        origin: checkOrigin,
         methods: ["GET", "POST"]
     }
 });
@@ -53,7 +62,7 @@ const io = new Server(server, {
 const prisma = new PrismaClient();
 
 app.use(cors({
-    origin: allowedOrigins,
+    origin: checkOrigin,
     credentials: true
 }));
 app.use(express.json());

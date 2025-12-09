@@ -316,6 +316,20 @@ const MasterData = () => {
         setIsPlaylistModalOpen(true);
     };
 
+    const handleSettingSubmit = async (e) => {
+        if (e) e.preventDefault();
+        try {
+            await axios.put(`${API_URL}/settings`, {
+                running_text: settings?.running_text || ''
+            });
+            toast.success('Settings saved successfully');
+            fetchSettings();
+        } catch (error) {
+            console.error('Save settings failed', error);
+            toast.error('Failed to save settings');
+        }
+    };
+
 
     // Render Helpers
     const TabButton = ({ id, label, icon: Icon }) => (
@@ -341,6 +355,8 @@ const MasterData = () => {
             <Icon size={18} />
         </button>
     );
+
+
 
     return (
         <div className="min-h-screen bg-theme-bg p-8 font-sans relative overflow-hidden transition-colors duration-300">
@@ -401,26 +417,33 @@ const MasterData = () => {
                     {/* Table Content */}
                     <div className="flex-1 overflow-auto p-2">
                         {activeTab === 'settings' ? (
-                            <div className="p-8 max-w-2xl mx-auto">
-                                <form onSubmit={handleSettingSubmit} className="space-y-6">
-                                    <div className="space-y-2">
-                                        <label className="block text-sm font-medium text-modern-text-secondary">Running Text (TV Display)</label>
+                            <div className="p-8 max-w-2xl mx-auto bg-white dark:bg-gray-900 border border-gray-200 shadow-sm rounded-xl">
+                                <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">General Settings</h1>
+
+                                <div className="space-y-6">
+                                    <div>
+                                        <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">Running Text (TV Display)</label>
                                         <textarea
-                                            rows="4"
-                                            className="w-full bg-modern-bg border border-white/10 text-modern-text rounded-xl px-4 py-3 focus:ring-2 focus:ring-modern-blue outline-none transition-all resize-none"
-                                            placeholder="Enter text to scroll on the TV display..."
-                                            value={settings.running_text || ''}
-                                            onChange={e => setSettings({ ...settings, running_text: e.target.value })}
+                                            className="w-full h-32 p-3 border border-gray-300 rounded-lg bg-white text-black text-base shadow-inner focus:ring-2 focus:ring-blue-500 outline-none"
+                                            value={settings?.running_text || ''}
+                                            onChange={e => setSettings(prev => ({ ...(prev || {}), running_text: e.target.value }))}
+                                            placeholder="Enter running text..."
                                         />
-                                        <p className="text-xs text-modern-text-secondary">This text will appear at the bottom of the TV Display.</p>
                                     </div>
-                                    <button
-                                        type="submit"
-                                        className="w-full bg-modern-blue hover:bg-modern-blue/90 text-white font-bold py-4 rounded-xl shadow-lg hover:shadow-modern-blue/20 transition-all active:scale-[0.98]"
-                                    >
-                                        Save Settings
-                                    </button>
-                                </form>
+
+                                    <div className="flex items-center gap-4">
+                                        <button
+                                            onClick={handleSettingSubmit}
+                                            className="bg-blue-600 text-white px-8 py-3 rounded-lg hover:bg-blue-700 font-bold transition-colors shadow-lg"
+                                        >
+                                            Save Changes
+                                        </button>
+
+                                        <span className="text-sm text-gray-400">
+                                            {settings?.updatedAt ? `Last updated: ${new Date(settings.updatedAt).toLocaleTimeString()}` : 'Not saved yet'}
+                                        </span>
+                                    </div>
+                                </div>
                             </div>
                         ) : (
                             <table className="w-full text-left border-collapse">
