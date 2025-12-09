@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useRef } from 'react';
 import axios from 'axios';
 import { io } from 'socket.io-client';
-import { Monitor, Volume2, Clock, History } from 'lucide-react';
+import { Monitor, Volume2, Clock, History, Tv, Minimize } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import ReactPlayer from 'react-player';
 
@@ -19,6 +19,9 @@ const Counter = () => {
     const [currentMediaIndex, setCurrentMediaIndex] = useState(0);
     const [isPlaying, setIsPlaying] = useState(true);
     const [volume, setVolume] = useState(0.8);
+
+    // Layout State
+    const [showVideo, setShowVideo] = useState(true);
 
     const socketRef = useRef(null);
     const audioRef = useRef(null);
@@ -130,7 +133,7 @@ const Counter = () => {
 
     // Check if current media is image to simulate duration
     useEffect(() => {
-        if (playlist.length > 0) {
+        if (playlist.length > 0 && showVideo) {
             const currentItem = playlist[currentMediaIndex];
             if (currentItem.type === 'IMAGE') {
                 const duration = (currentItem.duration || 10) * 1000;
@@ -138,7 +141,7 @@ const Counter = () => {
                 return () => clearTimeout(timer);
             }
         }
-    }, [currentMediaIndex, playlist]);
+    }, [currentMediaIndex, playlist, showVideo]);
 
 
     // Determine Main and Side counters
@@ -170,97 +173,118 @@ const Counter = () => {
             <audio ref={audioRef} src="/notification.mp3" />
 
             {/* Layout Grid */}
-            <div className="flex-1 grid grid-cols-12 gap-0">
+            <div className="flex-1 grid grid-cols-12 gap-0 transition-all duration-500 ease-in-out">
 
-                {/* LEFT: Multimedia Player (Cols 8) */}
-                <div className="col-span-8 bg-black relative flex items-center justify-center overflow-hidden">
-                    {playlist.length > 0 && currentMedia ? (
-                        currentMedia.type === 'VIDEO' ? (
-                            <div className="w-full h-full pointer-events-none">
-                                <ReactPlayer
-                                    ref={playerRef}
-                                    url={`https://www.youtube.com/watch?v=${currentMedia.url}`}
-                                    playing={isPlaying}
-                                    volume={volume}
-                                    muted={volume === 0}
-                                    width="100%"
-                                    height="100%"
-                                    onEnded={handleMediaEnded}
-                                    config={{
-                                        youtube: {
-                                            playerVars: { showinfo: 0, controls: 0, modestbranding: 1 }
-                                        }
-                                    }}
+                {/* LEFT: Multimedia Player (30%) */}
+                {showVideo && (
+                    <div className="col-span-4 bg-black relative flex items-center justify-center overflow-hidden border-r border-white/10 animate-in slide-in-from-left duration-500">
+                        {playlist.length > 0 && currentMedia ? (
+                            currentMedia.type === 'VIDEO' ? (
+                                <div className="w-full h-full pointer-events-none">
+                                    <ReactPlayer
+                                        ref={playerRef}
+                                        url={currentMedia.url.startsWith('http') || currentMedia.url.startsWith('/uploads')
+                                            ? currentMedia.url
+                                            : `https://www.youtube.com/watch?v=${currentMedia.url}`}
+                                        playing={isPlaying && showVideo}
+                                        volume={volume}
+                                        muted={volume === 0}
+                                        width="100%"
+                                        height="100%"
+                                        onEnded={handleMediaEnded}
+                                        config={{
+                                            youtube: {
+                                                playerVars: { showinfo: 0, controls: 0, modestbranding: 1 }
+                                            },
+                                            file: {
+                                                attributes: {
+                                                    style: { objectFit: 'cover', width: '100%', height: '100%' }
+                                                }
+                                            }
+                                        }}
+                                    />
+                                </div>
+                            ) : (
+                                <motion.img
+                                    key={currentMedia.url}
+                                    initial={{ opacity: 0 }}
+                                    animate={{ opacity: 1 }}
+                                    exit={{ opacity: 0 }}
+                                    src={currentMedia.url}
+                                    alt="Slide"
+                                    className="w-full h-full object-cover"
                                 />
-                            </div>
+                            )
                         ) : (
-                            <motion.img
-                                key={currentMedia.url}
-                                initial={{ opacity: 0 }}
-                                animate={{ opacity: 1 }}
-                                exit={{ opacity: 0 }}
-                                src={currentMedia.url}
-                                alt="Slide"
-                                className="w-full h-full object-cover"
-                            />
-                        )
-                    ) : (
-                        <div className="flex flex-col items-center justify-center text-white/20">
-                            <Monitor size={64} className="mb-4" />
-                            <p className="text-xl">Waiting for content...</p>
-                        </div>
-                    )}
+                            <div className="flex flex-col items-center justify-center text-white/20">
+                                <Monitor size={48} className="mb-2" />
+                                <p className="text-sm">No Content</p>
+                            </div>
+                        )}
 
-                    {/* Overlay Gradient */}
-                    <div className="absolute inset-0 bg-gradient-to-r from-black/50 via-transparent to-modern-bg/90 pointer-events-none"></div>
-                </div>
+                        {/* Overlay Gradient */}
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent pointer-events-none"></div>
+                    </div>
+                )}
 
-                {/* RIGHT: Queue Info (Cols 4) */}
-                <div className="col-span-4 bg-modern-bg flex flex-col p-6 border-l border-white/5 relative">
+                {/* RIGHT: Queue Info (70% or 100%) */}
+                <div className={`${showVideo ? 'col-span-8' : 'col-span-12'} bg-modern-bg flex flex-col p-6 relative transition-all duration-500`}>
                     {/* Header */}
-                    <header className="flex justify-between items-center mb-8">
-                        <div>
-                            <h1 className="text-2xl font-bold tracking-tight text-modern-text">Antrian RS</h1>
-                            <p className="text-sm text-modern-text-secondary">Sehat Sejahtera</p>
+                    <header className="flex justify-between items-center mb-6">
+                        <div className="flex items-center gap-4">
+                            <div>
+                                <h1 className="text-xl font-bold tracking-tight text-modern-text">Antrian RS</h1>
+                                <p className="text-xs text-modern-text-secondary">Sehat Sejahtera</p>
+                            </div>
+
+                            {/* Toggle Video Button */}
+                            <button
+                                onClick={() => setShowVideo(!showVideo)}
+                                className="p-2 bg-modern-card rounded-full hover:bg-white/10 transition-colors text-modern-text-secondary hover:text-white"
+                                title={showVideo ? "Hide Video" : "Show Video"}
+                            >
+                                {showVideo ? <Minimize size={18} /> : <Tv size={18} />}
+                            </button>
                         </div>
+
                         <div className="text-right">
-                            <div className="text-xl font-bold text-modern-text flex items-center gap-2 justify-end">
-                                <Clock className="w-5 h-5 text-modern-blue" />
+                            <div className="text-2xl font-bold text-modern-text flex items-center gap-2 justify-end">
+                                <Clock className="w-6 h-6 text-modern-blue" />
                                 {currentTime.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}
                             </div>
                         </div>
                     </header>
 
                     {/* MAIN BIG NUMBER */}
-                    <div className="flex-1 flex flex-col mb-8">
+                    <div className="flex-1 flex flex-col mb-6">
                         <AnimatePresence mode="wait">
                             <motion.div
                                 key={mainCounter.name + mainCounter.ticket.queue_code}
-                                initial={{ opacity: 0, scale: 0.9 }}
+                                initial={{ opacity: 0, scale: 0.95 }}
                                 animate={{ opacity: 1, scale: 1 }}
-                                exit={{ opacity: 0, scale: 1.1 }}
-                                className="flex-1 bg-modern-card rounded-[2.5rem] shadow-2xl border border-white/10 p-8 flex flex-col items-center justify-center text-center relative overflow-hidden"
+                                exit={{ opacity: 0, scale: 1.05 }}
+                                className="flex-1 bg-modern-card rounded-[2rem] shadow-2xl border border-white/10 p-6 flex flex-col items-center justify-center text-center relative overflow-hidden"
                             >
-                                <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-modern-blue to-modern-purple"></div>
+                                <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-modern-blue to-modern-purple"></div>
 
-                                <span className="text-modern-text-secondary uppercase tracking-[0.2em] text-sm font-bold mb-2">Sedang Dipanggil</span>
-                                <div className="text-8xl font-black text-modern-text mb-4 tracking-tighter">
+                                <span className="text-modern-text-secondary uppercase tracking-[0.3em] text-sm font-bold mb-4">Sedang Dipanggil</span>
+                                <div className="text-[10rem] leading-none font-black text-modern-text mb-6 tracking-tighter">
                                     {mainCounter.ticket.queue_code}
                                 </div>
-                                <div className="bg-modern-blue/10 text-modern-blue px-6 py-2 rounded-full font-bold text-xl mb-2">
+                                <div className="bg-modern-blue/10 text-modern-blue px-8 py-3 rounded-full font-bold text-3xl mb-3">
                                     {mainCounter.poli_name}
                                 </div>
-                                <div className="text-modern-text-secondary font-medium text-lg">
-                                    {mainCounter.name}
+                                <div className="bg-modern-blue/20 text-modern-blue border border-modern-blue/30 px-8 py-3 rounded-2xl text-4xl font-black tracking-widest uppercase shadow-lg mt-4 transform scale-100 hover:scale-105 transition-transform duration-300">
+                                    {String(mainCounter.name).toUpperCase().includes('LOKET') ? mainCounter.name : `LOKET ${mainCounter.name}`}
                                 </div>
 
                                 {mainCounter.status === 'BUSY' && (
                                     <motion.div
                                         initial={{ y: 20, opacity: 0 }}
                                         animate={{ y: 0, opacity: 1 }}
-                                        className="mt-6 flex items-center gap-2 text-red-500 font-bold bg-red-500/10 px-4 py-2 rounded-full animate-pulse"
+                                        className="mt-8 flex items-center gap-3 text-red-500 font-bold bg-red-500/10 px-6 py-3 rounded-full animate-pulse text-lg"
                                     >
-                                        <Volume2 size={20} /> Memanggil...
+                                        <Volume2 size={24} /> Memanggil...
                                     </motion.div>
                                 )}
                             </motion.div>
@@ -268,33 +292,45 @@ const Counter = () => {
                     </div>
 
                     {/* SIDE LIST */}
-                    <div className="flex-1 flex flex-col overflow-hidden">
-                        <div className="flex items-center gap-2 text-modern-text-secondary mb-4 px-2">
+                    <div className="h-48 flex flex-col overflow-hidden">
+                        <div className="flex items-center gap-2 text-modern-text-secondary mb-3 px-2">
                             <History size={16} />
                             <span className="text-sm font-bold uppercase tracking-wider">Antrian Berikutnya</span>
                         </div>
 
-                        <div className="space-y-4 overflow-y-auto pr-2 custom-scrollbar">
-                            {sideCounters.slice(0, 3).map((counter) => (
-                                <div key={counter.name} className="bg-modern-card/50 p-4 rounded-2xl flex justify-between items-center border border-white/5">
-                                    <div>
-                                        <div className="text-xs text-modern-text-secondary font-medium mb-1">{counter.poli_name}</div>
-                                        <div className="text-sm font-bold text-modern-text">{counter.name}</div>
+                        <div className="grid grid-cols-2 gap-4 overflow-y-auto pr-2 custom-scrollbar">
+                            {sideCounters.slice(0, 4).map((counter) => (
+                                <div key={counter.name} className="group relative overflow-hidden bg-white/5 backdrop-blur-md rounded-2xl border border-white/10 p-5 flex items-center justify-between hover:bg-white/10 transition-all duration-300 shadow-xl">
+                                    {/* Decorative Gradient */}
+                                    <div className="absolute -right-6 -top-6 w-24 h-24 bg-gradient-to-br from-modern-blue/20 to-modern-purple/20 rounded-full blur-2xl group-hover:scale-150 transition-all duration-500"></div>
+
+                                    <div className="flex flex-col z-10 gap-2">
+                                        <div className="bg-modern-blue/20 text-modern-blue border border-modern-blue/30 px-4 py-2 rounded-xl text-sm font-black tracking-widest uppercase shadow-md w-fit">
+                                            {String(counter.name).toUpperCase().includes('LOKET') ? counter.name : `LOKET ${counter.name}`}
+                                        </div>
+                                        <div className="text-xs font-medium text-modern-text-secondary line-clamp-1 max-w-[120px]">
+                                            {counter.poli_name}
+                                        </div>
                                     </div>
-                                    <div className="text-3xl font-black text-modern-text-secondary">{counter.ticket.queue_code}</div>
+
+                                    <div className="text-5xl font-black text-modern-text tracking-tighter z-10 group-hover:scale-110 transition-transform duration-300 drop-shadow-lg">
+                                        {counter.ticket.queue_code}
+                                    </div>
                                 </div>
                             ))}
                             {sideCounters.length === 0 && (
-                                <div className="text-center text-modern-text-secondary text-sm italic py-4">Belum ada antrian lain</div>
+                                <div className="col-span-2 text-center text-modern-text-secondary text-base italic py-8 border border-dashed border-white/10 rounded-2xl bg-white/5">
+                                    Belum ada antrian lain
+                                </div>
                             )}
                         </div>
                     </div>
 
                     {/* Footer / Running Text */}
-                    <div className="mt-6 pt-4 border-t border-white/5">
-                        <div className="whitespace-nowrap overflow-hidden text-modern-text-secondary text-sm">
+                    <div className="mt-4 pt-4 border-t border-white/5">
+                        <div className="whitespace-nowrap overflow-hidden text-modern-text-secondary text-sm font-medium">
                             <div className="animate-marquee inline-block">
-                                Budayakan antri untuk kenyamanan bersama. Terima kasih telah menunggu. • Jagalah kebersihan area rumah sakit.
+                                Budayakan antri untuk kenyamanan bersama. Terima kasih telah menunggu. • Jagalah kebersihan area rumah sakit. • Dilarang merokok di area rumah sakit.
                             </div>
                         </div>
                     </div>
@@ -303,7 +339,7 @@ const Counter = () => {
 
             <style>{`
                 .animate-marquee {
-                    animation: marquee 20s linear infinite;
+                    animation: marquee 30s linear infinite;
                 }
                 @keyframes marquee {
                     0% { transform: translateX(100%); }

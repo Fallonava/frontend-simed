@@ -57,6 +57,17 @@ app.use(cors({
     credentials: true
 }));
 app.use(express.json());
+const path = require('path');
+app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
+
+const upload = require('./middleware/upload');
+app.post('/api/upload', upload.single('file'), (req, res) => {
+    if (!req.file) {
+        return res.status(400).json({ error: 'No file uploaded' });
+    }
+    const fileUrl = `${req.protocol}://${req.get('host')}/uploads/${req.file.filename}`;
+    res.json({ url: fileUrl, filename: req.file.filename });
+});
 
 // Inject io and prisma into req for controllers
 app.use((req, res, next) => {

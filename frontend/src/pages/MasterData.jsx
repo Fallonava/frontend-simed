@@ -238,29 +238,47 @@ const MasterData = () => {
         }
     };
 
-    const openLeaveModal = () => {
-        setEditingItem(null);
-        setLeaveForm({ doctor_id: '', date: '', reason: '' });
-        setIsLeaveModalOpen(true);
-    };
-
-    // --- Playlist Handlers ---
     const handlePlaylistSubmit = async (e) => {
         e.preventDefault();
         try {
-            if (editingItem) {
-                await axios.put(`${API_URL}/playlist/${editingItem.id}`, playlistForm);
-                toast.success('Item updated');
+            let finalUrl = playlistForm.url;
+
+            // Handle File Upload
+            if (playlistForm.type === 'LOCAL_VIDEO' && playlistForm.file) {
+                const formData = new FormData();
+                formData.append('file', playlistForm.file);
+
+                const uploadRes = await axios.post(`${API_URL}/upload`, formData, {
+                    headers: { 'Content-Type': 'multipart/form-data' }
+                });
+                finalUrl = uploadRes.data.url;
+            } else if (playlistForm.type === 'LOCAL_VIDEO' && !finalUrl) {
+                toast.error('Please select a video file');
+                return;
+            }
+
+            const payload = {
+                type: playlistForm.type === 'LOCAL_VIDEO' ? 'VIDEO' : playlistForm.type, // Store as VIDEO in DB, url differentiates
+                url: finalUrl,
+                duration: parseInt(playlistForm.duration),
+                order: parseInt(playlistForm.order),
+                isActive: true
+            };
+
+            if (editingItem) { // Changed from selectedItem to editingItem to match existing code
+                await axios.put(`${API_URL}/playlist/${editingItem.id}`, payload);
+                toast.success('Display item updated');
             } else {
-                await axios.post(`${API_URL}/playlist`, playlistForm);
-                toast.success('Item added');
+                await axios.post(`${API_URL}/playlist`, payload);
+                toast.success('Display item created');
             }
             fetchPlaylist();
             setIsPlaylistModalOpen(false);
-            setEditingItem(null);
-            setPlaylistForm({ type: 'VIDEO', url: '', duration: 10, order: 0 });
+            setEditingItem(null); // Added this line to clear editingItem
+            setPlaylistForm({ type: 'VIDEO', url: '', duration: 10, order: 0, file: null }); // Added file: null
         } catch (error) {
-            toast.error(error.response?.data?.error || 'Operation failed');
+            toast.error('Operation failed');
+            console.error(error);
         }
     };
 
@@ -669,18 +687,34 @@ const MasterData = () => {
                         <select
                             className="w-full bg-modern-bg border border-white/10 text-modern-text rounded-xl px-4 py-3 focus:ring-2 focus:ring-modern-blue outline-none transition-all"
                             value={playlistForm.type}
-                            onChange={e => setPlaylistForm({ ...playlistForm, type: e.target.value })}
+                            onChange={e => setPlaylistForm({ ...playlistForm, type: e.target.value, url: '' })}
                         >
                             <option value="VIDEO">YouTube Video</option>
+                            <option value="LOCAL_VIDEO">Upload Video</option>
                             <option value="IMAGE">Image</option>
                         </select>
                     </div>
-                    <Input
-                        label={playlistForm.type === 'VIDEO' ? "YouTube Video ID (e.g. dQw4w9WgXcQ)" : "Image URL"}
-                        value={playlistForm.url}
-                        onChange={e => setPlaylistForm({ ...playlistForm, url: e.target.value })}
-                        placeholder={playlistForm.type === 'VIDEO' ? "dQw4w9WgXcQ" : "https://example.com/image.jpg"}
-                    />
+
+                    {playlistForm.type === 'LOCAL_VIDEO' ? (
+                        <div>
+                            <label className="block text-sm font-medium text-modern-text-secondary mb-2">Select Video File</label>
+                            <input
+                                type="file"
+                                accept="video/*"
+                                onChange={e => setPlaylistForm({ ...playlistForm, file: e.target.files[0] })}
+                                className="w-full bg-modern-bg border border-white/10 text-modern-text rounded-xl px-4 py-3"
+                            />
+                            {playlistForm.url && <p className="text-xs text-green-500 mt-1">Current file: {playlistForm.url.split('/').pop()}</p>}
+                        </div>
+                    ) : (
+                        <Input
+                            label={playlistForm.type === 'VIDEO' ? "YouTube Video ID (e.g. dQw4w9WgXcQ)" : "Image URL"}
+                            value={playlistForm.url}
+                            onChange={e => setPlaylistForm({ ...playlistForm, url: e.target.value })}
+                            placeholder={playlistForm.type === 'VIDEO' ? "dQw4w9WgXcQ" : "https://example.com/image.jpg"}
+                        />
+                    )}
+
                     <div className="flex gap-4">
                         <div className="flex-1">
                             <Input
