@@ -16,6 +16,7 @@ const AdminDashboard = () => {
     const { doctors, initialize, generateQuota, isConnected } = useQueueStore();
     const [analytics, setAnalytics] = useState({ totalPatients: 0, pieChartData: [], barChartData: [], queueStatusData: [] });
     const [activeTab, setActiveTab] = useState('dashboard');
+    const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
     const [leaves, setLeaves] = useState([]);
     const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
 
@@ -67,9 +68,39 @@ const AdminDashboard = () => {
     };
 
     return (
-        <div className="min-h-screen bg-theme-bg flex font-sans text-theme-text">
+        <div className="min-h-screen bg-theme-bg flex font-sans text-theme-text relative">
+            {/* Mobile Header */}
+            <div className="lg:hidden fixed top-0 left-0 right-0 h-16 bg-white dark:bg-gray-800 border-b border-gray-100 dark:border-gray-700 z-30 flex items-center px-4 justify-between shadow-sm">
+                <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 bg-salm-gradient rounded-full flex items-center justify-center shadow-lg shadow-salm-purple/30">
+                        <div className="w-3 h-3 bg-white rounded-full"></div>
+                    </div>
+                    <span className="text-lg font-bold text-theme-text">SiMed.</span>
+                </div>
+                <button
+                    onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+                    className="p-2 text-theme-text hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg"
+                >
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
+                </button>
+            </div>
+
+            {/* Sidebar Overlay */}
+            {isMobileMenuOpen && (
+                <div
+                    className="fixed inset-0 bg-black/50 z-30 lg:hidden backdrop-blur-sm"
+                    onClick={() => setIsMobileMenuOpen(false)}
+                />
+            )}
+
             {/* Sidebar */}
-            <aside className="w-64 bg-white dark:bg-gray-800 border-r border-gray-100 dark:border-gray-700 h-screen sticky top-0 flex flex-col p-6 hidden lg:flex z-20 shadow-sm">
+            <aside className={`
+                w-64 bg-white dark:bg-gray-800 border-r border-gray-100 dark:border-gray-700 
+                h-screen fixed lg:sticky top-0 left-0 
+                flex flex-col p-6 
+                z-40 transition-transform duration-300 ease-in-out shadow-xl lg:shadow-none
+                ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
+            `}>
                 <div className="flex items-center gap-3 mb-12 px-2">
                     <div className="w-10 h-10 bg-salm-gradient rounded-full flex items-center justify-center shadow-lg shadow-salm-purple/30">
                         <div className="w-4 h-4 bg-white rounded-full"></div>
@@ -128,7 +159,7 @@ const AdminDashboard = () => {
             </aside>
 
             {/* Main Content */}
-            <main className="flex-1 p-6 lg:p-10 h-screen overflow-hidden flex flex-col">
+            <main className="flex-1 p-6 lg:p-10 h-screen overflow-hidden flex flex-col mt-16 lg:mt-0">
                 <div className="max-w-[1600px] mx-auto w-full flex-shrink-0 mb-6">
                     {/* Header */}
                     <header className="flex items-center justify-between">
