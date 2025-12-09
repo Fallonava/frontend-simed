@@ -116,7 +116,7 @@ const DoctorCard = ({ doctor, onLeave = false, leaveReason = '' }) => {
                             className={`w-full py-2 rounded-xl text-sm font-semibold transition-all flex items-center justify-center gap-2 shadow-lg
                                 ${onLeave
                                     ? 'bg-gray-100 text-gray-400 cursor-not-allowed border border-gray-200 shadow-none'
-                                    : 'bg-modern-text text-modern-bg hover:bg-white active:scale-[0.98] shadow-modern-blue/10'}
+                                    : 'bg-modern-text text-modern-bg hover:bg-white hover:text-modern-text active:scale-[0.98] shadow-modern-blue/10'}
                              `}
                         >
                             {!onLeave && <span className="w-2 h-2 bg-modern-green rounded-full animate-pulse shadow-[0_0_5px_rgba(0,230,118,0.8)]"></span>}

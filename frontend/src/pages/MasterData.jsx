@@ -614,7 +614,7 @@ const Input = ({ label, value, onChange, type = "text", required = true, maxLeng
 );
 
 const SubmitButton = () => (
-    <button type="submit" className="w-full bg-modern-text text-modern-bg py-4 rounded-xl font-bold text-lg hover:bg-white transition-all shadow-lg hover:shadow-xl active:scale-95">
+    <button type="submit" className="w-full bg-modern-text text-modern-bg py-4 rounded-xl font-bold text-lg hover:bg-white hover:text-modern-text transition-all shadow-lg hover:shadow-xl active:scale-95">
         Save Changes
     </button>
 );
