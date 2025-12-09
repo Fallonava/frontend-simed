@@ -39,7 +39,7 @@ const Welcome = () => {
                     <span className="inline-block py-1 px-3 rounded-full bg-gradient-to-r from-salm-blue/10 to-salm-purple/10 border border-salm-blue/20 text-salm-blue text-xs font-medium tracking-wide mb-6 backdrop-blur-md dark:from-salm-blue/20 dark:to-salm-purple/20 dark:border-white/10">
                         HOSPITAL MANAGEMENT SYSTEM v2.0
                     </span>
-                    <h1 className="text-6xl md:text-8xl font-bold tracking-tighter mb-6 bg-clip-text text-transparent bg-gradient-to-b from-gray-900 to-gray-500 dark:from-white dark:to-white/50 leading-tight drop-shadow-sm">
+                    <h1 className="text-4xl sm:text-6xl md:text-8xl font-bold tracking-tighter mb-6 bg-clip-text text-transparent bg-gradient-to-b from-gray-900 to-gray-500 dark:from-white dark:to-white/50 leading-tight drop-shadow-sm">
                         Healthcare <br /> Reimagined.
                     </h1>
                     <p className="max-w-xl mx-auto text-lg text-gray-600 dark:text-gray-400 mb-10 leading-relaxed font-medium">
