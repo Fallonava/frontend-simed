@@ -305,7 +305,7 @@ const MasterData = () => {
                                 if (activeTab === 'counters') openCounterModal();
                                 if (activeTab === 'leave') openLeaveModal();
                             }}
-                            className="bg-modern-text text-modern-bg px-6 py-3 rounded-2xl font-semibold flex items-center gap-2 hover:bg-white transition-all shadow-lg hover:shadow-xl active:scale-95"
+                            className="bg-modern-text text-modern-bg px-6 py-3 rounded-2xl font-semibold flex items-center gap-2 hover:bg-white hover:text-modern-text transition-all shadow-lg hover:shadow-xl active:scale-95"
                         >
                             <Plus size={20} />
                             Add New

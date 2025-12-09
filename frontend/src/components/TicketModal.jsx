@@ -133,7 +133,7 @@ const TicketModal = ({ ticket, onClose }) => {
                 <div className="p-6 bg-modern-card border-t border-white/5 screen-only">
                     <button
                         onClick={() => window.print()}
-                        className="w-full bg-modern-text text-modern-bg hover:bg-white py-4 rounded-2xl font-bold text-lg shadow-lg shadow-modern-blue/20 active:scale-[0.98] transition-all flex items-center justify-center gap-2"
+                        className="w-full bg-modern-text text-modern-bg hover:bg-white hover:text-modern-text py-4 rounded-2xl font-bold text-lg shadow-lg shadow-modern-blue/20 active:scale-[0.98] transition-all flex items-center justify-center gap-2"
                     >
                         <Printer className="w-5 h-5" />
                         Cetak Tiket
