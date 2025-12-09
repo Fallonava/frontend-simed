@@ -43,7 +43,7 @@
 
 @layer utilities {
   .card-soft {
-    @apply bg-white rounded-[24px] shadow-sm border border-gray-100 hover:shadow-md transition-all duration-300;
+    @apply bg-white dark:bg-gray-800 rounded-[24px] shadow-sm border border-gray-100 dark:border-gray-700 hover:shadow-md transition-all duration-300;
   }
 
   .btn-theme {
@@ -51,7 +51,7 @@
   }
 
   .glass {
-    @apply bg-white/70 backdrop-blur-xl border border-white/20 shadow-lg;
+    @apply bg-white/70 dark:bg-gray-900/70 backdrop-blur-xl border border-white/20 dark:border-white/10 shadow-lg;
   }
 }
 

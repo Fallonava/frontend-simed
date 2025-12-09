@@ -260,7 +260,7 @@ const MasterData = () => {
     );
 
     return (
-        <div className="min-h-screen bg-modern-bg p-8 font-sans relative overflow-hidden">
+        <div className="min-h-screen bg-theme-bg p-8 font-sans relative overflow-hidden transition-colors duration-300">
             {/* Background Mesh Gradient */}
             <div className="absolute top-0 left-0 w-full h-full overflow-hidden -z-10 pointer-events-none">
                 <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-modern-blue/10 rounded-full blur-[100px]"></div>
@@ -278,7 +278,7 @@ const MasterData = () => {
                     </div>
 
                     {/* Segmented Control */}
-                    <div className="flex p-1 bg-modern-card/50 backdrop-blur-md rounded-full border border-white/5">
+                    <div className="flex p-1 bg-white/50 dark:bg-gray-800/50 backdrop-blur-md rounded-full border border-gray-200 dark:border-white/5">
                         <TabButton id="poliklinik" label="Poliklinik" icon={LayoutGrid} />
                         <TabButton id="doctors" label="Dokter" icon={Stethoscope} />
                         <TabButton id="counters" label="Loket" icon={Store} />
@@ -287,15 +287,15 @@ const MasterData = () => {
                 </header>
 
                 {/* Main Content Card */}
-                <div className="bg-modern-card/70 backdrop-blur-xl rounded-[2.5rem] shadow-2xl border border-white/10 overflow-hidden min-h-[600px] flex flex-col">
+                <div className="bg-white/70 dark:bg-gray-900/70 backdrop-blur-xl rounded-[2.5rem] shadow-2xl border border-gray-200 dark:border-white/10 overflow-hidden min-h-[600px] flex flex-col">
                     {/* Toolbar */}
-                    <div className="p-8 border-b border-white/5 flex justify-between items-center bg-white/5">
+                    <div className="p-8 border-b border-gray-200 dark:border-white/5 flex justify-between items-center bg-gray-50/50 dark:bg-white/5">
                         <div className="relative">
                             <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-modern-text-secondary w-5 h-5" />
                             <input
                                 type="text"
                                 placeholder="Search..."
-                                className="pl-12 pr-4 py-3 bg-modern-bg/50 border border-white/5 rounded-2xl w-64 focus:ring-2 focus:ring-modern-blue/50 outline-none transition-all text-modern-text placeholder-modern-text-secondary"
+                                className="pl-12 pr-4 py-3 bg-white dark:bg-gray-800 border border-gray-200 dark:border-white/5 rounded-2xl w-64 focus:ring-2 focus:ring-modern-blue/50 outline-none transition-all text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500"
                             />
                         </div>
                         <button
@@ -315,7 +315,7 @@ const MasterData = () => {
                     {/* Table Content */}
                     <div className="flex-1 overflow-auto p-2">
                         <table className="w-full text-left border-collapse">
-                            <thead className="sticky top-0 bg-modern-card/90 backdrop-blur-md z-10">
+                            <thead className="sticky top-0 bg-white/90 dark:bg-gray-900/90 backdrop-blur-md z-10">
                                 <tr>
                                     {activeTab === 'poliklinik' && (
                                         <>
@@ -348,9 +348,9 @@ const MasterData = () => {
                                     <th className="p-6 text-xs font-bold text-modern-text-secondary uppercase tracking-wider text-right">Actions</th>
                                 </tr>
                             </thead>
-                            <tbody className="divide-y divide-white/5">
+                            <tbody className="divide-y divide-gray-100 dark:divide-white/5">
                                 {activeTab === 'poliklinik' && polies.map((poli) => (
-                                    <tr key={poli.id} className="hover:bg-white/5 transition-colors group">
+                                    <tr key={poli.id} className="hover:bg-gray-50 dark:hover:bg-white/5 transition-colors group">
                                         <td className="p-6 text-modern-text-secondary font-mono text-sm">#{poli.id}</td>
                                         <td className="p-6 font-semibold text-modern-text">{poli.name}</td>
                                         <td className="p-6">
@@ -368,7 +368,7 @@ const MasterData = () => {
                                 ))}
 
                                 {activeTab === 'doctors' && doctors.map((doc) => (
-                                    <tr key={doc.id} className="hover:bg-white/5 transition-colors group">
+                                    <tr key={doc.id} className="hover:bg-gray-50 dark:hover:bg-white/5 transition-colors group">
                                         <td className="p-6">
                                             <div className="flex items-center gap-4">
                                                 <img src={doc.photo_url || 'https://via.placeholder.com/40'} alt={doc.name} className="w-12 h-12 rounded-2xl object-cover shadow-sm bg-modern-bg" />
@@ -391,7 +391,7 @@ const MasterData = () => {
                                 ))}
 
                                 {activeTab === 'counters' && counters.map((counter) => (
-                                    <tr key={counter.id} className="hover:bg-white/5 transition-colors group">
+                                    <tr key={counter.id} className="hover:bg-gray-50 dark:hover:bg-white/5 transition-colors group">
                                         <td className="p-6 text-modern-text-secondary font-mono text-sm">#{counter.id}</td>
                                         <td className="p-6 font-semibold text-modern-text">{counter.name}</td>
                                         <td className="p-6">
@@ -414,7 +414,7 @@ const MasterData = () => {
                                 ))}
 
                                 {activeTab === 'leave' && leaves.map((leave) => (
-                                    <tr key={leave.id} className="hover:bg-white/5 transition-colors group">
+                                    <tr key={leave.id} className="hover:bg-gray-50 dark:hover:bg-white/5 transition-colors group">
                                         <td className="p-6">
                                             <div className="font-bold text-modern-text">{leave.doctor?.name || `Doctor #${leave.doctor_id}`}</div>
                                         </td>
@@ -587,7 +587,7 @@ const Modal = ({ isOpen, onClose, title, children }) => {
     if (!isOpen) return null;
     return (
         <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-in fade-in duration-200">
-            <div className="bg-modern-card rounded-[2rem] shadow-2xl w-full max-w-md p-8 relative animate-in zoom-in-95 duration-200 border border-white/10">
+            <div className="bg-white dark:bg-gray-900 rounded-[2rem] shadow-2xl w-full max-w-md p-8 relative animate-in zoom-in-95 duration-200 border border-gray-200 dark:border-white/10">
                 <button onClick={onClose} className="absolute top-6 right-6 text-modern-text-secondary hover:text-white transition-colors">
                     <X size={24} />
                 </button>
@@ -606,7 +606,7 @@ const Input = ({ label, value, onChange, type = "text", required = true, maxLeng
             required={required}
             maxLength={maxLength}
             placeholder={placeholder}
-            className="w-full bg-modern-bg border border-white/10 text-modern-text rounded-xl px-4 py-3 focus:ring-2 focus:ring-modern-blue outline-none transition-all focus:bg-modern-bg/80 placeholder-modern-text-secondary/50"
+            className="w-full bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-white/10 text-gray-900 dark:text-white rounded-xl px-4 py-3 focus:ring-2 focus:ring-modern-blue outline-none transition-all placeholder-gray-400 dark:placeholder-gray-500"
             value={value}
             onChange={onChange}
         />

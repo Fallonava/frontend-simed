@@ -66,7 +66,7 @@ const AdminDashboard = () => {
     return (
         <div className="min-h-screen bg-theme-bg flex font-sans text-theme-text">
             {/* Sidebar */}
-            <aside className="w-64 bg-white border-r border-gray-100 h-screen sticky top-0 flex flex-col p-6 hidden lg:flex z-20 shadow-sm">
+            <aside className="w-64 bg-white dark:bg-gray-800 border-r border-gray-100 dark:border-gray-700 h-screen sticky top-0 flex flex-col p-6 hidden lg:flex z-20 shadow-sm">
                 <div className="flex items-center gap-3 mb-12 px-2">
                     <div className="w-10 h-10 bg-salm-gradient rounded-full flex items-center justify-center shadow-lg shadow-salm-purple/30">
                         <div className="w-4 h-4 bg-white rounded-full"></div>
@@ -77,47 +77,47 @@ const AdminDashboard = () => {
                 <nav className="space-y-2 flex-1">
                     <button
                         onClick={() => scrollToSection('dashboard')}
-                        className={`w-full flex items-center gap-4 px-4 py-3.5 rounded-2xl transition-all text-left font-medium ${activeTab === 'dashboard' ? 'bg-salm-gradient text-white shadow-lg shadow-salm-purple/30' : 'text-theme-gray hover:bg-salm-light-pink/20 hover:text-salm-pink'}`}
+                        className={`w-full flex items-center gap-4 px-4 py-3.5 rounded-2xl transition-all text-left font-medium ${activeTab === 'dashboard' ? 'bg-salm-gradient text-white shadow-lg shadow-salm-purple/30' : 'text-theme-gray dark:text-gray-400 hover:bg-salm-light-pink/20 dark:hover:bg-salm-light-pink/10 hover:text-salm-pink'}`}
                     >
                         <LayoutGrid className="w-5 h-5" />
                         Dashboard
                     </button>
                     <button
                         onClick={() => scrollToSection('schedule')}
-                        className={`w-full flex items-center gap-4 px-4 py-3.5 rounded-2xl transition-all text-left font-medium ${activeTab === 'schedule' ? 'bg-salm-gradient text-white shadow-lg shadow-salm-purple/30' : 'text-theme-gray hover:bg-salm-light-pink/20 hover:text-salm-pink'}`}
+                        className={`w-full flex items-center gap-4 px-4 py-3.5 rounded-2xl transition-all text-left font-medium ${activeTab === 'schedule' ? 'bg-salm-gradient text-white shadow-lg shadow-salm-purple/30' : 'text-theme-gray dark:text-gray-400 hover:bg-salm-light-pink/20 dark:hover:bg-salm-light-pink/10 hover:text-salm-pink'}`}
                     >
                         <ScheduleCalendarIcon className="w-5 h-5" />
                         Schedule
                     </button>
                     <button
                         onClick={() => scrollToSection('live-status')}
-                        className={`w-full flex items-center gap-4 px-4 py-3.5 rounded-2xl transition-all text-left font-medium ${activeTab === 'live-status' ? 'bg-salm-gradient text-white shadow-lg shadow-salm-purple/30' : 'text-theme-gray hover:bg-salm-light-pink/20 hover:text-salm-pink'}`}
+                        className={`w-full flex items-center gap-4 px-4 py-3.5 rounded-2xl transition-all text-left font-medium ${activeTab === 'live-status' ? 'bg-salm-gradient text-white shadow-lg shadow-salm-purple/30' : 'text-theme-gray dark:text-gray-400 hover:bg-salm-light-pink/20 dark:hover:bg-salm-light-pink/10 hover:text-salm-pink'}`}
                     >
                         <Activity className="w-5 h-5" />
                         Live Status
                     </button>
                     <button
                         onClick={() => setActiveTab('leave-calendar')}
-                        className={`w-full flex items-center gap-4 px-4 py-3.5 rounded-2xl transition-all text-left font-medium ${activeTab === 'leave-calendar' ? 'bg-salm-gradient text-white shadow-lg shadow-salm-purple/30' : 'text-theme-gray hover:bg-salm-light-pink/20 hover:text-salm-pink'}`}
+                        className={`w-full flex items-center gap-4 px-4 py-3.5 rounded-2xl transition-all text-left font-medium ${activeTab === 'leave-calendar' ? 'bg-salm-gradient text-white shadow-lg shadow-salm-purple/30' : 'text-theme-gray dark:text-gray-400 hover:bg-salm-light-pink/20 dark:hover:bg-salm-light-pink/10 hover:text-salm-pink'}`}
                     >
                         <ScheduleCalendarIcon className="w-5 h-5" />
                         Calendar
                     </button>
                     <button
                         onClick={() => setActiveTab('users')}
-                        className={`w-full flex items-center gap-4 px-4 py-3.5 rounded-2xl transition-all text-left font-medium ${activeTab === 'users' ? 'bg-salm-gradient text-white shadow-lg shadow-salm-purple/30' : 'text-theme-gray hover:bg-salm-light-pink/20 hover:text-salm-pink'}`}
+                        className={`w-full flex items-center gap-4 px-4 py-3.5 rounded-2xl transition-all text-left font-medium ${activeTab === 'users' ? 'bg-salm-gradient text-white shadow-lg shadow-salm-purple/30' : 'text-theme-gray dark:text-gray-400 hover:bg-salm-light-pink/20 dark:hover:bg-salm-light-pink/10 hover:text-salm-pink'}`}
                     >
                         <User className="w-5 h-5" />
                         User Management
                     </button>
                 </nav>
 
-                <div className="mt-auto pt-6 border-t border-gray-50 space-y-2">
+                <div className="mt-auto pt-6 border-t border-gray-50 dark:border-gray-700 space-y-2">
                     <Link to="/admin/master-data" className="flex items-center gap-4 px-4 py-3 rounded-2xl text-theme-gray hover:bg-salm-light-pink/20 hover:text-salm-pink transition-all">
                         <Database className="w-5 h-5" />
                         Master Data
                     </Link>
-                    <Link to="/admin/counter" className="flex items-center gap-4 px-4 py-3 rounded-2xl text-theme-gray hover:bg-salm-light-pink/20 hover:text-salm-pink transition-all">
+                    <Link to="/admin/counter" className="flex items-center gap-4 px-4 py-3 rounded-2xl text-theme-gray dark:text-gray-400 hover:bg-salm-light-pink/20 dark:hover:bg-salm-light-pink/10 hover:text-salm-pink transition-all">
                         <Monitor className="w-5 h-5" />
                         Counter Staff
                     </Link>
@@ -138,24 +138,24 @@ const AdminDashboard = () => {
 
                         <div className="flex items-center gap-6">
                             {/* Search Bar */}
-                            <div className="hidden md:flex items-center bg-white px-4 py-2.5 rounded-full border border-gray-100 shadow-sm w-80">
+                            <div className="hidden md:flex items-center bg-white dark:bg-gray-800 px-4 py-2.5 rounded-full border border-gray-100 dark:border-gray-700 shadow-sm w-80">
                                 <Search className="w-5 h-5 text-gray-400 mr-3" />
                                 <input type="text" placeholder="Search here..." className="bg-transparent border-none outline-none text-sm w-full text-theme-text placeholder-gray-400" />
                             </div>
 
                             {/* Actions */}
                             <div className="flex items-center gap-4">
-                                <button className="w-10 h-10 bg-white rounded-full flex items-center justify-center border border-gray-100 shadow-sm hover:shadow-md transition-all relative">
+                                <button className="w-10 h-10 bg-white dark:bg-gray-800 rounded-full flex items-center justify-center border border-gray-100 dark:border-gray-700 shadow-sm hover:shadow-md transition-all relative">
                                     <Bell className="w-5 h-5 text-theme-text" />
                                     <span className="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full border border-white"></span>
                                 </button>
-                                <div className="flex items-center gap-3 pl-4 border-l border-gray-200">
+                                <div className="flex items-center gap-3 pl-4 border-l border-gray-200 dark:border-gray-700">
                                     <div className="w-10 h-10 rounded-full bg-salm-light-blue/20 flex items-center justify-center">
                                         <User className="w-5 h-5 text-salm-blue" />
                                     </div>
                                     <div className="hidden md:block">
                                         <p className="text-sm font-bold text-theme-text">Admin User</p>
-                                        <p className="text-xs text-theme-gray">Hospital Staff</p>
+                                        <p className="text-xs text-theme-gray dark:text-gray-400">Hospital Staff</p>
                                     </div>
                                 </div>
                             </div>
@@ -166,7 +166,7 @@ const AdminDashboard = () => {
                 {/* Content Area */}
                 <div className="flex-1 w-full overflow-y-auto scroll-smooth custom-scrollbar">
                     {activeTab === 'leave-calendar' && (
-                        <div className="max-w-[1600px] mx-auto h-full flex flex-col min-h-[600px] bg-gray-50">
+                        <div className="max-w-[1600px] mx-auto h-full flex flex-col min-h-[600px] bg-gray-50 dark:bg-gray-900 rounded-2xl">
                             <DoctorLeaveCalendar />
                         </div>
                     )}
@@ -238,12 +238,12 @@ const AdminDashboard = () => {
                                         <div className="flex-1 min-h-[250px]">
                                             <ResponsiveContainer width="100%" height="100%">
                                                 <BarChart data={analytics.barChartData} barSize={40}>
-                                                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#F0F0F0" />
+                                                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--theme-border)" />
                                                     <XAxis dataKey="hour" stroke="#A0A0A0" axisLine={false} tickLine={false} dy={10} />
                                                     <YAxis stroke="#A0A0A0" axisLine={false} tickLine={false} dx={-10} />
                                                     <Tooltip
-                                                        cursor={{ fill: '#F4F1FF' }}
-                                                        contentStyle={{ backgroundColor: '#FFF', borderRadius: '12px', border: 'none', boxShadow: '0 4px 20px rgba(0,0,0,0.05)' }}
+                                                        cursor={{ fill: 'var(--theme-bg)' }}
+                                                        contentStyle={{ backgroundColor: 'var(--theme-card)', borderRadius: '12px', border: 'none', boxShadow: '0 4px 20px rgba(0,0,0,0.05)', color: 'var(--theme-text)' }}
                                                     />
                                                     <Bar dataKey="patients" fill="#7B61FF" radius={[10, 10, 10, 10]} />
                                                 </BarChart>
@@ -273,7 +273,7 @@ const AdminDashboard = () => {
                             <div>
                                 <div className="flex items-center justify-between mb-6">
                                     <h2 className="text-2xl font-bold text-theme-text">Live Doctor Status</h2>
-                                    <div className={`flex items-center gap-2 px-4 py-2 rounded-full text-xs font-bold transition-colors border ${isConnected ? 'bg-green-50 text-green-600 border-green-100' : 'bg-red-50 text-red-600 border-red-100'}`}>
+                                    <div className={`flex items-center gap-2 px-4 py-2 rounded-full text-xs font-bold transition-colors border ${isConnected ? 'bg-green-50 dark:bg-green-900/30 text-green-600 dark:text-green-400 border-green-100 dark:border-green-800' : 'bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400 border-red-100 dark:border-red-800'}`}>
                                         <div className={`w-2 h-2 rounded-full ${isConnected ? 'bg-green-500 animate-pulse' : 'bg-red-500'}`}></div>
                                         {isConnected ? 'System Online' : 'System Offline'}
                                     </div>

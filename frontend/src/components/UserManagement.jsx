@@ -82,11 +82,11 @@ const UserManagement = () => {
         <div className="max-w-[1600px] mx-auto pb-10 fade-in animate-in duration-300">
             <div className="flex items-center justify-between mb-8">
                 <div>
-                    <h2 className="text-2xl font-bold text-theme-text flex items-center gap-2">
+                    <h2 className="text-2xl font-bold text-theme-text dark:text-white flex items-center gap-2">
                         <User className="w-6 h-6 text-salm-purple" />
                         User Management
                     </h2>
-                    <p className="text-theme-gray mt-1">Manage system access and roles</p>
+                    <p className="text-theme-gray dark:text-gray-400 mt-1">Manage system access and roles</p>
                 </div>
                 <button
                     onClick={() => handleOpenModal()}
@@ -98,31 +98,31 @@ const UserManagement = () => {
             </div>
 
             {/* Users Table */}
-            <div className="bg-white rounded-3xl shadow-sm border border-gray-100 overflow-hidden">
+            <div className="bg-white dark:bg-gray-800 rounded-3xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden">
                 <div className="overflow-x-auto">
                     <table className="w-full">
                         <thead>
-                            <tr className="bg-gray-50 border-b border-gray-100">
-                                <th className="text-left py-5 px-8 text-sm font-semibold text-theme-gray">Username</th>
-                                <th className="text-left py-5 px-8 text-sm font-semibold text-theme-gray">Role</th>
-                                <th className="text-right py-5 px-8 text-sm font-semibold text-theme-gray">Actions</th>
+                            <tr className="bg-gray-50 dark:bg-gray-700/50 border-b border-gray-100 dark:border-gray-700">
+                                <th className="text-left py-5 px-8 text-sm font-semibold text-theme-gray dark:text-gray-400">Username</th>
+                                <th className="text-left py-5 px-8 text-sm font-semibold text-theme-gray dark:text-gray-400">Role</th>
+                                <th className="text-right py-5 px-8 text-sm font-semibold text-theme-gray dark:text-gray-400">Actions</th>
                             </tr>
                         </thead>
-                        <tbody className="divide-y divide-gray-50">
+                        <tbody className="divide-y divide-gray-50 dark:divide-gray-700">
                             {users.map((user) => (
-                                <tr key={user.id} className="hover:bg-gray-50/50 transition-colors">
+                                <tr key={user.id} className="hover:bg-gray-50/50 dark:hover:bg-gray-700/50 transition-colors">
                                     <td className="py-5 px-8">
                                         <div className="flex items-center gap-3">
-                                            <div className="w-10 h-10 rounded-full bg-theme-bg flex items-center justify-center text-theme-gray font-bold">
+                                            <div className="w-10 h-10 rounded-full bg-theme-bg dark:bg-gray-700 flex items-center justify-center text-theme-gray dark:text-gray-300 font-bold">
                                                 {user.username.charAt(0).toUpperCase()}
                                             </div>
-                                            <span className="font-medium text-theme-text">{user.username}</span>
+                                            <span className="font-medium text-theme-text dark:text-gray-200">{user.username}</span>
                                         </div>
                                     </td>
                                     <td className="py-5 px-8">
                                         <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold ${user.role === 'ADMIN'
-                                                ? 'bg-purple-100 text-purple-600'
-                                                : 'bg-blue-100 text-blue-600'
+                                            ? 'bg-purple-100 text-purple-600'
+                                            : 'bg-blue-100 text-blue-600'
                                             }`}>
                                             {user.role}
                                         </span>
@@ -131,13 +131,13 @@ const UserManagement = () => {
                                         <div className="flex items-center justify-end gap-2">
                                             <button
                                                 onClick={() => handleOpenModal(user)}
-                                                className="w-8 h-8 rounded-lg bg-gray-50 hover:bg-salm-light-blue/20 hover:text-salm-blue flex items-center justify-center transition-all"
+                                                className="w-8 h-8 rounded-lg bg-gray-50 dark:bg-gray-700 hover:bg-salm-light-blue/20 hover:text-salm-blue flex items-center justify-center transition-all dark:text-gray-400 dark:hover:text-salm-blue"
                                             >
                                                 <Edit2 className="w-4 h-4" />
                                             </button>
                                             <button
                                                 onClick={() => handleDelete(user.id)}
-                                                className="w-8 h-8 rounded-lg bg-gray-50 hover:bg-red-50 hover:text-red-500 flex items-center justify-center transition-all"
+                                                className="w-8 h-8 rounded-lg bg-gray-50 dark:bg-gray-700 hover:bg-red-50 hover:text-red-500 flex items-center justify-center transition-all dark:text-gray-400 dark:hover:text-red-400"
                                             >
                                                 <Trash2 className="w-4 h-4" />
                                             </button>
@@ -159,13 +159,13 @@ const UserManagement = () => {
 
             {/* Modal */}
             {showModal && (
-                <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center backdrop-blur-sm p-4">
-                    <div className="bg-white rounded-3xl w-full max-w-md shadow-2xl animate-in zoom-in-95 duration-200">
-                        <div className="p-6 border-b border-gray-100 flex items-center justify-between">
-                            <h3 className="text-xl font-bold text-theme-text">
+                <div className="fixed inset-0 bg-black/50 dark:bg-black/70 z-50 flex items-center justify-center backdrop-blur-sm p-4">
+                    <div className="bg-white dark:bg-gray-800 rounded-3xl w-full max-w-md shadow-2xl animate-in zoom-in-95 duration-200 border border-gray-100 dark:border-gray-700">
+                        <div className="p-6 border-b border-gray-100 dark:border-gray-700 flex items-center justify-between">
+                            <h3 className="text-xl font-bold text-theme-text dark:text-white">
                                 {editingUser ? 'Edit User' : 'Add New User'}
                             </h3>
-                            <button onClick={() => setShowModal(false)} className="text-gray-400 hover:text-theme-text">
+                            <button onClick={() => setShowModal(false)} className="text-gray-400 hover:text-theme-text dark:hover:text-white">
                                 <X className="w-5 h-5" />
                             </button>
                         </div>
@@ -178,7 +178,7 @@ const UserManagement = () => {
                             )}
 
                             <div>
-                                <label className="block text-sm font-medium text-theme-gray mb-2">Username</label>
+                                <label className="block text-sm font-medium text-theme-gray dark:text-gray-400 mb-2">Username</label>
                                 <div className="relative">
                                     <User className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
                                     <input
@@ -186,7 +186,7 @@ const UserManagement = () => {
                                         value={formData.username}
                                         onChange={(e) => setFormData({ ...formData, username: e.target.value })}
                                         disabled={!!editingUser}
-                                        className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-gray-200 focus:outline-none focus:border-salm-purple focus:ring-1 focus:ring-salm-purple disabled:bg-gray-50 transition-all"
+                                        className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:border-salm-purple focus:ring-1 focus:ring-salm-purple disabled:bg-gray-50 dark:disabled:bg-gray-800 disabled:text-gray-500 transition-all placeholder-gray-400"
                                         placeholder="Enter username"
                                         required
                                     />
@@ -194,13 +194,13 @@ const UserManagement = () => {
                             </div>
 
                             <div>
-                                <label className="block text-sm font-medium text-theme-gray mb-2">Role</label>
+                                <label className="block text-sm font-medium text-theme-gray dark:text-gray-400 mb-2">Role</label>
                                 <div className="relative">
                                     <Shield className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
                                     <select
                                         value={formData.role}
                                         onChange={(e) => setFormData({ ...formData, role: e.target.value })}
-                                        className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-gray-200 focus:outline-none focus:border-salm-purple focus:ring-1 focus:ring-salm-purple transition-all bg-white appearance-none"
+                                        className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:border-salm-purple focus:ring-1 focus:ring-salm-purple transition-all appearance-none"
                                     >
                                         <option value="STAFF">STAFF</option>
                                         <option value="ADMIN">ADMIN</option>
@@ -209,7 +209,7 @@ const UserManagement = () => {
                             </div>
 
                             <div>
-                                <label className="block text-sm font-medium text-theme-gray mb-2">
+                                <label className="block text-sm font-medium text-theme-gray dark:text-gray-400 mb-2">
                                     {editingUser ? 'New Password (leave blank to keep)' : 'Password'}
                                 </label>
                                 <div className="relative">
@@ -218,14 +218,14 @@ const UserManagement = () => {
                                         type="password"
                                         value={formData.password}
                                         onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                                        className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-gray-200 focus:outline-none focus:border-salm-purple focus:ring-1 focus:ring-salm-purple transition-all"
+                                        className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:border-salm-purple focus:ring-1 focus:ring-salm-purple transition-all placeholder-gray-400"
                                         placeholder={editingUser ? "••••••••" : "Enter password"}
                                     />
                                 </div>
                             </div>
 
                             <div className="flex items-center justify-end gap-3 pt-4">
-                                <button type="button" onClick={() => setShowModal(false)} className="px-5 py-2.5 rounded-xl text-theme-gray hover:bg-gray-50 font-medium transition-colors">
+                                <button type="button" onClick={() => setShowModal(false)} className="px-5 py-2.5 rounded-xl text-theme-gray dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700 font-medium transition-colors">
                                     Cancel
                                 </button>
                                 <button type="submit" className="bg-salm-gradient text-white px-6 py-2.5 rounded-xl font-medium shadow-lg shadow-salm-purple/20 hover:opacity-90 transition-all flex items-center gap-2">
