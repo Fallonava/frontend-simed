@@ -82,6 +82,7 @@ app.get('/api/analytics/daily', analyticsController.getDailyStats);
 app.post('/api/quota/generate', queueController.generateQuota);
 app.post('/api/quota/toggle', queueController.toggleStatus);
 app.post('/api/queue/ticket', queueController.takeTicket);
+app.get('/api/queue/ticket/:id', queueController.getTicket);
 app.post('/api/queue/call', queueController.callNext); // Kept for backward compatibility if any
 app.post('/api/queues/call', queueController.callNext); // New standard endpoint
 app.get('/api/queues/waiting', queueController.getWaiting);
@@ -112,6 +113,13 @@ app.get('/api/counters', counterController.getAll);
 app.post('/api/counters', counterController.create);
 app.put('/api/counters/:id', counterController.update);
 app.delete('/api/counters/:id', counterController.delete);
+
+// Playlist Routes
+const playlistController = require('./controllers/playlistController');
+app.get('/api/playlist', playlistController.getAll);
+app.post('/api/playlist', playlistController.create);
+app.put('/api/playlist/:id', playlistController.update);
+app.delete('/api/playlist/:id', playlistController.delete);
 
 // Socket.io Connection
 const activeCounters = new Map(); // socketId -> { name, poliId }

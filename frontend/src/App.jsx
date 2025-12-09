@@ -11,6 +11,7 @@ import ProtectedRoute from './components/ProtectedRoute';
 import ThemeToggle from './components/ThemeToggle';
 import DoctorLeaveCalendar from './components/DoctorLeaveCalendar';
 import Welcome from './pages/Welcome';
+import QueueStatus from './pages/QueueStatus';
 
 function App() {
   return (
@@ -23,6 +24,7 @@ function App() {
         <Route path="/" element={<Welcome />} />
         <Route path="/kiosk" element={<Kiosk />} />
         <Route path="/counter" element={<Counter />} />
+        <Route path="/queue-status/:ticketId" element={<QueueStatus />} />
 
         {/* Protected Routes */}
         <Route element={<ProtectedRoute allowedRoles={['ADMIN', 'STAFF']} />}>

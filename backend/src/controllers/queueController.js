@@ -400,3 +400,41 @@ exports.getDoctors = async (req, res) => {
         res.status(500).json({ error: 'Failed to fetch doctors' });
     }
 };
+
+exports.getTicket = async (req, res) => {
+    const { prisma } = req;
+    const { id } = req.params;
+
+    try {
+        const ticket = await prisma.queue.findUnique({
+            where: { id: parseInt(id) },
+            include: {
+                daily_quota: {
+                    include: {
+                        doctor: {
+                            include: { poliklinik: true }
+                        }
+                    }
+                }
+            }
+        });
+
+        if (!ticket) return res.status(404).json({ error: 'Ticket not found' });
+
+        // Calculate queue ahead
+        const aheadCount = await prisma.queue.count({
+            where: {
+                daily_quota_id: ticket.daily_quota_id,
+                status: 'WAITING',
+                queue_number: {
+                    lt: ticket.queue_number
+                }
+            }
+        });
+
+        res.json({ ticket, aheadCount });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ error: 'Failed to fetch ticket' });
+    }
+};

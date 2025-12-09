@@ -3,6 +3,7 @@ import axios from 'axios';
 import { io } from 'socket.io-client';
 import { Monitor, Volume2, Clock, History } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import ReactPlayer from 'react-player';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
 const SOCKET_URL = import.meta.env.VITE_SOCKET_URL || 'http://localhost:3000';
@@ -13,18 +14,30 @@ const Counter = () => {
     const [isConnected, setIsConnected] = useState(false);
     const [currentTime, setCurrentTime] = useState(new Date());
 
+    // Playlist State
+    const [playlist, setPlaylist] = useState([]);
+    const [currentMediaIndex, setCurrentMediaIndex] = useState(0);
+    const [isPlaying, setIsPlaying] = useState(true);
+    const [volume, setVolume] = useState(0.8);
+
     const socketRef = useRef(null);
     const audioRef = useRef(null);
+    const playerRef = useRef(null);
 
     useEffect(() => {
         const timer = setInterval(() => setCurrentTime(new Date()), 1000);
 
-        // Fetch initial state
-        const fetchInitialCounters = async () => {
+        // Fetch initial state & playlist
+        const fetchInitialData = async () => {
             try {
-                const res = await axios.get(`${API_URL}/counters`);
+                const [countersRes, playlistRes] = await Promise.all([
+                    axios.get(`${API_URL}/counters`),
+                    axios.get(`${API_URL}/playlist`)
+                ]);
+
+                // Process Counters
                 const initialData = {};
-                res.data.forEach(c => {
+                countersRes.data.forEach(c => {
                     if (c.status === 'OPEN' || c.status === 'BUSY') {
                         initialData[c.name] = {
                             ticket: { queue_code: '-' },
@@ -35,11 +48,16 @@ const Counter = () => {
                     }
                 });
                 setCounters(prev => ({ ...initialData, ...prev }));
+
+                // Process Playlist
+                if (playlistRes.data.length > 0) {
+                    setPlaylist(playlistRes.data);
+                }
             } catch (error) {
-                console.error('Failed to fetch counters', error);
+                console.error('Failed to fetch initial data', error);
             }
         };
-        fetchInitialCounters();
+        fetchInitialData();
 
         socketRef.current = io(SOCKET_URL);
 
@@ -59,26 +77,35 @@ const Counter = () => {
             }));
             setActiveCaller(counter_name);
             playNotificationSound();
+
+            // Ducking Logic
+            setVolume(0.1); // Lower volume when calling
+            setTimeout(() => setVolume(0.8), 5000); // Restore after 5s
         });
 
         socketRef.current.on('active_counters_update', (activeList) => {
             setCounters(prev => {
                 const newCounters = { ...prev };
-
-                // Add new active counters if not exist
                 activeList.forEach(c => {
                     if (!newCounters[c.name]) {
                         newCounters[c.name] = {
                             ticket: { queue_code: '-' },
                             poli_name: 'Menunggu...',
-                            timestamp: new Date(0), // Old timestamp so it goes to bottom
+                            timestamp: new Date(0),
                             status: 'ONLINE'
                         };
                     }
                 });
-
                 return newCounters;
             });
+        });
+
+        socketRef.current.on('playlist_update', async () => {
+            try {
+                const res = await axios.get(`${API_URL}/playlist`);
+                setPlaylist(res.data);
+                setCurrentMediaIndex(0);
+            } catch (e) { console.error(e); }
         });
 
         return () => {
@@ -94,24 +121,40 @@ const Counter = () => {
         }
     };
 
+    // Playlist Logic
+    const handleMediaEnded = () => {
+        if (playlist.length > 0) {
+            setCurrentMediaIndex((prev) => (prev + 1) % playlist.length);
+        }
+    };
+
+    // Check if current media is image to simulate duration
+    useEffect(() => {
+        if (playlist.length > 0) {
+            const currentItem = playlist[currentMediaIndex];
+            if (currentItem.type === 'IMAGE') {
+                const duration = (currentItem.duration || 10) * 1000;
+                const timer = setTimeout(handleMediaEnded, duration);
+                return () => clearTimeout(timer);
+            }
+        }
+    }, [currentMediaIndex, playlist]);
+
+
     // Determine Main and Side counters
     const counterList = Object.entries(counters).map(([name, data]) => ({ name, ...data }));
-    // Sort by timestamp desc
     counterList.sort((a, b) => b.timestamp - a.timestamp);
 
     let mainCounter = null;
     let sideCounters = [];
 
-    // Prioritize activeCaller if valid data exists
     if (activeCaller && counters[activeCaller]) {
         mainCounter = { name: activeCaller, ...counters[activeCaller] };
         sideCounters = counterList.filter(c => c.name !== activeCaller);
     } else if (counterList.length > 0) {
-        // Fallback to most recent
         mainCounter = counterList[0];
         sideCounters = counterList.slice(1);
     } else {
-        // Default placeholder
         mainCounter = {
             name: 'Menunggu...',
             ticket: { queue_code: '-' },
@@ -120,173 +163,164 @@ const Counter = () => {
         };
     }
 
-    // Ensure we fill sidebar with something if empty (optional, or just leave empty)
-    // Let's limit sidebar to 3 items
-    const displaySideCounters = sideCounters.slice(0, 3);
+    const currentMedia = playlist[currentMediaIndex];
 
     return (
-        <div className="min-h-screen bg-modern-bg text-modern-text p-6 flex flex-col font-sans overflow-hidden relative">
-            {/* Background Mesh Gradient - Animated */}
-            <div className="absolute top-0 left-0 w-full h-full overflow-hidden -z-10">
-                <motion.div
-                    animate={{
-                        scale: [1, 1.2, 1],
-                        rotate: [0, 90, 0],
-                        opacity: [0.2, 0.4, 0.2]
-                    }}
-                    transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
-                    className="absolute top-[-20%] left-[-10%] w-[50%] h-[50%] bg-modern-blue/20 rounded-full blur-[120px]"
-                ></motion.div>
-                <motion.div
-                    animate={{
-                        scale: [1, 1.3, 1],
-                        rotate: [0, -90, 0],
-                        opacity: [0.2, 0.4, 0.2]
-                    }}
-                    transition={{ duration: 25, repeat: Infinity, ease: "linear", delay: 2 }}
-                    className="absolute bottom-[-20%] right-[-10%] w-[50%] h-[50%] bg-modern-purple/20 rounded-full blur-[120px]"
-                ></motion.div>
-            </div>
-
+        <div className="min-h-screen bg-modern-bg text-modern-text flex flex-col font-sans overflow-hidden relative">
             <audio ref={audioRef} src="/notification.mp3" />
 
-            {/* Header */}
-            <header className="flex justify-between items-center mb-6 bg-modern-card/60 backdrop-blur-xl p-6 rounded-3xl shadow-lg border border-white/10 h-24 z-10">
-                <div className="flex items-center gap-6">
-                    <div className="w-14 h-14 bg-gradient-to-br from-modern-blue to-modern-purple rounded-2xl flex items-center justify-center shadow-lg shadow-modern-blue/20">
-                        <Monitor className="w-8 h-8 text-white" />
-                    </div>
-                    <div>
-                        <h1 className="text-3xl font-bold tracking-tight text-modern-text">Antrian Poliklinik</h1>
-                        <p className="text-base text-modern-text-secondary font-medium">Rumah Sakit Sehat Sejahtera</p>
-                    </div>
-                </div>
-                <div className="text-right">
-                    <div className="text-4xl font-bold text-modern-text flex items-center gap-4 justify-end tracking-tight">
-                        <Clock className="w-8 h-8 text-modern-blue" />
-                        {currentTime.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}
-                    </div>
-                </div>
-            </header>
+            {/* Layout Grid */}
+            <div className="flex-1 grid grid-cols-12 gap-0">
 
-            {/* Main Layout: Split 2/3 and 1/3 */}
-            <div className="flex-1 grid grid-cols-12 gap-8 h-[calc(100vh-140px)] z-10">
+                {/* LEFT: Multimedia Player (Cols 8) */}
+                <div className="col-span-8 bg-black relative flex items-center justify-center overflow-hidden">
+                    {playlist.length > 0 && currentMedia ? (
+                        currentMedia.type === 'VIDEO' ? (
+                            <div className="w-full h-full pointer-events-none">
+                                <ReactPlayer
+                                    ref={playerRef}
+                                    url={`https://www.youtube.com/watch?v=${currentMedia.url}`}
+                                    playing={isPlaying}
+                                    volume={volume}
+                                    muted={volume === 0}
+                                    width="100%"
+                                    height="100%"
+                                    onEnded={handleMediaEnded}
+                                    config={{
+                                        youtube: {
+                                            playerVars: { showinfo: 0, controls: 0, modestbranding: 1 }
+                                        }
+                                    }}
+                                />
+                            </div>
+                        ) : (
+                            <motion.img
+                                key={currentMedia.url}
+                                initial={{ opacity: 0 }}
+                                animate={{ opacity: 1 }}
+                                exit={{ opacity: 0 }}
+                                src={currentMedia.url}
+                                alt="Slide"
+                                className="w-full h-full object-cover"
+                            />
+                        )
+                    ) : (
+                        <div className="flex flex-col items-center justify-center text-white/20">
+                            <Monitor size={64} className="mb-4" />
+                            <p className="text-xl">Waiting for content...</p>
+                        </div>
+                    )}
 
-                {/* Main Active Container (Cols 8) */}
-                <div className="col-span-8 relative">
-                    <AnimatePresence mode="wait">
-                        <motion.div
-                            key={mainCounter.name + mainCounter.ticket.queue_code}
-                            initial={{ opacity: 0, y: 20, scale: 0.95 }}
-                            animate={{ opacity: 1, y: 0, scale: 1 }}
-                            exit={{ opacity: 0, y: -20, scale: 1.05 }}
-                            transition={{ type: "spring", stiffness: 300, damping: 30 }}
-                            className={`
-                                h-full rounded-[3rem] p-12 flex flex-col justify-between overflow-hidden relative
-                                bg-modern-card/80 backdrop-blur-2xl shadow-[0_20px_60px_-15px_rgba(41,121,255,0.2)] border-2 border-modern-blue/30
-                            `}
-                        >
-                            {/* Status Badge */}
-                            <div className="flex justify-between items-start">
-                                <div className="bg-modern-blue/10 text-modern-blue px-8 py-3 rounded-full text-2xl font-bold tracking-wide border border-modern-blue/20">
-                                    {mainCounter.name.toString().match(/^loket/i) ? mainCounter.name : `Loket ${mainCounter.name}`}
+                    {/* Overlay Gradient */}
+                    <div className="absolute inset-0 bg-gradient-to-r from-black/50 via-transparent to-modern-bg/90 pointer-events-none"></div>
+                </div>
+
+                {/* RIGHT: Queue Info (Cols 4) */}
+                <div className="col-span-4 bg-modern-bg flex flex-col p-6 border-l border-white/5 relative">
+                    {/* Header */}
+                    <header className="flex justify-between items-center mb-8">
+                        <div>
+                            <h1 className="text-2xl font-bold tracking-tight text-modern-text">Antrian RS</h1>
+                            <p className="text-sm text-modern-text-secondary">Sehat Sejahtera</p>
+                        </div>
+                        <div className="text-right">
+                            <div className="text-xl font-bold text-modern-text flex items-center gap-2 justify-end">
+                                <Clock className="w-5 h-5 text-modern-blue" />
+                                {currentTime.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}
+                            </div>
+                        </div>
+                    </header>
+
+                    {/* MAIN BIG NUMBER */}
+                    <div className="flex-1 flex flex-col mb-8">
+                        <AnimatePresence mode="wait">
+                            <motion.div
+                                key={mainCounter.name + mainCounter.ticket.queue_code}
+                                initial={{ opacity: 0, scale: 0.9 }}
+                                animate={{ opacity: 1, scale: 1 }}
+                                exit={{ opacity: 0, scale: 1.1 }}
+                                className="flex-1 bg-modern-card rounded-[2.5rem] shadow-2xl border border-white/10 p-8 flex flex-col items-center justify-center text-center relative overflow-hidden"
+                            >
+                                <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-modern-blue to-modern-purple"></div>
+
+                                <span className="text-modern-text-secondary uppercase tracking-[0.2em] text-sm font-bold mb-2">Sedang Dipanggil</span>
+                                <div className="text-8xl font-black text-modern-text mb-4 tracking-tighter">
+                                    {mainCounter.ticket.queue_code}
                                 </div>
+                                <div className="bg-modern-blue/10 text-modern-blue px-6 py-2 rounded-full font-bold text-xl mb-2">
+                                    {mainCounter.poli_name}
+                                </div>
+                                <div className="text-modern-text-secondary font-medium text-lg">
+                                    {mainCounter.name}
+                                </div>
+
                                 {mainCounter.status === 'BUSY' && (
                                     <motion.div
-                                        initial={{ scale: 0 }}
-                                        animate={{ scale: 1 }}
-                                        className="flex items-center gap-3 bg-red-500 text-white px-8 py-3 rounded-full text-lg font-bold shadow-lg shadow-red-500/30"
+                                        initial={{ y: 20, opacity: 0 }}
+                                        animate={{ y: 0, opacity: 1 }}
+                                        className="mt-6 flex items-center gap-2 text-red-500 font-bold bg-red-500/10 px-4 py-2 rounded-full animate-pulse"
                                     >
-                                        <Volume2 className="w-6 h-6 animate-pulse" />
-                                        MEMANGGIL
+                                        <Volume2 size={20} /> Memanggil...
                                     </motion.div>
                                 )}
-                            </div>
-
-                            {/* Huge Ticket Number */}
-                            <div className="flex-1 flex flex-col items-center justify-center">
-                                <div className="text-3xl font-medium text-modern-blue mb-4 uppercase tracking-widest">Nomor Antrian</div>
-                                <motion.div
-                                    key={mainCounter.ticket.queue_code}
-                                    initial={{ scale: 0.5, opacity: 0 }}
-                                    animate={{ scale: 1.1, opacity: 1 }}
-                                    transition={{ type: "spring", stiffness: 200, damping: 15 }}
-                                    className="text-[14rem] font-black leading-none tracking-tighter text-transparent bg-clip-text bg-gradient-to-br from-modern-blue to-modern-purple drop-shadow-2xl"
-                                >
-                                    {mainCounter.ticket.queue_code}
-                                </motion.div>
-                            </div>
-
-                            {/* Poli Name */}
-                            <div className="text-center bg-modern-blue/10 backdrop-blur-sm py-8 rounded-3xl border border-modern-blue/20">
-                                <h2 className="text-5xl font-bold text-modern-blue">{mainCounter.poli_name}</h2>
-                            </div>
-                        </motion.div>
-                    </AnimatePresence>
-                </div >
-
-                {/* Sidebar (Cols 4) */}
-                < div className="col-span-4 flex flex-col gap-6" >
-                    <div className="flex items-center gap-3 text-modern-text-secondary font-medium px-2">
-                        <History className="w-5 h-5" />
-                        <span>Antrian Sebelumnya</span>
-                    </div>
-
-                    <div className="flex-1 flex flex-col gap-6">
-                        <AnimatePresence>
-                            {displaySideCounters.length === 0 ? (
-                                <motion.div
-                                    initial={{ opacity: 0 }}
-                                    animate={{ opacity: 1 }}
-                                    className="flex-1 flex items-center justify-center text-modern-text-secondary italic bg-modern-card/30 rounded-3xl border border-white/5"
-                                >
-                                    Belum ada antrian lain
-                                </motion.div>
-                            ) : (
-                                displaySideCounters.map((counter) => (
-                                    <motion.div
-                                        layout
-                                        key={counter.name}
-                                        initial={{ opacity: 0, x: 50 }}
-                                        animate={{ opacity: 1, x: 0 }}
-                                        exit={{ opacity: 0, x: -50 }}
-                                        transition={{ type: "spring", stiffness: 300, damping: 30 }}
-                                        className="flex-1 bg-modern-card/50 backdrop-blur-md rounded-3xl p-6 border border-white/10 shadow-lg flex flex-col justify-center relative overflow-hidden group"
-                                    >
-                                        <div className="absolute top-0 left-0 w-1 h-full bg-modern-text-secondary group-hover:bg-modern-blue transition-colors"></div>
-                                        <div className="flex justify-between items-center mb-2">
-                                            <span className="text-lg font-bold text-modern-text-secondary">{counter.name}</span>
-                                            <span className="text-sm text-modern-text-secondary/70">{counter.poli_name}</span>
-                                        </div>
-                                        <div className="text-6xl font-black text-modern-text tracking-tighter">
-                                            {counter.ticket.queue_code}
-                                        </div>
-                                    </motion.div>
-                                ))
-                            )}
+                            </motion.div>
                         </AnimatePresence>
                     </div>
 
-                    {/* Running Text in Sidebar Bottom */}
-                    <div className="mt-auto bg-modern-card/60 backdrop-blur-xl border border-white/10 rounded-2xl p-4 overflow-hidden shadow-sm">
-                        <div className="animate-marquee whitespace-nowrap text-modern-text-secondary text-lg font-medium">
-                            Budayakan antri untuk kenyamanan bersama. Terima kasih.
+                    {/* SIDE LIST */}
+                    <div className="flex-1 flex flex-col overflow-hidden">
+                        <div className="flex items-center gap-2 text-modern-text-secondary mb-4 px-2">
+                            <History size={16} />
+                            <span className="text-sm font-bold uppercase tracking-wider">Antrian Berikutnya</span>
+                        </div>
+
+                        <div className="space-y-4 overflow-y-auto pr-2 custom-scrollbar">
+                            {sideCounters.slice(0, 3).map((counter) => (
+                                <div key={counter.name} className="bg-modern-card/50 p-4 rounded-2xl flex justify-between items-center border border-white/5">
+                                    <div>
+                                        <div className="text-xs text-modern-text-secondary font-medium mb-1">{counter.poli_name}</div>
+                                        <div className="text-sm font-bold text-modern-text">{counter.name}</div>
+                                    </div>
+                                    <div className="text-3xl font-black text-modern-text-secondary">{counter.ticket.queue_code}</div>
+                                </div>
+                            ))}
+                            {sideCounters.length === 0 && (
+                                <div className="text-center text-modern-text-secondary text-sm italic py-4">Belum ada antrian lain</div>
+                            )}
                         </div>
                     </div>
-                </div >
-            </div >
+
+                    {/* Footer / Running Text */}
+                    <div className="mt-6 pt-4 border-t border-white/5">
+                        <div className="whitespace-nowrap overflow-hidden text-modern-text-secondary text-sm">
+                            <div className="animate-marquee inline-block">
+                                Budayakan antri untuk kenyamanan bersama. Terima kasih telah menunggu. • Jagalah kebersihan area rumah sakit.
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
 
             <style>{`
                 .animate-marquee {
-                    display: inline-block;
-                    animation: marquee 15s linear infinite;
+                    animation: marquee 20s linear infinite;
                 }
                 @keyframes marquee {
                     0% { transform: translateX(100%); }
                     100% { transform: translateX(-100%); }
                 }
+                .custom-scrollbar::-webkit-scrollbar {
+                    width: 4px;
+                }
+                .custom-scrollbar::-webkit-scrollbar-track {
+                    background: transparent;
+                }
+                .custom-scrollbar::-webkit-scrollbar-thumb {
+                    background: rgba(255, 255, 255, 0.1);
+                    border-radius: 4px;
+                }
             `}</style>
-        </div >
+        </div>
     );
 };
 

@@ -81,3 +81,13 @@ model Counter {
   status    String   @default("CLOSED") // OPEN, CLOSED, BUSY
   createdAt DateTime @default(now())
 }
+
+model Playlist {
+  id        Int      @id @default(autoincrement())
+  type      String   // "VIDEO" or "IMAGE"
+  url       String   // YouTube ID or Image URL
+  duration  Int      @default(10) // Duration in seconds (for images)
+  order     Int      @default(0)
+  isActive  Boolean  @default(true)
+  created_at DateTime @default(now())
+}

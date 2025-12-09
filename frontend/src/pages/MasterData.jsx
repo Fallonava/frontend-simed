@@ -5,7 +5,8 @@ import {
     Trash2, Edit, Plus, X,
     LayoutGrid, Stethoscope, Store,
     Search,
-    CalendarOff
+    CalendarOff,
+    Play
 } from 'lucide-react';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
@@ -16,12 +17,14 @@ const MasterData = () => {
     const [doctors, setDoctors] = useState([]);
     const [counters, setCounters] = useState([]);
     const [leaves, setLeaves] = useState([]);
+    const [playlist, setPlaylist] = useState([]);
 
     // Modal States
     const [isPoliModalOpen, setIsPoliModalOpen] = useState(false);
     const [isDoctorModalOpen, setIsDoctorModalOpen] = useState(false);
     const [isCounterModalOpen, setIsCounterModalOpen] = useState(false);
     const [isLeaveModalOpen, setIsLeaveModalOpen] = useState(false);
+    const [isPlaylistModalOpen, setIsPlaylistModalOpen] = useState(false);
     const [editingItem, setEditingItem] = useState(null);
 
     // Form States
@@ -29,12 +32,14 @@ const MasterData = () => {
     const [doctorForm, setDoctorForm] = useState({ name: '', specialist: '', poliklinik_id: '', photo_url: '', schedules: [] });
     const [counterForm, setCounterForm] = useState({ name: '' });
     const [leaveForm, setLeaveForm] = useState({ doctor_id: '', date: '', reason: '' });
+    const [playlistForm, setPlaylistForm] = useState({ type: 'VIDEO', url: '', duration: 10, order: 0 });
 
     useEffect(() => {
         fetchPolies();
         fetchDoctors();
         fetchCounters();
         fetchLeaves();
+        fetchPlaylist();
     }, []);
 
     const fetchPolies = async () => {
@@ -55,6 +60,11 @@ const MasterData = () => {
     const fetchLeaves = async () => {
         try { const res = await axios.get(`${API_URL}/doctor-leaves`); setLeaves(res.data); }
         catch (error) { console.error('Failed to fetch leaves', error); }
+    };
+
+    const fetchPlaylist = async () => {
+        try { const res = await axios.get(`${API_URL}/playlist`); setPlaylist(res.data); }
+        catch (error) { console.error('Failed to fetch playlist', error); }
     };
 
     // --- Poliklinik Handlers ---
@@ -234,6 +244,54 @@ const MasterData = () => {
         setIsLeaveModalOpen(true);
     };
 
+    // --- Playlist Handlers ---
+    const handlePlaylistSubmit = async (e) => {
+        e.preventDefault();
+        try {
+            if (editingItem) {
+                await axios.put(`${API_URL}/playlist/${editingItem.id}`, playlistForm);
+                toast.success('Item updated');
+            } else {
+                await axios.post(`${API_URL}/playlist`, playlistForm);
+                toast.success('Item added');
+            }
+            fetchPlaylist();
+            setIsPlaylistModalOpen(false);
+            setEditingItem(null);
+            setPlaylistForm({ type: 'VIDEO', url: '', duration: 10, order: 0 });
+        } catch (error) {
+            toast.error(error.response?.data?.error || 'Operation failed');
+        }
+    };
+
+    const handleDeletePlaylist = async (id) => {
+        if (!window.confirm('Are you sure?')) return;
+        try {
+            await axios.delete(`${API_URL}/playlist/${id}`);
+            toast.success('Item deleted');
+            fetchPlaylist();
+        } catch (error) {
+            toast.error('Failed to delete item');
+        }
+    };
+
+    const openPlaylistModal = (item = null) => {
+        if (item) {
+            setEditingItem(item);
+            setPlaylistForm({
+                type: item.type,
+                url: item.url,
+                duration: item.duration,
+                order: item.order
+            });
+        } else {
+            setEditingItem(null);
+            setPlaylistForm({ type: 'VIDEO', url: '', duration: 10, order: 0 });
+        }
+        setIsPlaylistModalOpen(true);
+    };
+
+
     // Render Helpers
     const TabButton = ({ id, label, icon: Icon }) => (
         <button
@@ -278,11 +336,12 @@ const MasterData = () => {
                     </div>
 
                     {/* Segmented Control */}
-                    <div className="flex p-1 bg-white/50 dark:bg-gray-800/50 backdrop-blur-md rounded-full border border-gray-200 dark:border-white/5">
+                    <div className="flex p-1 bg-white/50 dark:bg-gray-800/50 backdrop-blur-md rounded-full border border-gray-200 dark:border-white/5 overflow-x-auto">
                         <TabButton id="poliklinik" label="Poliklinik" icon={LayoutGrid} />
                         <TabButton id="doctors" label="Dokter" icon={Stethoscope} />
                         <TabButton id="counters" label="Loket" icon={Store} />
-                        <TabButton id="leave" label="Cuti Dokter" icon={CalendarOff} />
+                        <TabButton id="leave" label="Cuti" icon={CalendarOff} />
+                        <TabButton id="playlist" label="TV Display" icon={Play} />
                     </div>
                 </header>
 
@@ -304,6 +363,7 @@ const MasterData = () => {
                                 if (activeTab === 'doctors') openDoctorModal();
                                 if (activeTab === 'counters') openCounterModal();
                                 if (activeTab === 'leave') openLeaveModal();
+                                if (activeTab === 'playlist') openPlaylistModal();
                             }}
                             className="bg-modern-text text-modern-bg px-6 py-3 rounded-2xl font-semibold flex items-center gap-2 hover:bg-white hover:text-modern-text transition-all shadow-lg hover:shadow-xl active:scale-95"
                         >
@@ -343,6 +403,14 @@ const MasterData = () => {
                                             <th className="p-6 text-xs font-bold text-modern-text-secondary uppercase tracking-wider">Doctor</th>
                                             <th className="p-6 text-xs font-bold text-modern-text-secondary uppercase tracking-wider">Tanggal</th>
                                             <th className="p-6 text-xs font-bold text-modern-text-secondary uppercase tracking-wider">Keterangan</th>
+                                        </>
+                                    )}
+                                    {activeTab === 'playlist' && (
+                                        <>
+                                            <th className="p-6 text-xs font-bold text-modern-text-secondary uppercase tracking-wider">Order</th>
+                                            <th className="p-6 text-xs font-bold text-modern-text-secondary uppercase tracking-wider">Type</th>
+                                            <th className="p-6 text-xs font-bold text-modern-text-secondary uppercase tracking-wider">URL / ID</th>
+                                            <th className="p-6 text-xs font-bold text-modern-text-secondary uppercase tracking-wider">Duration</th>
                                         </>
                                     )}
                                     <th className="p-6 text-xs font-bold text-modern-text-secondary uppercase tracking-wider text-right">Actions</th>
@@ -429,6 +497,28 @@ const MasterData = () => {
                                         </td>
                                     </tr>
                                 ))}
+
+                                {activeTab === 'playlist' && playlist.map((item) => (
+                                    <tr key={item.id} className="hover:bg-gray-50 dark:hover:bg-white/5 transition-colors group">
+                                        <td className="p-6 text-modern-text-secondary font-mono">{item.order}</td>
+                                        <td className="p-6">
+                                            <span className={`
+                                                px-3 py-1 rounded-lg text-xs font-bold tracking-wide border
+                                                ${item.type === 'VIDEO' ? 'bg-red-100 text-red-600 border-red-200' : 'bg-blue-100 text-blue-600 border-blue-200'}
+                                            `}>
+                                                {item.type}
+                                            </span>
+                                        </td>
+                                        <td className="p-6 font-mono text-xs text-modern-text max-w-[200px] truncate">{item.url}</td>
+                                        <td className="p-6 text-modern-text-secondary">{item.duration}s</td>
+                                        <td className="p-6 text-right">
+                                            <div className="flex justify-end gap-2">
+                                                <ActionButton onClick={() => openPlaylistModal(item)} icon={Edit} colorClass="text-modern-blue hover:bg-modern-blue/10" />
+                                                <ActionButton onClick={() => handleDeletePlaylist(item.id)} icon={Trash2} colorClass="text-red-500 hover:bg-red-500/10" />
+                                            </div>
+                                        </td>
+                                    </tr>
+                                ))}
                             </tbody>
                         </table>
 
@@ -437,6 +527,7 @@ const MasterData = () => {
                         {activeTab === 'doctors' && doctors.length === 0 && <EmptyState />}
                         {activeTab === 'counters' && counters.length === 0 && <EmptyState />}
                         {activeTab === 'leave' && leaves.length === 0 && <EmptyState />}
+                        {activeTab === 'playlist' && playlist.length === 0 && <EmptyState />}
                     </div>
                 </div>
             </div>
@@ -566,6 +657,51 @@ const MasterData = () => {
                         />
                     </div>
                     <Input label="Keterangan / Alasan" value={leaveForm.reason} onChange={e => setLeaveForm({ ...leaveForm, reason: e.target.value })} placeholder="Cuti tahunan, sakit, dll..." />
+                    <SubmitButton />
+                </form>
+            </Modal>
+
+            {/* Playlist Modal */}
+            <Modal isOpen={isPlaylistModalOpen} onClose={() => setIsPlaylistModalOpen(false)} title="Manage Display Item">
+                <form onSubmit={handlePlaylistSubmit} className="space-y-6">
+                    <div>
+                        <label className="block text-sm font-medium text-modern-text-secondary mb-2">Item Type</label>
+                        <select
+                            className="w-full bg-modern-bg border border-white/10 text-modern-text rounded-xl px-4 py-3 focus:ring-2 focus:ring-modern-blue outline-none transition-all"
+                            value={playlistForm.type}
+                            onChange={e => setPlaylistForm({ ...playlistForm, type: e.target.value })}
+                        >
+                            <option value="VIDEO">YouTube Video</option>
+                            <option value="IMAGE">Image</option>
+                        </select>
+                    </div>
+                    <Input
+                        label={playlistForm.type === 'VIDEO' ? "YouTube Video ID (e.g. dQw4w9WgXcQ)" : "Image URL"}
+                        value={playlistForm.url}
+                        onChange={e => setPlaylistForm({ ...playlistForm, url: e.target.value })}
+                        placeholder={playlistForm.type === 'VIDEO' ? "dQw4w9WgXcQ" : "https://example.com/image.jpg"}
+                    />
+                    <div className="flex gap-4">
+                        <div className="flex-1">
+                            <Input
+                                label="Duration (Seconds)"
+                                type="number"
+                                value={playlistForm.duration}
+                                onChange={e => setPlaylistForm({ ...playlistForm, duration: e.target.value })}
+                                placeholder="10"
+                            />
+                        </div>
+                        <div className="flex-1">
+                            <Input
+                                label="Order Sequence"
+                                type="number"
+                                value={playlistForm.order}
+                                onChange={e => setPlaylistForm({ ...playlistForm, order: e.target.value })}
+                                placeholder="0"
+                            />
+                        </div>
+                    </div>
+
                     <SubmitButton />
                 </form>
             </Modal>
