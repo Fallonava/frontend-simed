@@ -43,16 +43,34 @@
 
 @layer utilities {
   .card-soft {
-    @apply bg-white rounded-[24px] shadow-sm border border-gray-100 hover:shadow-md transition-all duration-300;
+    @apply bg-white dark:bg-gray-800 rounded-[24px] shadow-sm border border-gray-100 dark:border-gray-700 hover:shadow-md transition-all duration-300;
   }
 
   .btn-theme {
     @apply bg-theme-purple text-white rounded-xl hover:bg-theme-purple-dark transition-colors shadow-lg shadow-theme-purple/20;
   }
 
-  .glass {
-    @apply bg-white/70 backdrop-blur-xl border border-white/20 shadow-lg;
+  .bg-noise {
+    position: relative;
   }
+
+  .bg-noise::before {
+    content: "";
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 50;
+    opacity: 0.03;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+    mix-blend-mode: overlay;
+  }
+}
+
+.glass {
+  @apply bg-white/70 dark:bg-gray-900/70 backdrop-blur-xl border border-white/20 dark:border-white/10 shadow-lg;
 }
 
 /* Custom Scrollbar */
@@ -66,9 +84,37 @@
 }
 
 ::-webkit-scrollbar-thumb {
-  @apply bg-gray-200 rounded-full;
+  background: #cbd5e1;
+  border-radius: 4px;
+}
+
+.dark ::-webkit-scrollbar-thumb {
+  background: #475569;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  @apply bg-gray-300;
+  background: #94a3b8;
+}
+
+/* Living Gradient Text */
+.background-animate {
+  background-size: 400%;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.animate-gradient-x {
+  animation: gradient-x 15s ease infinite;
+}
+
+@keyframes gradient-x {
+
+  0%,
+  100% {
+    background-position: 0% 50%;
+  }
+
+  50% {
+    background-position: 100% 50%;
+  }
 }

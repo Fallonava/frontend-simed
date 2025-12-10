@@ -5,7 +5,8 @@ import {
     Trash2, Edit, Plus, X,
     LayoutGrid, Stethoscope, Store,
     Search,
-    CalendarOff
+    CalendarOff,
+    Play
 } from 'lucide-react';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
@@ -16,12 +17,14 @@ const MasterData = () => {
     const [doctors, setDoctors] = useState([]);
     const [counters, setCounters] = useState([]);
     const [leaves, setLeaves] = useState([]);
+    const [playlist, setPlaylist] = useState([]);
 
     // Modal States
     const [isPoliModalOpen, setIsPoliModalOpen] = useState(false);
     const [isDoctorModalOpen, setIsDoctorModalOpen] = useState(false);
     const [isCounterModalOpen, setIsCounterModalOpen] = useState(false);
     const [isLeaveModalOpen, setIsLeaveModalOpen] = useState(false);
+    const [isPlaylistModalOpen, setIsPlaylistModalOpen] = useState(false);
     const [editingItem, setEditingItem] = useState(null);
 
     // Form States
@@ -29,13 +32,22 @@ const MasterData = () => {
     const [doctorForm, setDoctorForm] = useState({ name: '', specialist: '', poliklinik_id: '', photo_url: '', schedules: [] });
     const [counterForm, setCounterForm] = useState({ name: '' });
     const [leaveForm, setLeaveForm] = useState({ doctor_id: '', date: '', reason: '' });
+    const [playlistForm, setPlaylistForm] = useState({ type: 'VIDEO', url: '', duration: 10, order: 0 });
+    const [settings, setSettings] = useState({ running_text: '' });
 
     useEffect(() => {
         fetchPolies();
         fetchDoctors();
         fetchCounters();
         fetchLeaves();
+        fetchPlaylist();
+        fetchSettings();
     }, []);
+
+    const fetchSettings = async () => {
+        try { const res = await axios.get(`${API_URL}/settings`); if (res.data) setSettings(res.data); }
+        catch (error) { console.error('Failed to fetch settings', error); }
+    };
 
     const fetchPolies = async () => {
         try { const res = await axios.get(`${API_URL}/polies`); setPolies(res.data); }
@@ -55,6 +67,11 @@ const MasterData = () => {
     const fetchLeaves = async () => {
         try { const res = await axios.get(`${API_URL}/doctor-leaves`); setLeaves(res.data); }
         catch (error) { console.error('Failed to fetch leaves', error); }
+    };
+
+    const fetchPlaylist = async () => {
+        try { const res = await axios.get(`${API_URL}/playlist`); setPlaylist(res.data); }
+        catch (error) { console.error('Failed to fetch playlist', error); }
     };
 
     // --- Poliklinik Handlers ---
@@ -228,11 +245,91 @@ const MasterData = () => {
         }
     };
 
-    const openLeaveModal = () => {
-        setEditingItem(null);
-        setLeaveForm({ doctor_id: '', date: '', reason: '' });
-        setIsLeaveModalOpen(true);
+    const handlePlaylistSubmit = async (e) => {
+        e.preventDefault();
+        try {
+            let finalUrl = playlistForm.url;
+
+            // Handle File Upload
+            if (playlistForm.type === 'LOCAL_VIDEO' && playlistForm.file) {
+                const formData = new FormData();
+                formData.append('file', playlistForm.file);
+
+                const uploadRes = await axios.post(`${API_URL}/upload`, formData, {
+                    headers: { 'Content-Type': 'multipart/form-data' }
+                });
+                finalUrl = uploadRes.data.url;
+            } else if (playlistForm.type === 'LOCAL_VIDEO' && !finalUrl) {
+                toast.error('Please select a video file');
+                return;
+            }
+
+            const payload = {
+                type: playlistForm.type === 'LOCAL_VIDEO' ? 'VIDEO' : playlistForm.type, // Store as VIDEO in DB, url differentiates
+                url: finalUrl,
+                duration: parseInt(playlistForm.duration),
+                order: parseInt(playlistForm.order),
+                isActive: true
+            };
+
+            if (editingItem) { // Changed from selectedItem to editingItem to match existing code
+                await axios.put(`${API_URL}/playlist/${editingItem.id}`, payload);
+                toast.success('Display item updated');
+            } else {
+                await axios.post(`${API_URL}/playlist`, payload);
+                toast.success('Display item created');
+            }
+            fetchPlaylist();
+            setIsPlaylistModalOpen(false);
+            setEditingItem(null); // Added this line to clear editingItem
+            setPlaylistForm({ type: 'VIDEO', url: '', duration: 10, order: 0, file: null }); // Added file: null
+        } catch (error) {
+            toast.error('Operation failed');
+            console.error(error);
+        }
     };
+
+    const handleDeletePlaylist = async (id) => {
+        if (!window.confirm('Are you sure?')) return;
+        try {
+            await axios.delete(`${API_URL}/playlist/${id}`);
+            toast.success('Item deleted');
+            fetchPlaylist();
+        } catch (error) {
+            toast.error('Failed to delete item');
+        }
+    };
+
+    const openPlaylistModal = (item = null) => {
+        if (item) {
+            setEditingItem(item);
+            setPlaylistForm({
+                type: item.type,
+                url: item.url,
+                duration: item.duration,
+                order: item.order
+            });
+        } else {
+            setEditingItem(null);
+            setPlaylistForm({ type: 'VIDEO', url: '', duration: 10, order: 0 });
+        }
+        setIsPlaylistModalOpen(true);
+    };
+
+    const handleSettingSubmit = async (e) => {
+        if (e) e.preventDefault();
+        try {
+            await axios.put(`${API_URL}/settings`, {
+                running_text: settings?.running_text || ''
+            });
+            toast.success('Settings saved successfully');
+            fetchSettings();
+        } catch (error) {
+            console.error('Save settings failed', error);
+            toast.error('Failed to save settings');
+        }
+    };
+
 
     // Render Helpers
     const TabButton = ({ id, label, icon: Icon }) => (
@@ -259,8 +356,10 @@ const MasterData = () => {
         </button>
     );
 
+
+
     return (
-        <div className="min-h-screen bg-modern-bg p-8 font-sans relative overflow-hidden">
+        <div className="min-h-screen bg-theme-bg p-8 font-sans relative overflow-hidden transition-colors duration-300">
             {/* Background Mesh Gradient */}
             <div className="absolute top-0 left-0 w-full h-full overflow-hidden -z-10 pointer-events-none">
                 <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-modern-blue/10 rounded-full blur-[100px]"></div>
@@ -278,24 +377,26 @@ const MasterData = () => {
                     </div>
 
                     {/* Segmented Control */}
-                    <div className="flex p-1 bg-modern-card/50 backdrop-blur-md rounded-full border border-white/5">
+                    <div className="flex p-1 bg-white/50 dark:bg-gray-800/50 backdrop-blur-md rounded-full border border-gray-200 dark:border-white/5 overflow-x-auto">
                         <TabButton id="poliklinik" label="Poliklinik" icon={LayoutGrid} />
                         <TabButton id="doctors" label="Dokter" icon={Stethoscope} />
                         <TabButton id="counters" label="Loket" icon={Store} />
-                        <TabButton id="leave" label="Cuti Dokter" icon={CalendarOff} />
+                        <TabButton id="leave" label="Cuti" icon={CalendarOff} />
+                        <TabButton id="playlist" label="TV Display" icon={Play} />
+                        <TabButton id="settings" label="Settings" icon={Search} />
                     </div>
                 </header>
 
                 {/* Main Content Card */}
-                <div className="bg-modern-card/70 backdrop-blur-xl rounded-[2.5rem] shadow-2xl border border-white/10 overflow-hidden min-h-[600px] flex flex-col">
+                <div className="bg-white/70 dark:bg-gray-900/70 backdrop-blur-xl rounded-[2.5rem] shadow-2xl border border-gray-200 dark:border-white/10 overflow-hidden min-h-[600px] flex flex-col">
                     {/* Toolbar */}
-                    <div className="p-8 border-b border-white/5 flex justify-between items-center bg-white/5">
-                        <div className="relative">
+                    <div className="p-4 md:p-8 border-b border-gray-200 dark:border-white/5 flex flex-col md:flex-row justify-between items-center bg-gray-50/50 dark:bg-white/5 gap-4">
+                        <div className="relative w-full md:w-auto">
                             <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-modern-text-secondary w-5 h-5" />
                             <input
                                 type="text"
                                 placeholder="Search..."
-                                className="pl-12 pr-4 py-3 bg-modern-bg/50 border border-white/5 rounded-2xl w-64 focus:ring-2 focus:ring-modern-blue/50 outline-none transition-all text-modern-text placeholder-modern-text-secondary"
+                                className="pl-12 pr-4 py-3 bg-white dark:bg-gray-800 border border-gray-200 dark:border-white/5 rounded-2xl w-full md:w-64 focus:ring-2 focus:ring-modern-blue/50 outline-none transition-all text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500"
                             />
                         </div>
                         <button
@@ -304,8 +405,9 @@ const MasterData = () => {
                                 if (activeTab === 'doctors') openDoctorModal();
                                 if (activeTab === 'counters') openCounterModal();
                                 if (activeTab === 'leave') openLeaveModal();
+                                if (activeTab === 'playlist') openPlaylistModal();
                             }}
-                            className="bg-modern-text text-modern-bg px-6 py-3 rounded-2xl font-semibold flex items-center gap-2 hover:bg-white transition-all shadow-lg hover:shadow-xl active:scale-95"
+                            className="w-full md:w-auto bg-modern-text text-modern-bg px-6 py-3 rounded-2xl font-semibold flex items-center justify-center gap-2 hover:bg-white hover:text-modern-text transition-all shadow-lg hover:shadow-xl active:scale-95"
                         >
                             <Plus size={20} />
                             Add New
@@ -314,129 +416,191 @@ const MasterData = () => {
 
                     {/* Table Content */}
                     <div className="flex-1 overflow-auto p-2">
-                        <table className="w-full text-left border-collapse">
-                            <thead className="sticky top-0 bg-modern-card/90 backdrop-blur-md z-10">
-                                <tr>
-                                    {activeTab === 'poliklinik' && (
-                                        <>
-                                            <th className="p-6 text-xs font-bold text-modern-text-secondary uppercase tracking-wider">ID</th>
-                                            <th className="p-6 text-xs font-bold text-modern-text-secondary uppercase tracking-wider">Nama Poli</th>
-                                            <th className="p-6 text-xs font-bold text-modern-text-secondary uppercase tracking-wider">Kode</th>
-                                        </>
-                                    )}
-                                    {activeTab === 'doctors' && (
-                                        <>
-                                            <th className="p-6 text-xs font-bold text-modern-text-secondary uppercase tracking-wider">Doctor</th>
-                                            <th className="p-6 text-xs font-bold text-modern-text-secondary uppercase tracking-wider">Spesialis</th>
-                                            <th className="p-6 text-xs font-bold text-modern-text-secondary uppercase tracking-wider">Poli</th>
-                                        </>
-                                    )}
-                                    {activeTab === 'counters' && (
-                                        <>
-                                            <th className="p-6 text-xs font-bold text-modern-text-secondary uppercase tracking-wider">ID</th>
-                                            <th className="p-6 text-xs font-bold text-modern-text-secondary uppercase tracking-wider">Nama Loket</th>
-                                            <th className="p-6 text-xs font-bold text-modern-text-secondary uppercase tracking-wider">Status</th>
-                                        </>
-                                    )}
-                                    {activeTab === 'leave' && (
-                                        <>
-                                            <th className="p-6 text-xs font-bold text-modern-text-secondary uppercase tracking-wider">Doctor</th>
-                                            <th className="p-6 text-xs font-bold text-modern-text-secondary uppercase tracking-wider">Tanggal</th>
-                                            <th className="p-6 text-xs font-bold text-modern-text-secondary uppercase tracking-wider">Keterangan</th>
-                                        </>
-                                    )}
-                                    <th className="p-6 text-xs font-bold text-modern-text-secondary uppercase tracking-wider text-right">Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody className="divide-y divide-white/5">
-                                {activeTab === 'poliklinik' && polies.map((poli) => (
-                                    <tr key={poli.id} className="hover:bg-white/5 transition-colors group">
-                                        <td className="p-6 text-modern-text-secondary font-mono text-sm">#{poli.id}</td>
-                                        <td className="p-6 font-semibold text-modern-text">{poli.name}</td>
-                                        <td className="p-6">
-                                            <span className="bg-modern-blue/10 text-modern-blue px-3 py-1 rounded-lg text-xs font-bold tracking-wide border border-modern-blue/20">
-                                                {poli.queue_code}
-                                            </span>
-                                        </td>
-                                        <td className="p-6 text-right">
-                                            <div className="flex justify-end gap-2">
-                                                <ActionButton onClick={() => openPoliModal(poli)} icon={Edit} colorClass="text-modern-blue hover:bg-modern-blue/10" />
-                                                <ActionButton onClick={() => handleDeletePoli(poli.id)} icon={Trash2} colorClass="text-red-500 hover:bg-red-500/10" />
-                                            </div>
-                                        </td>
-                                    </tr>
-                                ))}
+                        {activeTab === 'settings' ? (
+                            <div className="p-8 max-w-2xl mx-auto bg-white dark:bg-gray-900 border border-gray-200 shadow-sm rounded-xl">
+                                <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">General Settings</h1>
 
-                                {activeTab === 'doctors' && doctors.map((doc) => (
-                                    <tr key={doc.id} className="hover:bg-white/5 transition-colors group">
-                                        <td className="p-6">
-                                            <div className="flex items-center gap-4">
-                                                <img src={doc.photo_url || 'https://via.placeholder.com/40'} alt={doc.name} className="w-12 h-12 rounded-2xl object-cover shadow-sm bg-modern-bg" />
-                                                <span className="font-bold text-modern-text">{doc.name}</span>
-                                            </div>
-                                        </td>
-                                        <td className="p-6 text-modern-text-secondary">{doc.specialist}</td>
-                                        <td className="p-6">
-                                            <span className="bg-modern-purple/10 text-modern-purple px-3 py-1 rounded-lg text-xs font-bold tracking-wide border border-modern-purple/20">
-                                                {doc.poliklinik ? doc.poliklinik.name : '-'}
-                                            </span>
-                                        </td>
-                                        <td className="p-6 text-right">
-                                            <div className="flex justify-end gap-2">
-                                                <ActionButton onClick={() => openDoctorModal(doc)} icon={Edit} colorClass="text-modern-blue hover:bg-modern-blue/10" />
-                                                <ActionButton onClick={() => handleDeleteDoctor(doc.id)} icon={Trash2} colorClass="text-red-500 hover:bg-red-500/10" />
-                                            </div>
-                                        </td>
-                                    </tr>
-                                ))}
+                                <div className="space-y-6">
+                                    <div>
+                                        <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">Running Text (TV Display)</label>
+                                        <textarea
+                                            className="w-full h-32 p-3 border border-gray-300 rounded-lg bg-white text-black text-base shadow-inner focus:ring-2 focus:ring-blue-500 outline-none"
+                                            value={settings?.running_text || ''}
+                                            onChange={e => setSettings(prev => ({ ...(prev || {}), running_text: e.target.value }))}
+                                            placeholder="Enter running text..."
+                                        />
+                                    </div>
 
-                                {activeTab === 'counters' && counters.map((counter) => (
-                                    <tr key={counter.id} className="hover:bg-white/5 transition-colors group">
-                                        <td className="p-6 text-modern-text-secondary font-mono text-sm">#{counter.id}</td>
-                                        <td className="p-6 font-semibold text-modern-text">{counter.name}</td>
-                                        <td className="p-6">
-                                            <span className={`
+                                    <div className="flex items-center gap-4">
+                                        <button
+                                            onClick={handleSettingSubmit}
+                                            className="bg-blue-600 text-white px-8 py-3 rounded-lg hover:bg-blue-700 font-bold transition-colors shadow-lg"
+                                        >
+                                            Save Changes
+                                        </button>
+
+                                        <span className="text-sm text-gray-400">
+                                            {settings?.updatedAt ? `Last updated: ${new Date(settings.updatedAt).toLocaleTimeString()}` : 'Not saved yet'}
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+                        ) : (
+                            <table className="w-full text-left border-collapse">
+                                <thead className="sticky top-0 bg-white/90 dark:bg-gray-900/90 backdrop-blur-md z-10">
+                                    <tr>
+                                        {activeTab === 'poliklinik' && (
+                                            <>
+                                                <th className="p-6 text-xs font-bold text-modern-text-secondary uppercase tracking-wider">ID</th>
+                                                <th className="p-6 text-xs font-bold text-modern-text-secondary uppercase tracking-wider">Nama Poli</th>
+                                                <th className="p-6 text-xs font-bold text-modern-text-secondary uppercase tracking-wider">Kode</th>
+                                            </>
+                                        )}
+                                        {activeTab === 'doctors' && (
+                                            <>
+                                                <th className="p-6 text-xs font-bold text-modern-text-secondary uppercase tracking-wider">Doctor</th>
+                                                <th className="p-6 text-xs font-bold text-modern-text-secondary uppercase tracking-wider">Spesialis</th>
+                                                <th className="p-6 text-xs font-bold text-modern-text-secondary uppercase tracking-wider">Poli</th>
+                                            </>
+                                        )}
+                                        {activeTab === 'counters' && (
+                                            <>
+                                                <th className="p-6 text-xs font-bold text-modern-text-secondary uppercase tracking-wider">ID</th>
+                                                <th className="p-6 text-xs font-bold text-modern-text-secondary uppercase tracking-wider">Nama Loket</th>
+                                                <th className="p-6 text-xs font-bold text-modern-text-secondary uppercase tracking-wider">Status</th>
+                                            </>
+                                        )}
+                                        {activeTab === 'leave' && (
+                                            <>
+                                                <th className="p-6 text-xs font-bold text-modern-text-secondary uppercase tracking-wider">Doctor</th>
+                                                <th className="p-6 text-xs font-bold text-modern-text-secondary uppercase tracking-wider">Tanggal</th>
+                                                <th className="p-6 text-xs font-bold text-modern-text-secondary uppercase tracking-wider">Keterangan</th>
+                                            </>
+                                        )}
+                                        {activeTab === 'playlist' && (
+                                            <>
+                                                <th className="p-6 text-xs font-bold text-modern-text-secondary uppercase tracking-wider">Order</th>
+                                                <th className="p-6 text-xs font-bold text-modern-text-secondary uppercase tracking-wider">Type</th>
+                                                <th className="p-6 text-xs font-bold text-modern-text-secondary uppercase tracking-wider">URL / ID</th>
+                                                <th className="p-6 text-xs font-bold text-modern-text-secondary uppercase tracking-wider">Duration</th>
+                                            </>
+                                        )}
+                                        <th className="p-6 text-xs font-bold text-modern-text-secondary uppercase tracking-wider text-right">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="divide-y divide-gray-100 dark:divide-white/5">
+                                    {activeTab === 'poliklinik' && polies.map((poli) => (
+                                        <tr key={poli.id} className="hover:bg-gray-50 dark:hover:bg-white/5 transition-colors group">
+                                            <td className="p-6 text-modern-text-secondary font-mono text-sm">#{poli.id}</td>
+                                            <td className="p-6 font-semibold text-modern-text">{poli.name}</td>
+                                            <td className="p-6">
+                                                <span className="bg-modern-blue/10 text-modern-blue px-3 py-1 rounded-lg text-xs font-bold tracking-wide border border-modern-blue/20">
+                                                    {poli.queue_code}
+                                                </span>
+                                            </td>
+                                            <td className="p-6 text-right">
+                                                <div className="flex justify-end gap-2">
+                                                    <ActionButton onClick={() => openPoliModal(poli)} icon={Edit} colorClass="text-modern-blue hover:bg-modern-blue/10" />
+                                                    <ActionButton onClick={() => handleDeletePoli(poli.id)} icon={Trash2} colorClass="text-red-500 hover:bg-red-500/10" />
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    ))}
+
+                                    {activeTab === 'doctors' && doctors.map((doc) => (
+                                        <tr key={doc.id} className="hover:bg-gray-50 dark:hover:bg-white/5 transition-colors group">
+                                            <td className="p-6">
+                                                <div className="flex items-center gap-4">
+                                                    <img src={doc.photo_url || 'https://via.placeholder.com/40'} alt={doc.name} className="w-12 h-12 rounded-2xl object-cover shadow-sm bg-modern-bg" />
+                                                    <span className="font-bold text-modern-text">{doc.name}</span>
+                                                </div>
+                                            </td>
+                                            <td className="p-6 text-modern-text-secondary">{doc.specialist}</td>
+                                            <td className="p-6">
+                                                <span className="bg-modern-purple/10 text-modern-purple px-3 py-1 rounded-lg text-xs font-bold tracking-wide border border-modern-purple/20">
+                                                    {doc.poliklinik ? doc.poliklinik.name : '-'}
+                                                </span>
+                                            </td>
+                                            <td className="p-6 text-right">
+                                                <div className="flex justify-end gap-2">
+                                                    <ActionButton onClick={() => openDoctorModal(doc)} icon={Edit} colorClass="text-modern-blue hover:bg-modern-blue/10" />
+                                                    <ActionButton onClick={() => handleDeleteDoctor(doc.id)} icon={Trash2} colorClass="text-red-500 hover:bg-red-500/10" />
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    ))}
+
+                                    {activeTab === 'counters' && counters.map((counter) => (
+                                        <tr key={counter.id} className="hover:bg-gray-50 dark:hover:bg-white/5 transition-colors group">
+                                            <td className="p-6 text-modern-text-secondary font-mono text-sm">#{counter.id}</td>
+                                            <td className="p-6 font-semibold text-modern-text">{counter.name}</td>
+                                            <td className="p-6">
+                                                <span className={`
                                                 px-3 py-1 rounded-lg text-xs font-bold tracking-wide border
                                                 ${counter.status === 'OPEN' ? 'bg-modern-green/10 text-modern-green border-modern-green/20' :
-                                                    counter.status === 'BUSY' ? 'bg-yellow-500/10 text-yellow-500 border-yellow-500/20' :
-                                                        'bg-red-500/10 text-red-500 border-red-500/20'}
+                                                        counter.status === 'BUSY' ? 'bg-yellow-500/10 text-yellow-500 border-yellow-500/20' :
+                                                            'bg-red-500/10 text-red-500 border-red-500/20'}
                                             `}>
-                                                {counter.status || 'CLOSED'}
-                                            </span>
-                                        </td>
-                                        <td className="p-6 text-right">
-                                            <div className="flex justify-end gap-2">
-                                                <ActionButton onClick={() => openCounterModal(counter)} icon={Edit} colorClass="text-modern-blue hover:bg-modern-blue/10" />
-                                                <ActionButton onClick={() => handleDeleteCounter(counter.id)} icon={Trash2} colorClass="text-red-500 hover:bg-red-500/10" />
-                                            </div>
-                                        </td>
-                                    </tr>
-                                ))}
+                                                    {counter.status || 'CLOSED'}
+                                                </span>
+                                            </td>
+                                            <td className="p-6 text-right">
+                                                <div className="flex justify-end gap-2">
+                                                    <ActionButton onClick={() => openCounterModal(counter)} icon={Edit} colorClass="text-modern-blue hover:bg-modern-blue/10" />
+                                                    <ActionButton onClick={() => handleDeleteCounter(counter.id)} icon={Trash2} colorClass="text-red-500 hover:bg-red-500/10" />
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    ))}
 
-                                {activeTab === 'leave' && leaves.map((leave) => (
-                                    <tr key={leave.id} className="hover:bg-white/5 transition-colors group">
-                                        <td className="p-6">
-                                            <div className="font-bold text-modern-text">{leave.doctor?.name || `Doctor #${leave.doctor_id}`}</div>
-                                        </td>
-                                        <td className="p-6 text-modern-text-secondary">
-                                            {new Date(leave.date).toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
-                                        </td>
-                                        <td className="p-6 text-modern-text-secondary">{leave.reason}</td>
-                                        <td className="p-6 text-right">
-                                            <div className="flex justify-end gap-2">
-                                                <ActionButton onClick={() => handleDeleteLeave(leave.id)} icon={Trash2} colorClass="text-red-500 hover:bg-red-500/10" />
-                                            </div>
-                                        </td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
+                                    {activeTab === 'leave' && leaves.map((leave) => (
+                                        <tr key={leave.id} className="hover:bg-gray-50 dark:hover:bg-white/5 transition-colors group">
+                                            <td className="p-6">
+                                                <div className="font-bold text-modern-text">{leave.doctor?.name || `Doctor #${leave.doctor_id}`}</div>
+                                            </td>
+                                            <td className="p-6 text-modern-text-secondary">
+                                                {new Date(leave.date).toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
+                                            </td>
+                                            <td className="p-6 text-modern-text-secondary">{leave.reason}</td>
+                                            <td className="p-6 text-right">
+                                                <div className="flex justify-end gap-2">
+                                                    <ActionButton onClick={() => handleDeleteLeave(leave.id)} icon={Trash2} colorClass="text-red-500 hover:bg-red-500/10" />
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    ))}
+
+                                    {activeTab === 'playlist' && playlist.map((item) => (
+                                        <tr key={item.id} className="hover:bg-gray-50 dark:hover:bg-white/5 transition-colors group">
+                                            <td className="p-6 text-modern-text-secondary font-mono">{item.order}</td>
+                                            <td className="p-6">
+                                                <span className={`
+                                                px-3 py-1 rounded-lg text-xs font-bold tracking-wide border
+                                                ${item.type === 'VIDEO' ? 'bg-red-100 text-red-600 border-red-200' : 'bg-blue-100 text-blue-600 border-blue-200'}
+                                            `}>
+                                                    {item.type}
+                                                </span>
+                                            </td>
+                                            <td className="p-6 font-mono text-xs text-modern-text max-w-[200px] truncate">{item.url}</td>
+                                            <td className="p-6 text-modern-text-secondary">{item.duration}s</td>
+                                            <td className="p-6 text-right">
+                                                <div className="flex justify-end gap-2">
+                                                    <ActionButton onClick={() => openPlaylistModal(item)} icon={Edit} colorClass="text-modern-blue hover:bg-modern-blue/10" />
+                                                    <ActionButton onClick={() => handleDeletePlaylist(item.id)} icon={Trash2} colorClass="text-red-500 hover:bg-red-500/10" />
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        )}
 
                         {/* Empty States */}
                         {activeTab === 'poliklinik' && polies.length === 0 && <EmptyState />}
                         {activeTab === 'doctors' && doctors.length === 0 && <EmptyState />}
                         {activeTab === 'counters' && counters.length === 0 && <EmptyState />}
                         {activeTab === 'leave' && leaves.length === 0 && <EmptyState />}
+                        {activeTab === 'playlist' && playlist.length === 0 && <EmptyState />}
                     </div>
                 </div>
             </div>
@@ -569,6 +733,67 @@ const MasterData = () => {
                     <SubmitButton />
                 </form>
             </Modal>
+
+            {/* Playlist Modal */}
+            <Modal isOpen={isPlaylistModalOpen} onClose={() => setIsPlaylistModalOpen(false)} title="Manage Display Item">
+                <form onSubmit={handlePlaylistSubmit} className="space-y-6">
+                    <div>
+                        <label className="block text-sm font-medium text-modern-text-secondary mb-2">Item Type</label>
+                        <select
+                            className="w-full bg-modern-bg border border-white/10 text-modern-text rounded-xl px-4 py-3 focus:ring-2 focus:ring-modern-blue outline-none transition-all"
+                            value={playlistForm.type}
+                            onChange={e => setPlaylistForm({ ...playlistForm, type: e.target.value, url: '' })}
+                        >
+                            <option value="VIDEO">YouTube Video</option>
+                            <option value="LOCAL_VIDEO">Upload Video</option>
+                            <option value="IMAGE">Image</option>
+                        </select>
+                    </div>
+
+                    {playlistForm.type === 'LOCAL_VIDEO' ? (
+                        <div>
+                            <label className="block text-sm font-medium text-modern-text-secondary mb-2">Select Video File</label>
+                            <input
+                                type="file"
+                                accept="video/*"
+                                onChange={e => setPlaylistForm({ ...playlistForm, file: e.target.files[0] })}
+                                className="w-full bg-modern-bg border border-white/10 text-modern-text rounded-xl px-4 py-3"
+                            />
+                            {playlistForm.url && <p className="text-xs text-green-500 mt-1">Current file: {playlistForm.url.split('/').pop()}</p>}
+                        </div>
+                    ) : (
+                        <Input
+                            label={playlistForm.type === 'VIDEO' ? "YouTube Video ID (e.g. dQw4w9WgXcQ)" : "Image URL"}
+                            value={playlistForm.url}
+                            onChange={e => setPlaylistForm({ ...playlistForm, url: e.target.value })}
+                            placeholder={playlistForm.type === 'VIDEO' ? "dQw4w9WgXcQ" : "https://example.com/image.jpg"}
+                        />
+                    )}
+
+                    <div className="flex gap-4">
+                        <div className="flex-1">
+                            <Input
+                                label="Duration (Seconds)"
+                                type="number"
+                                value={playlistForm.duration}
+                                onChange={e => setPlaylistForm({ ...playlistForm, duration: e.target.value })}
+                                placeholder="10"
+                            />
+                        </div>
+                        <div className="flex-1">
+                            <Input
+                                label="Order Sequence"
+                                type="number"
+                                value={playlistForm.order}
+                                onChange={e => setPlaylistForm({ ...playlistForm, order: e.target.value })}
+                                placeholder="0"
+                            />
+                        </div>
+                    </div>
+
+                    <SubmitButton />
+                </form>
+            </Modal>
         </div>
     );
 };
@@ -587,7 +812,7 @@ const Modal = ({ isOpen, onClose, title, children }) => {
     if (!isOpen) return null;
     return (
         <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-in fade-in duration-200">
-            <div className="bg-modern-card rounded-[2rem] shadow-2xl w-full max-w-md p-8 relative animate-in zoom-in-95 duration-200 border border-white/10">
+            <div className="bg-white dark:bg-gray-900 rounded-[2rem] shadow-2xl w-full max-w-md p-8 relative animate-in zoom-in-95 duration-200 border border-gray-200 dark:border-white/10">
                 <button onClick={onClose} className="absolute top-6 right-6 text-modern-text-secondary hover:text-white transition-colors">
                     <X size={24} />
                 </button>
@@ -606,7 +831,7 @@ const Input = ({ label, value, onChange, type = "text", required = true, maxLeng
             required={required}
             maxLength={maxLength}
             placeholder={placeholder}
-            className="w-full bg-modern-bg border border-white/10 text-modern-text rounded-xl px-4 py-3 focus:ring-2 focus:ring-modern-blue outline-none transition-all focus:bg-modern-bg/80 placeholder-modern-text-secondary/50"
+            className="w-full bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-white/10 text-gray-900 dark:text-white rounded-xl px-4 py-3 focus:ring-2 focus:ring-modern-blue outline-none transition-all placeholder-gray-400 dark:placeholder-gray-500"
             value={value}
             onChange={onChange}
         />
@@ -614,7 +839,7 @@ const Input = ({ label, value, onChange, type = "text", required = true, maxLeng
 );
 
 const SubmitButton = () => (
-    <button type="submit" className="w-full bg-modern-text text-modern-bg py-4 rounded-xl font-bold text-lg hover:bg-white transition-all shadow-lg hover:shadow-xl active:scale-95">
+    <button type="submit" className="w-full bg-modern-text text-modern-bg py-4 rounded-xl font-bold text-lg hover:bg-white hover:text-modern-text transition-all shadow-lg hover:shadow-xl active:scale-95">
         Save Changes
     </button>
 );

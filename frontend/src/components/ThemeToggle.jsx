@@ -33,6 +33,8 @@ const ThemeToggle = () => {
 
     }, [mode, type, primaryColor, secondaryColor]);
 
+
+
     const presets = [
         { name: 'Salm (Default)', primary: '#738fbd', secondary: '#cc8eb1' },
         { name: 'Ocean', primary: '#2E3192', secondary: '#1BFFFF' },
@@ -42,7 +44,7 @@ const ThemeToggle = () => {
     ];
 
     return (
-        <div className="fixed bottom-6 right-6 z-50 flex flex-col items-end gap-4">
+        <div className="fixed bottom-6 right-6 z-[200] flex flex-col items-end gap-4">
             {/* Panel */}
             {isOpen && (
                 <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl p-6 w-80 border border-gray-100 dark:border-gray-700 animate-in slide-in-from-bottom-10 fade-in duration-300">

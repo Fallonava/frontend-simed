@@ -1,7 +1,8 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import useAuthStore from '../store/useAuthStore';
-import { LayoutDashboard, Users, Database, LogOut, Monitor, Calendar } from 'lucide-react';
+import { LayoutDashboard, Users, Database, LogOut, Monitor, Calendar, Activity, FileText, Pill, Receipt } from 'lucide-react';
+import ThemeToggle from '../components/ThemeToggle';
 
 const MainMenu = () => {
     const { user, logout } = useAuthStore();
@@ -37,7 +38,46 @@ const MainMenu = () => {
             roles: ['ADMIN'],
             color: 'bg-salm-purple'
         },
-
+        {
+            title: 'Pendaftaran',
+            description: 'Patient Registration & Ticketing',
+            icon: <Calendar size={40} />,
+            path: '/registration',
+            roles: ['ADMIN', 'STAFF'],
+            color: 'bg-gradient-to-br from-green-400 to-emerald-600'
+        },
+        {
+            title: 'Doctor Desk',
+            description: 'Rekam Medis & Antrian',
+            icon: <Activity size={40} />,
+            path: '/doctor/dashboard',
+            roles: ['ADMIN', 'STAFF'],
+            color: 'bg-gradient-to-br from-emerald-500 to-teal-600'
+        },
+        {
+            title: 'Data Pasien',
+            description: 'Patient Center & History',
+            icon: <FileText size={40} />,
+            path: '/admin/patients',
+            roles: ['ADMIN', 'STAFF'],
+            color: 'bg-gradient-to-br from-blue-500 to-indigo-600'
+        },
+        {
+            title: 'Apotek & Farmasi',
+            description: 'Pharmacy & Drug Queue',
+            icon: <Pill size={40} />,
+            path: '/pharmacy',
+            roles: ['ADMIN', 'STAFF'], // In a real app, maybe 'PHARMACIST'
+            color: 'bg-gradient-to-br from-emerald-400 to-teal-500'
+        },
+        {
+            title: 'Kasir & Billing',
+            description: 'Payment & Invoicing',
+            icon: <Receipt size={40} />,
+            path: '/cashier',
+            roles: ['ADMIN', 'STAFF'], // e.g. 'CASHIER'
+            color: 'bg-gradient-to-br from-purple-500 to-pink-500'
+        },
         {
             title: 'Public Display',
             description: 'Open TV Display view',
@@ -45,7 +85,7 @@ const MainMenu = () => {
             path: '/counter',
             roles: ['ADMIN', 'STAFF'],
             color: 'bg-salm-pink',
-            external: true // Opens in new tab usually, but here just navigate
+            external: true
         },
         {
             title: 'Kiosk Antrian',
@@ -60,16 +100,18 @@ const MainMenu = () => {
     const allowedItems = menuItems.filter(item => item.roles.includes(user?.role));
 
     return (
-        <div className="min-h-screen bg-gray-50 p-8">
+        <div className="min-h-screen bg-theme-bg p-8 transition-colors duration-300 relative">
+            <ThemeToggle />
+
             <div className="max-w-6xl mx-auto">
                 <header className="flex justify-between items-center mb-12">
                     <div>
-                        <h1 className="text-3xl font-bold text-gray-800">Main Menu</h1>
-                        <p className="text-gray-500">Welcome back, <span className="font-semibold text-salm-purple">{user?.username}</span></p>
+                        <h1 className="text-3xl font-bold text-theme-text">Main Menu</h1>
+                        <p className="text-theme-text-secondary">Welcome back, <span className="font-semibold text-salm-purple">{user?.username}</span></p>
                     </div>
                     <button
                         onClick={handleLogout}
-                        className="flex items-center gap-2 text-red-600 hover:text-red-700 font-medium px-4 py-2 rounded-lg hover:bg-red-50 transition"
+                        className="flex items-center gap-2 text-red-600 hover:text-red-700 font-medium px-4 py-2 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 transition"
                     >
                         <LogOut size={20} />
                         Logout
@@ -81,13 +123,13 @@ const MainMenu = () => {
                         <button
                             key={index}
                             onClick={() => navigate(item.path)}
-                            className="bg-white rounded-2xl p-8 shadow-lg hover:shadow-xl transition-all hover:-translate-y-1 text-left group border border-gray-100"
+                            className="bg-theme-card dark:bg-gray-800 rounded-2xl p-8 shadow-lg hover:shadow-xl transition-all hover:-translate-y-1 text-left group border border-theme-border dark:border-gray-700"
                         >
                             <div className={`${item.color} w-16 h-16 rounded-2xl flex items-center justify-center text-white mb-6 shadow-lg group-hover:scale-110 transition-transform`}>
                                 {item.icon}
                             </div>
-                            <h3 className="text-2xl font-bold text-gray-800 mb-2">{item.title}</h3>
-                            <p className="text-gray-500">{item.description}</p>
+                            <h3 className="text-2xl font-bold text-theme-text mb-2">{item.title}</h3>
+                            <p className="text-theme-text-secondary">{item.description}</p>
                         </button>
                     ))}
                 </div>

@@ -190,7 +190,7 @@ const DoctorLeaveCalendar = () => {
 
         // Empty slots for previous month
         for (let i = 0; i < firstDay; i++) {
-            days.push(<div key={`empty-${i}`} className="bg-gray-50/30 border border-gray-100 min-h-[120px]"></div>);
+            days.push(<div key={`empty-${i}`} className="bg-gray-50/30 dark:bg-gray-800/30 border border-gray-100 dark:border-gray-700 min-h-[120px]"></div>);
         }
 
         // Days
@@ -205,16 +205,16 @@ const DoctorLeaveCalendar = () => {
                     key={day}
                     onClick={() => handleDateClick(day)}
                     className={`
-                        min-h-[120px] p-3 border relative group transition-all hover:bg-gray-50 cursor-pointer
+                        min-h-[120px] p-3 border relative group transition-all hover:bg-gray-50 dark:hover:bg-gray-700/50 cursor-pointer
                         ${isToday
-                            ? 'bg-white ring-2 ring-salm-blue ring-offset-2 border-transparent z-10 shadow-lg shadow-salm-blue/10 rounded-2xl'
-                            : 'bg-white border-gray-100'}
+                            ? 'bg-white dark:bg-gray-800 ring-2 ring-salm-blue ring-offset-2 dark:ring-offset-gray-900 border-transparent z-10 shadow-lg shadow-salm-blue/10 rounded-2xl'
+                            : 'bg-white dark:bg-gray-800 border-gray-100 dark:border-gray-700'}
                     `}
                 >
                     <div className="flex justify-between items-center mb-2">
                         <span className={`text-sm font-semibold transition-all ${isToday
                             ? 'bg-salm-blue text-white w-8 h-8 flex items-center justify-center rounded-full shadow-lg shadow-salm-blue/30 scale-110'
-                            : 'text-gray-700'
+                            : 'text-gray-700 dark:text-gray-300'
                             }`}>
                             {day}
                         </span>
@@ -267,8 +267,8 @@ const DoctorLeaveCalendar = () => {
                     key={i}
                     onClick={() => handleDateClick(dayDate.getDate())}
                     className={`
-                        min-h-[240px] border-r border-gray-100 p-4 relative group transition-all duration-300 flex flex-col
-                        hover:bg-gray-50/80 cursor-pointer
+                        min-h-[240px] border-r border-gray-100 dark:border-gray-700 p-4 relative group transition-all duration-300 flex flex-col
+                        hover:bg-gray-50/80 dark:hover:bg-gray-700/50 cursor-pointer
                         ${isToday ? 'bg-salm-light-blue/5' : ''}
                     `}
                 >
@@ -294,8 +294,8 @@ const DoctorLeaveCalendar = () => {
                         <div className={`
                             p-3 rounded-xl border flex flex-col gap-1 transition-all
                             ${isWorkingDay
-                                ? 'bg-white border-gray-100 shadow-sm opacity-100'
-                                : 'bg-gray-50 border-transparent opacity-60'}
+                                ? 'bg-white dark:bg-gray-800 border-gray-100 dark:border-gray-700 shadow-sm opacity-100'
+                                : 'bg-gray-50 dark:bg-gray-700/50 border-transparent opacity-60'}
                         `}>
                             <div className="flex items-center gap-1.5 min-w-0">
                                 {isWorkingDay ? (
@@ -310,7 +310,7 @@ const DoctorLeaveCalendar = () => {
                                     </>
                                 )}
                             </div>
-                            <div className={`text-xs font-semibold truncate ${isWorkingDay ? 'text-gray-700' : 'text-gray-400'}`}>
+                            <div className={`text-xs font-semibold truncate ${isWorkingDay ? 'text-gray-700 dark:text-gray-200' : 'text-gray-400'}`}>
                                 {isWorkingDay ? schedule.time : 'Tidak ada jadwal'}
                             </div>
                         </div>
@@ -350,7 +350,7 @@ const DoctorLeaveCalendar = () => {
         }
         return (
             <div className="h-full flex flex-col">
-                <div className="grid grid-cols-7 border-b border-gray-100 flex-1">{days}</div>
+                <div className="grid grid-cols-7 border-b border-gray-100 dark:border-gray-700 flex-1">{days}</div>
             </div>
         );
     };
@@ -362,12 +362,12 @@ const DoctorLeaveCalendar = () => {
 
         return (
             <div className="h-full p-6">
-                <div className={`p-6 border border-gray-100 rounded-2xl h-full flex flex-col ${isToday ? 'bg-salm-light-blue/10' : 'bg-white'}`}>
+                <div className={`p-6 border border-gray-100 dark:border-gray-700 rounded-2xl h-full flex flex-col ${isToday ? 'bg-salm-light-blue/10' : 'bg-white dark:bg-gray-800'}`}>
                     <div className="flex items-center gap-4 mb-6">
-                        <div className={`text-4xl font-bold ${isToday ? 'text-salm-blue' : 'text-gray-900'}`}>{currentDate.getDate()}</div>
+                        <div className={`text-4xl font-bold ${isToday ? 'text-salm-blue' : 'text-gray-900 dark:text-white'}`}>{currentDate.getDate()}</div>
                         <div>
-                            <div className="text-lg font-bold text-gray-700">{currentDate.toLocaleString('default', { weekday: 'long' })}</div>
-                            <div className="text-sm text-gray-500">{currentDate.toLocaleString('default', { month: 'long', year: 'numeric' })}</div>
+                            <div className="text-lg font-bold text-gray-700 dark:text-gray-200">{currentDate.toLocaleString('default', { weekday: 'long' })}</div>
+                            <div className="text-sm text-gray-500 dark:text-gray-400">{currentDate.toLocaleString('default', { month: 'long', year: 'numeric' })}</div>
                         </div>
                     </div>
 
@@ -433,7 +433,7 @@ const DoctorLeaveCalendar = () => {
     };
 
     return (
-        <div className="w-full h-full flex flex-col lg:flex-row gap-8 relative z-10 pb-6 text-gray-800 font-sans">
+        <div className="w-full h-full flex flex-col lg:flex-row gap-8 relative z-10 pb-6 text-gray-800 dark:text-gray-200 font-sans">
 
             {/* --- Left Sidebar --- */}
             <div className="w-full lg:w-[320px] flex flex-col gap-6 shrink-0">
@@ -447,7 +447,7 @@ const DoctorLeaveCalendar = () => {
                             placeholder="Filter"
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
-                            className="w-full pl-9 pr-4 py-2 bg-white border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-salm-purple transition-colors"
+                            className="w-full pl-9 pr-4 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-sm focus:outline-none focus:border-salm-purple transition-colors text-gray-700 dark:text-gray-200 placeholder-gray-400"
                         />
                     </div>
                     <div className="flex items-center gap-2 mt-3 px-1">
@@ -465,9 +465,9 @@ const DoctorLeaveCalendar = () => {
                 </div>
 
                 {/* Mini Calendar Widget */}
-                <div className="bg-white rounded-3xl p-6 shadow-sm border border-gray-100">
+                <div className="bg-white dark:bg-gray-800 rounded-3xl p-6 shadow-sm border border-gray-100 dark:border-gray-700">
                     <div className="flex items-center justify-between mb-4">
-                        <h3 className="font-bold text-gray-800">{currentDate.toLocaleString('default', { month: 'long', year: 'numeric' })}</h3>
+                        <h3 className="font-bold text-gray-800 dark:text-white">{currentDate.toLocaleString('default', { month: 'long', year: 'numeric' })}</h3>
                         <div className="flex gap-1">
                             <button onClick={() => changeMiniCalendarMonth(-1)} className="p-1 hover:bg-gray-100 rounded-full"><ChevronLeft className="w-4 h-4 text-gray-500" /></button>
                             <button onClick={() => changeMiniCalendarMonth(1)} className="p-1 hover:bg-gray-100 rounded-full"><ChevronRight className="w-4 h-4 text-gray-500" /></button>
@@ -481,9 +481,9 @@ const DoctorLeaveCalendar = () => {
                 </div>
 
                 {/* Doctor List */}
-                <div className="flex-1 bg-white rounded-3xl p-6 shadow-sm border border-gray-100 flex flex-col overflow-hidden">
+                <div className="flex-1 bg-white dark:bg-gray-800 rounded-3xl p-6 shadow-sm border border-gray-100 dark:border-gray-700 flex flex-col overflow-hidden">
                     <div className="flex items-center justify-between mb-4">
-                        <h3 className="font-bold text-gray-800">Doctor List</h3>
+                        <h3 className="font-bold text-gray-800 dark:text-white">Doctor List</h3>
                         <button className="text-gray-400 hover:text-gray-600"><MoreHorizontal className="w-4 h-4" /></button>
                     </div>
                     <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar space-y-3">
@@ -499,15 +499,15 @@ const DoctorLeaveCalendar = () => {
                                     flex items-center gap-3 p-3 rounded-2xl cursor-pointer transition-all border
                                     ${selectedDoctor?.id === doc.id
                                         ? 'bg-salm-light-blue/20 border-salm-light-blue shadow-sm'
-                                        : 'bg-white border-transparent hover:bg-gray-50 hover:border-gray-100'}
+                                        : 'bg-white dark:bg-gray-800 border-transparent hover:bg-gray-50 dark:hover:bg-gray-700 hover:border-gray-100 dark:hover:border-gray-600'}
                                 `}
                             >
                                 <div className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold ${selectedDoctor?.id === doc.id ? 'bg-salm-light-blue/30 text-salm-blue' : 'bg-gray-100 text-gray-500'}`}>
                                     {doc.name.charAt(0)}
                                 </div>
                                 <div className="flex-1 min-w-0">
-                                    <h4 className={`text-sm font-bold truncate ${selectedDoctor?.id === doc.id ? 'text-salm-purple' : 'text-gray-800'}`}>{doc.name}</h4>
-                                    <p className="text-xs text-gray-500 truncate">{doc.specialization || 'Specialist'}</p>
+                                    <h4 className={`text-sm font-bold truncate ${selectedDoctor?.id === doc.id ? 'text-salm-purple' : 'text-gray-800 dark:text-gray-200'}`}>{doc.name}</h4>
+                                    <p className="text-xs text-gray-500 dark:text-gray-400 truncate">{doc.specialization || 'Specialist'}</p>
                                 </div>
                                 {selectedDoctor?.id === doc.id && <div className="w-2 h-2 rounded-full bg-salm-blue"></div>}
                             </div>
@@ -517,29 +517,29 @@ const DoctorLeaveCalendar = () => {
             </div>
 
             {/* --- Main Content (Right) --- */}
-            <div className="flex-1 bg-white rounded-[32px] p-8 shadow-sm border border-gray-100 flex flex-col h-full overflow-hidden">
+            <div className="flex-1 bg-white dark:bg-gray-800 rounded-[32px] p-8 shadow-sm border border-gray-100 dark:border-gray-700 flex flex-col h-full overflow-hidden">
 
                 {/* Header */}
                 <div className="flex items-center justify-between mb-8 shrink-0">
                     <div className="flex items-center gap-4">
-                        <h2 className="text-3xl font-bold text-gray-900">
+                        <h2 className="text-3xl font-bold text-gray-900 dark:text-white">
                             {currentDate.toLocaleString('default', { month: 'long', year: 'numeric' })}
                         </h2>
-                        <div className="flex items-center gap-2 bg-gray-100 rounded-full p-1 pl-4">
-                            <span className="text-xs font-semibold text-gray-500">
+                        <div className="flex items-center gap-2 bg-gray-100 dark:bg-gray-700 rounded-full p-1 pl-4">
+                            <span className="text-xs font-semibold text-gray-500 dark:text-gray-300">
                                 {view === 'day' ? 'Today' : view === 'week' ? 'This Week' : 'This Month'}
                             </span>
                             <div className="flex">
-                                <button onClick={() => navigateDate(-1)} className="w-8 h-8 flex items-center justify-center bg-white rounded-full shadow-sm hover:scale-105 transition-transform"><ChevronLeft className="w-4 h-4" /></button>
-                                <button onClick={() => navigateDate(1)} className="w-8 h-8 flex items-center justify-center bg-white rounded-full shadow-sm ml-1 hover:scale-105 transition-transform"><ChevronRight className="w-4 h-4" /></button>
+                                <button onClick={() => navigateDate(-1)} className="w-8 h-8 flex items-center justify-center bg-white dark:bg-gray-600 rounded-full shadow-sm hover:scale-105 transition-transform"><ChevronLeft className="w-4 h-4 text-gray-600 dark:text-gray-200" /></button>
+                                <button onClick={() => navigateDate(1)} className="w-8 h-8 flex items-center justify-center bg-white dark:bg-gray-600 rounded-full shadow-sm ml-1 hover:scale-105 transition-transform"><ChevronRight className="w-4 h-4 text-gray-600 dark:text-gray-200" /></button>
                             </div>
                         </div>
                     </div>
 
                     <div className="flex gap-4">
-                        <button onClick={() => setView('month')} className={`px-5 py-2.5 rounded-xl text-sm font-semibold transition-colors ${view === 'month' ? 'bg-gray-100 text-gray-900' : 'text-gray-500 hover:bg-gray-50'}`}>Month</button>
-                        <button onClick={() => setView('week')} className={`px-5 py-2.5 rounded-xl text-sm font-semibold transition-colors ${view === 'week' ? 'bg-gray-100 text-gray-900' : 'text-gray-500 hover:bg-gray-50'}`}>Week</button>
-                        <button onClick={() => setView('day')} className={`px-5 py-2.5 rounded-xl text-sm font-semibold transition-colors ${view === 'day' ? 'bg-gray-100 text-gray-900' : 'text-gray-500 hover:bg-gray-50'}`}>Day</button>
+                        <button onClick={() => setView('month')} className={`px-5 py-2.5 rounded-xl text-sm font-semibold transition-colors ${view === 'month' ? 'bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white' : 'text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700'}`}>Month</button>
+                        <button onClick={() => setView('week')} className={`px-5 py-2.5 rounded-xl text-sm font-semibold transition-colors ${view === 'week' ? 'bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white' : 'text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700'}`}>Week</button>
+                        <button onClick={() => setView('day')} className={`px-5 py-2.5 rounded-xl text-sm font-semibold transition-colors ${view === 'day' ? 'bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white' : 'text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700'}`}>Day</button>
                         <button className="bg-salm-gradient text-white px-6 py-2.5 rounded-xl text-sm font-semibold shadow-lg shadow-salm-purple/30 hover:opacity-90 transition-colors flex items-center gap-2">
                             <Plus className="w-4 h-4" /> Add Schedule
                         </button>
@@ -548,7 +548,7 @@ const DoctorLeaveCalendar = () => {
 
                 {/* Weekday Header - Only show for Month View */}
                 {view === 'month' && (
-                    <div className="grid grid-cols-7 border-b border-gray-100 pb-4 mb-4 shrink-0">
+                    <div className="grid grid-cols-7 border-b border-gray-100 dark:border-gray-700 pb-4 mb-4 shrink-0">
                         {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map(day => (
                             <div key={day} className="px-3">
                                 <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">{day}</span>
@@ -571,14 +571,14 @@ const DoctorLeaveCalendar = () => {
 
             {/* --- Modal / Popover --- */}
             {isModalOpen && (
-                <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/20 backdrop-blur-sm p-4 rounded-[32px]">
-                    <div className="bg-white w-full max-w-md rounded-2xl shadow-2xl p-6 border border-gray-100 animate-in fade-in zoom-in duration-200">
+                <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/20 dark:bg-black/50 backdrop-blur-sm p-4 rounded-[32px]">
+                    <div className="bg-white dark:bg-gray-800 w-full max-w-md rounded-2xl shadow-2xl p-6 border border-gray-100 dark:border-gray-700 animate-in fade-in zoom-in duration-200">
                         <div className="flex justify-between items-start mb-6">
                             <div>
-                                <h3 className="text-xl font-bold text-gray-900">
+                                <h3 className="text-xl font-bold text-gray-900 dark:text-white">
                                     {modalData.existingLeave ? 'Edit Schedule' : 'New Schedule'}
                                 </h3>
-                                <p className="text-sm text-gray-500 mt-1">
+                                <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
                                     {modalData.date?.toLocaleDateString('default', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
                                 </p>
                             </div>
@@ -589,13 +589,13 @@ const DoctorLeaveCalendar = () => {
 
                         <div className="space-y-4">
                             {/* Doctor Info */}
-                            <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-xl border border-gray-100">
+                            <div className="flex items-center gap-3 p-3 bg-gray-50 dark:bg-gray-700/50 rounded-xl border border-gray-100 dark:border-gray-600">
                                 <div className="w-10 h-10 bg-salm-light-blue/30 rounded-full flex items-center justify-center text-salm-blue font-bold">
                                     {selectedDoctor?.name.charAt(0)}
                                 </div>
                                 <div>
-                                    <p className="text-sm font-bold text-gray-900">{selectedDoctor?.name}</p>
-                                    <p className="text-xs text-gray-500">{selectedDoctor?.specialization || 'Specialist'}</p>
+                                    <p className="text-sm font-bold text-gray-900 dark:text-white">{selectedDoctor?.name}</p>
+                                    <p className="text-xs text-gray-500 dark:text-gray-400">{selectedDoctor?.specialization || 'Specialist'}</p>
                                 </div>
                             </div>
 
@@ -604,7 +604,7 @@ const DoctorLeaveCalendar = () => {
                                 <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2 block">Leave Type</label>
                                 <div className="flex gap-2">
                                     <button className="flex-1 py-2 rounded-lg bg-salm-gradient text-white text-sm font-medium shadow-md shadow-salm-purple/30">Full Day</button>
-                                    <button className="flex-1 py-2 rounded-lg bg-white border border-gray-200 text-gray-600 text-sm font-medium hover:bg-gray-50">Half Day</button>
+                                    <button className="flex-1 py-2 rounded-lg bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-300 text-sm font-medium hover:bg-gray-50 dark:hover:bg-gray-600">Half Day</button>
                                 </div>
                             </div>
 
@@ -612,7 +612,7 @@ const DoctorLeaveCalendar = () => {
                             <div>
                                 <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2 block">Description</label>
                                 <textarea
-                                    className="w-full bg-white border border-gray-200 rounded-xl p-3 text-sm focus:outline-none focus:border-salm-purple min-h-[80px]"
+                                    className="w-full bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl p-3 text-sm focus:outline-none focus:border-salm-purple min-h-[80px] text-gray-800 dark:text-gray-200"
                                     placeholder="Add description..."
                                     value={modalData.reason}
                                     onChange={(e) => setModalData({ ...modalData, reason: e.target.value })}
@@ -632,7 +632,7 @@ const DoctorLeaveCalendar = () => {
                             <div className="flex-1"></div>
                             <button
                                 onClick={() => setIsModalOpen(false)}
-                                className="px-5 py-2.5 rounded-xl text-gray-600 hover:bg-gray-100 text-sm font-semibold transition-colors"
+                                className="px-5 py-2.5 rounded-xl text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 text-sm font-semibold transition-colors"
                             >
                                 Cancel
                             </button>

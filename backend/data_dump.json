@@ -1,0 +1,1564 @@
+{
+  "users": [
+    {
+      "id": 1,
+      "username": "admin",
+      "password": "$2b$10$kkBwbvXPzyBIx9CIu3sGvugjOmq5Mj6pKYhVEznHjZGYGnL.BjSGK",
+      "role": "ADMIN"
+    },
+    {
+      "id": 2,
+      "username": "loket1",
+      "password": "$2b$10$6d1JyDrGvYd8toxwEkvljuq4NRcSjr1nk9h5AMh4PzhKjEt4ov73a",
+      "role": "STAFF"
+    },
+    {
+      "id": 3,
+      "username": "user",
+      "password": "$2b$10$GFF8QD4x4L.IfPJuUF323epIDNaAUdoWvU9PnoICLav78tkpIRWnG",
+      "role": "STAFF"
+    }
+  ],
+  "polikliniks": [
+    {
+      "id": 1,
+      "name": "Poli Anak",
+      "queue_code": "ANK"
+    },
+    {
+      "id": 2,
+      "name": "Poli Bedah Mulut",
+      "queue_code": "BMM"
+    },
+    {
+      "id": 3,
+      "name": "Poli Bedah Umum",
+      "queue_code": "BDH"
+    },
+    {
+      "id": 4,
+      "name": "Fisioterapi",
+      "queue_code": "FIS"
+    },
+    {
+      "id": 5,
+      "name": "Poli Gigi Konservasi",
+      "queue_code": "KG"
+    },
+    {
+      "id": 6,
+      "name": "Poli Gigi Umum",
+      "queue_code": "GIG"
+    },
+    {
+      "id": 7,
+      "name": "Poli Jantung",
+      "queue_code": "JTG"
+    },
+    {
+      "id": 8,
+      "name": "Poli Kandungan (OBGYN)",
+      "queue_code": "OBS"
+    },
+    {
+      "id": 9,
+      "name": "Poli Kedokteran Jiwa",
+      "queue_code": "JIW"
+    },
+    {
+      "id": 10,
+      "name": "Poli Mata",
+      "queue_code": "MTA"
+    },
+    {
+      "id": 11,
+      "name": "Poli Orthopaedi (Tulang)",
+      "queue_code": "ORT"
+    },
+    {
+      "id": 12,
+      "name": "Poli Paru",
+      "queue_code": "PAR"
+    },
+    {
+      "id": 13,
+      "name": "Poli Penyakit Dalam",
+      "queue_code": "INT"
+    },
+    {
+      "id": 14,
+      "name": "Psikologi",
+      "queue_code": "PSI"
+    },
+    {
+      "id": 15,
+      "name": "Poli Rehab Medik",
+      "queue_code": "RHB"
+    },
+    {
+      "id": 16,
+      "name": "Poli Saraf",
+      "queue_code": "SRF"
+    },
+    {
+      "id": 17,
+      "name": "Terapi Wicara",
+      "queue_code": "TW"
+    },
+    {
+      "id": 18,
+      "name": "Poli THT - KL",
+      "queue_code": "THT"
+    },
+    {
+      "id": 19,
+      "name": "Poli Umum",
+      "queue_code": "UMM"
+    },
+    {
+      "id": 20,
+      "name": "Poli Urologi",
+      "queue_code": "URO"
+    }
+  ],
+  "counters": [
+    {
+      "id": 1,
+      "name": "1",
+      "status": "CLOSED",
+      "createdAt": "2025-12-09T09:47:27.536Z"
+    },
+    {
+      "id": 2,
+      "name": "2",
+      "status": "CLOSED",
+      "createdAt": "2025-12-09T09:47:32.294Z"
+    },
+    {
+      "id": 3,
+      "name": "3",
+      "status": "CLOSED",
+      "createdAt": "2025-12-09T09:47:37.201Z"
+    }
+  ],
+  "playlists": [],
+  "settings": [
+    {
+      "id": 1,
+      "key": "running_text",
+      "value": "dd",
+      "updatedAt": "2025-12-09T14:08:23.967Z"
+    }
+  ],
+  "doctors": [
+    {
+      "id": 1,
+      "name": "dr. RR Irma Rossyana, Sp. A",
+      "specialist": "Anak",
+      "photo_url": "https://via.placeholder.com/150",
+      "poliklinik_id": 1
+    },
+    {
+      "id": 2,
+      "name": "drg. Robby Romadhanie, Sp. BMM",
+      "specialist": "Bedah Mulut",
+      "photo_url": "https://via.placeholder.com/150",
+      "poliklinik_id": 2
+    },
+    {
+      "id": 3,
+      "name": "dr. Endro RI Wibowo, Sp. B",
+      "specialist": "Bedah Umum",
+      "photo_url": "https://via.placeholder.com/150",
+      "poliklinik_id": 3
+    },
+    {
+      "id": 4,
+      "name": "dr. Suroso, Sp. B",
+      "specialist": "Bedah Umum",
+      "photo_url": "https://via.placeholder.com/150",
+      "poliklinik_id": 3
+    },
+    {
+      "id": 5,
+      "name": "Bingsar Galih",
+      "specialist": "Fisioterapis",
+      "photo_url": "https://via.placeholder.com/150",
+      "poliklinik_id": 4
+    },
+    {
+      "id": 6,
+      "name": "Panca Nugraha",
+      "specialist": "Fisioterapis",
+      "photo_url": "https://via.placeholder.com/150",
+      "poliklinik_id": 4
+    },
+    {
+      "id": 7,
+      "name": "NuR Kumala Ratri",
+      "specialist": "Fisioterapis",
+      "photo_url": "https://via.placeholder.com/150",
+      "poliklinik_id": 4
+    },
+    {
+      "id": 8,
+      "name": "drg. Dyah Tri Kusuma, Sp. KG",
+      "specialist": "Gigi Konservasi",
+      "photo_url": "https://via.placeholder.com/150",
+      "poliklinik_id": 5
+    },
+    {
+      "id": 9,
+      "name": "drg. Rafika Yusniar",
+      "specialist": "Gigi Umum",
+      "photo_url": "https://via.placeholder.com/150",
+      "poliklinik_id": 6
+    },
+    {
+      "id": 10,
+      "name": "drg. Yulinda Primilisa",
+      "specialist": "Gigi Umum",
+      "photo_url": "https://via.placeholder.com/150",
+      "poliklinik_id": 6
+    },
+    {
+      "id": 11,
+      "name": "dr. Lita Hati Dwi PE, Sp. JP",
+      "specialist": "Jantung",
+      "photo_url": "https://via.placeholder.com/150",
+      "poliklinik_id": 7
+    },
+    {
+      "id": 12,
+      "name": "dr. Gatot Hananta, Sp. OG",
+      "specialist": "Kandungan",
+      "photo_url": "https://via.placeholder.com/150",
+      "poliklinik_id": 8
+    },
+    {
+      "id": 13,
+      "name": "dr. Hepta Lidia, Sp. OG",
+      "specialist": "Kandungan",
+      "photo_url": "https://via.placeholder.com/150",
+      "poliklinik_id": 8
+    },
+    {
+      "id": 14,
+      "name": "dr. Pritasari Dewi D, Sp. OG",
+      "specialist": "Kandungan",
+      "photo_url": "https://via.placeholder.com/150",
+      "poliklinik_id": 8
+    },
+    {
+      "id": 15,
+      "name": "dr. Taufik Hidayanto, Sp. KJ",
+      "specialist": "Kedokteran Jiwa",
+      "photo_url": "https://via.placeholder.com/150",
+      "poliklinik_id": 9
+    },
+    {
+      "id": 16,
+      "name": "dr. Nova Kurniasari, Sp. KJ",
+      "specialist": "Kedokteran Jiwa",
+      "photo_url": "https://via.placeholder.com/150",
+      "poliklinik_id": 9
+    },
+    {
+      "id": 17,
+      "name": "dr. Wahid Heru Widodo, Sp. M",
+      "specialist": "Mata",
+      "photo_url": "https://via.placeholder.com/150",
+      "poliklinik_id": 10
+    },
+    {
+      "id": 18,
+      "name": "dr. Muhammad Luthfi, Sp. OT",
+      "specialist": "Orthopaedi",
+      "photo_url": "https://via.placeholder.com/150",
+      "poliklinik_id": 11
+    },
+    {
+      "id": 19,
+      "name": "dr. Nanda Notario, Sp. OT",
+      "specialist": "Orthopaedi",
+      "photo_url": "https://via.placeholder.com/150",
+      "poliklinik_id": 11
+    },
+    {
+      "id": 20,
+      "name": "dr. Oke Viska, Sp. P",
+      "specialist": "Paru",
+      "photo_url": "https://via.placeholder.com/150",
+      "poliklinik_id": 12
+    },
+    {
+      "id": 21,
+      "name": "dr. Leo Chandra WPW, Sp. PD, M. KES",
+      "specialist": "Penyakit Dalam",
+      "photo_url": "https://via.placeholder.com/150",
+      "poliklinik_id": 13
+    },
+    {
+      "id": 22,
+      "name": "dr. Sigit Purnomohadi, Sp. PD",
+      "specialist": "Penyakit Dalam",
+      "photo_url": "https://via.placeholder.com/150",
+      "poliklinik_id": 13
+    },
+    {
+      "id": 23,
+      "name": "Siti K Sa'diyah, M. Psi. Psikologi",
+      "specialist": "Psikologi",
+      "photo_url": "https://via.placeholder.com/150",
+      "poliklinik_id": 14
+    },
+    {
+      "id": 24,
+      "name": "dr. Syarif Hasan, Sp. KFR",
+      "specialist": "Rehab Medik",
+      "photo_url": "https://via.placeholder.com/150",
+      "poliklinik_id": 15
+    },
+    {
+      "id": 25,
+      "name": "dr. Ajeng Putri, Sp. N",
+      "specialist": "Saraf",
+      "photo_url": "https://via.placeholder.com/150",
+      "poliklinik_id": 16
+    },
+    {
+      "id": 26,
+      "name": "dr. Setyo Dirahayu, Sp. N",
+      "specialist": "Saraf",
+      "photo_url": "https://via.placeholder.com/150",
+      "poliklinik_id": 16
+    },
+    {
+      "id": 27,
+      "name": "dr. Ahmad Tanji, Sp. N",
+      "specialist": "Saraf",
+      "photo_url": "https://via.placeholder.com/150",
+      "poliklinik_id": 16
+    },
+    {
+      "id": 28,
+      "name": "Nony Eka Ariyandini, S. Tr. Kes",
+      "specialist": "Terapi Wicara",
+      "photo_url": "https://via.placeholder.com/150",
+      "poliklinik_id": 17
+    },
+    {
+      "id": 29,
+      "name": "dr. Lirans Tia K, Sp. THT KL",
+      "specialist": "THT KL",
+      "photo_url": "https://via.placeholder.com/150",
+      "poliklinik_id": 18
+    },
+    {
+      "id": 30,
+      "name": "dr. Wahyu Dwi K, Sp. THT KL",
+      "specialist": "THT KL",
+      "photo_url": "https://via.placeholder.com/150",
+      "poliklinik_id": 18
+    },
+    {
+      "id": 31,
+      "name": "dr. Sofian Palupi",
+      "specialist": "Umum",
+      "photo_url": "https://via.placeholder.com/150",
+      "poliklinik_id": 19
+    },
+    {
+      "id": 32,
+      "name": "dr. Eko Subekti, Sp. U",
+      "specialist": "Urologi",
+      "photo_url": "https://via.placeholder.com/150",
+      "poliklinik_id": 20
+    }
+  ],
+  "dailyQuotas": [
+    {
+      "id": 1,
+      "doctor_id": 1,
+      "date": "2025-12-08T17:00:00.000Z",
+      "max_quota": 30,
+      "current_count": 2,
+      "status": "OPEN"
+    },
+    {
+      "id": 2,
+      "doctor_id": 2,
+      "date": "2025-12-08T17:00:00.000Z",
+      "max_quota": 30,
+      "current_count": 3,
+      "status": "OPEN"
+    },
+    {
+      "id": 3,
+      "doctor_id": 3,
+      "date": "2025-12-08T17:00:00.000Z",
+      "max_quota": 30,
+      "current_count": 2,
+      "status": "OPEN"
+    },
+    {
+      "id": 4,
+      "doctor_id": 5,
+      "date": "2025-12-08T17:00:00.000Z",
+      "max_quota": 30,
+      "current_count": 0,
+      "status": "OPEN"
+    },
+    {
+      "id": 5,
+      "doctor_id": 6,
+      "date": "2025-12-08T17:00:00.000Z",
+      "max_quota": 30,
+      "current_count": 2,
+      "status": "OPEN"
+    },
+    {
+      "id": 6,
+      "doctor_id": 7,
+      "date": "2025-12-08T17:00:00.000Z",
+      "max_quota": 30,
+      "current_count": 0,
+      "status": "OPEN"
+    },
+    {
+      "id": 7,
+      "doctor_id": 10,
+      "date": "2025-12-08T17:00:00.000Z",
+      "max_quota": 30,
+      "current_count": 0,
+      "status": "OPEN"
+    },
+    {
+      "id": 8,
+      "doctor_id": 11,
+      "date": "2025-12-08T17:00:00.000Z",
+      "max_quota": 30,
+      "current_count": 0,
+      "status": "OPEN"
+    },
+    {
+      "id": 9,
+      "doctor_id": 12,
+      "date": "2025-12-08T17:00:00.000Z",
+      "max_quota": 30,
+      "current_count": 0,
+      "status": "OPEN"
+    },
+    {
+      "id": 10,
+      "doctor_id": 14,
+      "date": "2025-12-08T17:00:00.000Z",
+      "max_quota": 30,
+      "current_count": 1,
+      "status": "OPEN"
+    },
+    {
+      "id": 11,
+      "doctor_id": 15,
+      "date": "2025-12-08T17:00:00.000Z",
+      "max_quota": 30,
+      "current_count": 1,
+      "status": "OPEN"
+    },
+    {
+      "id": 12,
+      "doctor_id": 16,
+      "date": "2025-12-08T17:00:00.000Z",
+      "max_quota": 30,
+      "current_count": 1,
+      "status": "OPEN"
+    },
+    {
+      "id": 13,
+      "doctor_id": 17,
+      "date": "2025-12-08T17:00:00.000Z",
+      "max_quota": 30,
+      "current_count": 0,
+      "status": "OPEN"
+    },
+    {
+      "id": 14,
+      "doctor_id": 18,
+      "date": "2025-12-08T17:00:00.000Z",
+      "max_quota": 30,
+      "current_count": 0,
+      "status": "OPEN"
+    },
+    {
+      "id": 15,
+      "doctor_id": 19,
+      "date": "2025-12-08T17:00:00.000Z",
+      "max_quota": 30,
+      "current_count": 0,
+      "status": "OPEN"
+    },
+    {
+      "id": 16,
+      "doctor_id": 20,
+      "date": "2025-12-08T17:00:00.000Z",
+      "max_quota": 30,
+      "current_count": 0,
+      "status": "OPEN"
+    },
+    {
+      "id": 17,
+      "doctor_id": 21,
+      "date": "2025-12-08T17:00:00.000Z",
+      "max_quota": 30,
+      "current_count": 1,
+      "status": "OPEN"
+    },
+    {
+      "id": 18,
+      "doctor_id": 22,
+      "date": "2025-12-08T17:00:00.000Z",
+      "max_quota": 30,
+      "current_count": 0,
+      "status": "OPEN"
+    },
+    {
+      "id": 19,
+      "doctor_id": 23,
+      "date": "2025-12-08T17:00:00.000Z",
+      "max_quota": 30,
+      "current_count": 0,
+      "status": "OPEN"
+    },
+    {
+      "id": 20,
+      "doctor_id": 24,
+      "date": "2025-12-08T17:00:00.000Z",
+      "max_quota": 30,
+      "current_count": 0,
+      "status": "OPEN"
+    },
+    {
+      "id": 21,
+      "doctor_id": 26,
+      "date": "2025-12-08T17:00:00.000Z",
+      "max_quota": 30,
+      "current_count": 0,
+      "status": "OPEN"
+    },
+    {
+      "id": 22,
+      "doctor_id": 28,
+      "date": "2025-12-08T17:00:00.000Z",
+      "max_quota": 30,
+      "current_count": 0,
+      "status": "OPEN"
+    },
+    {
+      "id": 23,
+      "doctor_id": 29,
+      "date": "2025-12-08T17:00:00.000Z",
+      "max_quota": 30,
+      "current_count": 0,
+      "status": "OPEN"
+    },
+    {
+      "id": 24,
+      "doctor_id": 31,
+      "date": "2025-12-08T17:00:00.000Z",
+      "max_quota": 30,
+      "current_count": 0,
+      "status": "OPEN"
+    }
+  ],
+  "doctorSchedules": [
+    {
+      "id": 1,
+      "doctor_id": 1,
+      "day": 1,
+      "time": "08.00 - 14.00"
+    },
+    {
+      "id": 2,
+      "doctor_id": 1,
+      "day": 2,
+      "time": "08.00 - 14.00"
+    },
+    {
+      "id": 3,
+      "doctor_id": 1,
+      "day": 3,
+      "time": "08.00 - 14.00"
+    },
+    {
+      "id": 4,
+      "doctor_id": 1,
+      "day": 4,
+      "time": "08.00 - 14.00"
+    },
+    {
+      "id": 5,
+      "doctor_id": 1,
+      "day": 5,
+      "time": "08.00 - 14.00"
+    },
+    {
+      "id": 6,
+      "doctor_id": 1,
+      "day": 6,
+      "time": "08.00 - 14.00"
+    },
+    {
+      "id": 7,
+      "doctor_id": 2,
+      "day": 2,
+      "time": "08.00 - Selesai"
+    },
+    {
+      "id": 8,
+      "doctor_id": 2,
+      "day": 5,
+      "time": "14.00 - Selesai"
+    },
+    {
+      "id": 9,
+      "doctor_id": 2,
+      "day": 6,
+      "time": "14.00 - Selesai"
+    },
+    {
+      "id": 10,
+      "doctor_id": 3,
+      "day": 1,
+      "time": "07.00 - 10.00"
+    },
+    {
+      "id": 11,
+      "doctor_id": 3,
+      "day": 2,
+      "time": "07.00 - 10.00"
+    },
+    {
+      "id": 12,
+      "doctor_id": 3,
+      "day": 3,
+      "time": "07.00 - 10.00"
+    },
+    {
+      "id": 13,
+      "doctor_id": 3,
+      "day": 4,
+      "time": "07.00 - 10.00"
+    },
+    {
+      "id": 14,
+      "doctor_id": 3,
+      "day": 1,
+      "time": "14.00 - 17.00"
+    },
+    {
+      "id": 15,
+      "doctor_id": 3,
+      "day": 2,
+      "time": "14.00 - 17.00"
+    },
+    {
+      "id": 16,
+      "doctor_id": 3,
+      "day": 3,
+      "time": "14.00 - 17.00"
+    },
+    {
+      "id": 17,
+      "doctor_id": 3,
+      "day": 4,
+      "time": "14.00 - 17.00"
+    },
+    {
+      "id": 18,
+      "doctor_id": 3,
+      "day": 5,
+      "time": "13.00 - 17.00"
+    },
+    {
+      "id": 19,
+      "doctor_id": 3,
+      "day": 6,
+      "time": "13.00 - 15.00"
+    },
+    {
+      "id": 20,
+      "doctor_id": 4,
+      "day": 5,
+      "time": "07.00 - 09.00"
+    },
+    {
+      "id": 21,
+      "doctor_id": 4,
+      "day": 6,
+      "time": "07.00 - 09.00"
+    },
+    {
+      "id": 22,
+      "doctor_id": 5,
+      "day": 1,
+      "time": "13.00 - 18.00 (BPJS)"
+    },
+    {
+      "id": 23,
+      "doctor_id": 5,
+      "day": 2,
+      "time": "13.00 - 18.00 (BPJS)"
+    },
+    {
+      "id": 24,
+      "doctor_id": 5,
+      "day": 3,
+      "time": "13.00 - 18.00 (BPJS)"
+    },
+    {
+      "id": 25,
+      "doctor_id": 5,
+      "day": 1,
+      "time": "08.00 - 13.00 (Umum)"
+    },
+    {
+      "id": 26,
+      "doctor_id": 5,
+      "day": 2,
+      "time": "08.00 - 13.00 (Umum)"
+    },
+    {
+      "id": 27,
+      "doctor_id": 5,
+      "day": 3,
+      "time": "08.00 - 13.00 (Umum)"
+    },
+    {
+      "id": 28,
+      "doctor_id": 5,
+      "day": 4,
+      "time": "07.00 - 14.00 (Umum)"
+    },
+    {
+      "id": 29,
+      "doctor_id": 5,
+      "day": 5,
+      "time": "07.00 - 14.00 (Umum)"
+    },
+    {
+      "id": 30,
+      "doctor_id": 5,
+      "day": 6,
+      "time": "07.00 - 14.00 (Umum)"
+    },
+    {
+      "id": 31,
+      "doctor_id": 6,
+      "day": 1,
+      "time": "13.00 - 18.00 (BPJS)"
+    },
+    {
+      "id": 32,
+      "doctor_id": 6,
+      "day": 2,
+      "time": "13.00 - 18.00 (BPJS)"
+    },
+    {
+      "id": 33,
+      "doctor_id": 6,
+      "day": 3,
+      "time": "13.00 - 18.00 (BPJS)"
+    },
+    {
+      "id": 34,
+      "doctor_id": 6,
+      "day": 1,
+      "time": "08.00 - 13.00 (Umum)"
+    },
+    {
+      "id": 35,
+      "doctor_id": 6,
+      "day": 2,
+      "time": "08.00 - 13.00 (Umum)"
+    },
+    {
+      "id": 36,
+      "doctor_id": 6,
+      "day": 3,
+      "time": "08.00 - 13.00 (Umum)"
+    },
+    {
+      "id": 37,
+      "doctor_id": 6,
+      "day": 4,
+      "time": "07.00 - 14.00 (Umum)"
+    },
+    {
+      "id": 38,
+      "doctor_id": 6,
+      "day": 5,
+      "time": "07.00 - 14.00 (Umum)"
+    },
+    {
+      "id": 39,
+      "doctor_id": 6,
+      "day": 6,
+      "time": "07.00 - 14.00 (Umum)"
+    },
+    {
+      "id": 40,
+      "doctor_id": 7,
+      "day": 1,
+      "time": "13.00 - 18.00 (BPJS)"
+    },
+    {
+      "id": 41,
+      "doctor_id": 7,
+      "day": 2,
+      "time": "13.00 - 18.00 (BPJS)"
+    },
+    {
+      "id": 42,
+      "doctor_id": 7,
+      "day": 3,
+      "time": "13.00 - 18.00 (BPJS)"
+    },
+    {
+      "id": 43,
+      "doctor_id": 7,
+      "day": 1,
+      "time": "08.00 - 13.00 (Umum)"
+    },
+    {
+      "id": 44,
+      "doctor_id": 7,
+      "day": 2,
+      "time": "08.00 - 13.00 (Umum)"
+    },
+    {
+      "id": 45,
+      "doctor_id": 7,
+      "day": 3,
+      "time": "08.00 - 13.00 (Umum)"
+    },
+    {
+      "id": 46,
+      "doctor_id": 7,
+      "day": 4,
+      "time": "07.00 - 14.00 (Umum)"
+    },
+    {
+      "id": 47,
+      "doctor_id": 7,
+      "day": 5,
+      "time": "07.00 - 14.00 (Umum)"
+    },
+    {
+      "id": 48,
+      "doctor_id": 7,
+      "day": 6,
+      "time": "07.00 - 14.00 (Umum)"
+    },
+    {
+      "id": 49,
+      "doctor_id": 8,
+      "day": 3,
+      "time": "17.00 - Selesai"
+    },
+    {
+      "id": 50,
+      "doctor_id": 9,
+      "day": 1,
+      "time": "14.30 - Selesai"
+    },
+    {
+      "id": 51,
+      "doctor_id": 9,
+      "day": 3,
+      "time": "14.30 - Selesai"
+    },
+    {
+      "id": 52,
+      "doctor_id": 9,
+      "day": 5,
+      "time": "14.30 - Selesai"
+    },
+    {
+      "id": 53,
+      "doctor_id": 10,
+      "day": 2,
+      "time": "14.30 - Selesai"
+    },
+    {
+      "id": 54,
+      "doctor_id": 10,
+      "day": 4,
+      "time": "14.30 - Selesai"
+    },
+    {
+      "id": 55,
+      "doctor_id": 10,
+      "day": 6,
+      "time": "14.30 - Selesai"
+    },
+    {
+      "id": 56,
+      "doctor_id": 11,
+      "day": 2,
+      "time": "14.00 - 18.00"
+    },
+    {
+      "id": 57,
+      "doctor_id": 11,
+      "day": 4,
+      "time": "14.00 - 18.00"
+    },
+    {
+      "id": 58,
+      "doctor_id": 11,
+      "day": 6,
+      "time": "08.00 - 14.00"
+    },
+    {
+      "id": 59,
+      "doctor_id": 12,
+      "day": 2,
+      "time": "10.00 - Selesai"
+    },
+    {
+      "id": 60,
+      "doctor_id": 12,
+      "day": 4,
+      "time": "10.00 - Selesai"
+    },
+    {
+      "id": 61,
+      "doctor_id": 12,
+      "day": 6,
+      "time": "10.00 - Selesai"
+    },
+    {
+      "id": 62,
+      "doctor_id": 13,
+      "day": 1,
+      "time": "10.00 - Selesai"
+    },
+    {
+      "id": 63,
+      "doctor_id": 13,
+      "day": 3,
+      "time": "10.00 - Selesai"
+    },
+    {
+      "id": 64,
+      "doctor_id": 13,
+      "day": 5,
+      "time": "10.00 - Selesai"
+    },
+    {
+      "id": 65,
+      "doctor_id": 14,
+      "day": 1,
+      "time": "14.30 - Selesai"
+    },
+    {
+      "id": 66,
+      "doctor_id": 14,
+      "day": 2,
+      "time": "14.30 - Selesai"
+    },
+    {
+      "id": 67,
+      "doctor_id": 14,
+      "day": 4,
+      "time": "14.30 - Selesai"
+    },
+    {
+      "id": 68,
+      "doctor_id": 14,
+      "day": 5,
+      "time": "14.30 - Selesai"
+    },
+    {
+      "id": 69,
+      "doctor_id": 15,
+      "day": 1,
+      "time": "14.30 - Selesai"
+    },
+    {
+      "id": 70,
+      "doctor_id": 15,
+      "day": 2,
+      "time": "14.30 - Selesai"
+    },
+    {
+      "id": 71,
+      "doctor_id": 15,
+      "day": 4,
+      "time": "14.30 - Selesai"
+    },
+    {
+      "id": 72,
+      "doctor_id": 15,
+      "day": 5,
+      "time": "14.30 - Selesai"
+    },
+    {
+      "id": 73,
+      "doctor_id": 16,
+      "day": 1,
+      "time": "07.30 - 09.30"
+    },
+    {
+      "id": 74,
+      "doctor_id": 16,
+      "day": 2,
+      "time": "07.30 - 09.30"
+    },
+    {
+      "id": 75,
+      "doctor_id": 16,
+      "day": 3,
+      "time": "07.30 - 09.30"
+    },
+    {
+      "id": 76,
+      "doctor_id": 17,
+      "day": 1,
+      "time": "07.00 - 10.00"
+    },
+    {
+      "id": 77,
+      "doctor_id": 17,
+      "day": 2,
+      "time": "07.00 - 10.00"
+    },
+    {
+      "id": 78,
+      "doctor_id": 17,
+      "day": 3,
+      "time": "07.00 - 10.00"
+    },
+    {
+      "id": 79,
+      "doctor_id": 17,
+      "day": 4,
+      "time": "07.00 - 10.00"
+    },
+    {
+      "id": 80,
+      "doctor_id": 17,
+      "day": 5,
+      "time": "07.00 - 10.00"
+    },
+    {
+      "id": 81,
+      "doctor_id": 18,
+      "day": 1,
+      "time": "11.00 - Selesai"
+    },
+    {
+      "id": 82,
+      "doctor_id": 18,
+      "day": 2,
+      "time": "11.00 - Selesai"
+    },
+    {
+      "id": 83,
+      "doctor_id": 18,
+      "day": 3,
+      "time": "11.00 - Selesai"
+    },
+    {
+      "id": 84,
+      "doctor_id": 18,
+      "day": 4,
+      "time": "11.00 - Selesai"
+    },
+    {
+      "id": 85,
+      "doctor_id": 18,
+      "day": 5,
+      "time": "11.00 - Selesai"
+    },
+    {
+      "id": 86,
+      "doctor_id": 18,
+      "day": 6,
+      "time": "11.00 - Selesai"
+    },
+    {
+      "id": 87,
+      "doctor_id": 19,
+      "day": 1,
+      "time": "08.00 - 10.30"
+    },
+    {
+      "id": 88,
+      "doctor_id": 19,
+      "day": 2,
+      "time": "08.00 - 10.30"
+    },
+    {
+      "id": 89,
+      "doctor_id": 19,
+      "day": 4,
+      "time": "08.00 - 10.30"
+    },
+    {
+      "id": 90,
+      "doctor_id": 19,
+      "day": 5,
+      "time": "08.00 - 10.30"
+    },
+    {
+      "id": 91,
+      "doctor_id": 19,
+      "day": 6,
+      "time": "08.00 - 10.30"
+    },
+    {
+      "id": 92,
+      "doctor_id": 19,
+      "day": 3,
+      "time": "09.00 - Selesai"
+    },
+    {
+      "id": 93,
+      "doctor_id": 20,
+      "day": 5,
+      "time": "10.00 - Selesai"
+    },
+    {
+      "id": 94,
+      "doctor_id": 20,
+      "day": 1,
+      "time": "13.00 - Selesai"
+    },
+    {
+      "id": 95,
+      "doctor_id": 20,
+      "day": 2,
+      "time": "13.00 - Selesai"
+    },
+    {
+      "id": 96,
+      "doctor_id": 20,
+      "day": 3,
+      "time": "13.00 - Selesai"
+    },
+    {
+      "id": 97,
+      "doctor_id": 20,
+      "day": 4,
+      "time": "13.00 - Selesai"
+    },
+    {
+      "id": 98,
+      "doctor_id": 20,
+      "day": 6,
+      "time": "13.00 - Selesai"
+    },
+    {
+      "id": 99,
+      "doctor_id": 21,
+      "day": 1,
+      "time": "08.00 - 14.00"
+    },
+    {
+      "id": 100,
+      "doctor_id": 21,
+      "day": 2,
+      "time": "08.00 - 14.00"
+    },
+    {
+      "id": 101,
+      "doctor_id": 21,
+      "day": 3,
+      "time": "08.00 - 14.00"
+    },
+    {
+      "id": 102,
+      "doctor_id": 21,
+      "day": 4,
+      "time": "08.00 - 14.00"
+    },
+    {
+      "id": 103,
+      "doctor_id": 21,
+      "day": 5,
+      "time": "08.00 - 14.00"
+    },
+    {
+      "id": 104,
+      "doctor_id": 21,
+      "day": 6,
+      "time": "08.00 - 14.00"
+    },
+    {
+      "id": 105,
+      "doctor_id": 21,
+      "day": 1,
+      "time": "18.00 - Selesai"
+    },
+    {
+      "id": 106,
+      "doctor_id": 21,
+      "day": 2,
+      "time": "18.00 - Selesai"
+    },
+    {
+      "id": 107,
+      "doctor_id": 21,
+      "day": 3,
+      "time": "18.00 - Selesai"
+    },
+    {
+      "id": 108,
+      "doctor_id": 21,
+      "day": 4,
+      "time": "18.00 - Selesai"
+    },
+    {
+      "id": 109,
+      "doctor_id": 22,
+      "day": 2,
+      "time": "14.30 - 17.00"
+    },
+    {
+      "id": 110,
+      "doctor_id": 22,
+      "day": 5,
+      "time": "13.30 - 16.00"
+    },
+    {
+      "id": 111,
+      "doctor_id": 23,
+      "day": 1,
+      "time": "08.00 - 11.00"
+    },
+    {
+      "id": 112,
+      "doctor_id": 23,
+      "day": 2,
+      "time": "08.00 - 11.00"
+    },
+    {
+      "id": 113,
+      "doctor_id": 23,
+      "day": 3,
+      "time": "08.00 - 11.00"
+    },
+    {
+      "id": 114,
+      "doctor_id": 23,
+      "day": 4,
+      "time": "08.00 - 11.00"
+    },
+    {
+      "id": 115,
+      "doctor_id": 23,
+      "day": 5,
+      "time": "08.00 - 11.00"
+    },
+    {
+      "id": 116,
+      "doctor_id": 24,
+      "day": 1,
+      "time": "13.30 - Selesai"
+    },
+    {
+      "id": 117,
+      "doctor_id": 24,
+      "day": 2,
+      "time": "13.30 - Selesai"
+    },
+    {
+      "id": 118,
+      "doctor_id": 24,
+      "day": 3,
+      "time": "13.30 - Selesai"
+    },
+    {
+      "id": 119,
+      "doctor_id": 25,
+      "day": 1,
+      "time": "15.00 - Selesai"
+    },
+    {
+      "id": 120,
+      "doctor_id": 25,
+      "day": 4,
+      "time": "13.00 - Selesai"
+    },
+    {
+      "id": 121,
+      "doctor_id": 25,
+      "day": 5,
+      "time": "14.00 - Selesai"
+    },
+    {
+      "id": 122,
+      "doctor_id": 26,
+      "day": 2,
+      "time": "14.00 - Selesai"
+    },
+    {
+      "id": 123,
+      "doctor_id": 26,
+      "day": 3,
+      "time": "14.00 - Selesai"
+    },
+    {
+      "id": 124,
+      "doctor_id": 26,
+      "day": 6,
+      "time": "13.00 - Selesai"
+    },
+    {
+      "id": 125,
+      "doctor_id": 27,
+      "day": 1,
+      "time": "06.00 - 08.00"
+    },
+    {
+      "id": 126,
+      "doctor_id": 27,
+      "day": 3,
+      "time": "07.30 - 09.30"
+    },
+    {
+      "id": 127,
+      "doctor_id": 28,
+      "day": 1,
+      "time": "10.00 - 17.00"
+    },
+    {
+      "id": 128,
+      "doctor_id": 28,
+      "day": 2,
+      "time": "10.00 - 17.00"
+    },
+    {
+      "id": 129,
+      "doctor_id": 28,
+      "day": 3,
+      "time": "10.00 - 17.00"
+    },
+    {
+      "id": 130,
+      "doctor_id": 28,
+      "day": 4,
+      "time": "07.00 - 14.00"
+    },
+    {
+      "id": 131,
+      "doctor_id": 28,
+      "day": 5,
+      "time": "07.00 - 14.00"
+    },
+    {
+      "id": 132,
+      "doctor_id": 28,
+      "day": 6,
+      "time": "07.00 - 14.00"
+    },
+    {
+      "id": 133,
+      "doctor_id": 29,
+      "day": 1,
+      "time": "14.00 - 18.00"
+    },
+    {
+      "id": 134,
+      "doctor_id": 29,
+      "day": 3,
+      "time": "14.00 - 18.00"
+    },
+    {
+      "id": 135,
+      "doctor_id": 29,
+      "day": 2,
+      "time": "08.00 - 12.00"
+    },
+    {
+      "id": 136,
+      "doctor_id": 29,
+      "day": 4,
+      "time": "08.00 - 12.00"
+    },
+    {
+      "id": 137,
+      "doctor_id": 29,
+      "day": 5,
+      "time": "13.00 - 15.00"
+    },
+    {
+      "id": 138,
+      "doctor_id": 30,
+      "day": 4,
+      "time": "16.00 - Selesai"
+    },
+    {
+      "id": 139,
+      "doctor_id": 30,
+      "day": 6,
+      "time": "14.00 - Selesai"
+    },
+    {
+      "id": 140,
+      "doctor_id": 31,
+      "day": 1,
+      "time": "09.00 - 12.00"
+    },
+    {
+      "id": 141,
+      "doctor_id": 31,
+      "day": 2,
+      "time": "09.00 - 12.00"
+    },
+    {
+      "id": 142,
+      "doctor_id": 31,
+      "day": 3,
+      "time": "09.00 - 12.00"
+    },
+    {
+      "id": 143,
+      "doctor_id": 31,
+      "day": 4,
+      "time": "09.00 - 12.00"
+    },
+    {
+      "id": 144,
+      "doctor_id": 31,
+      "day": 5,
+      "time": "09.00 - 12.00"
+    },
+    {
+      "id": 145,
+      "doctor_id": 32,
+      "day": 1,
+      "time": "18.00 - Selesai"
+    },
+    {
+      "id": 146,
+      "doctor_id": 32,
+      "day": 3,
+      "time": "18.00 - Selesai"
+    },
+    {
+      "id": 147,
+      "doctor_id": 32,
+      "day": 5,
+      "time": "18.00 - Selesai"
+    }
+  ],
+  "doctorLeaves": [],
+  "queues": [
+    {
+      "id": 1,
+      "daily_quota_id": 1,
+      "queue_number": 1,
+      "queue_code": "ANK-001",
+      "status": "CALLED",
+      "created_at": "2025-12-09T10:49:05.170Z"
+    },
+    {
+      "id": 2,
+      "daily_quota_id": 1,
+      "queue_number": 2,
+      "queue_code": "ANK-002",
+      "status": "CALLED",
+      "created_at": "2025-12-09T10:49:22.962Z"
+    },
+    {
+      "id": 3,
+      "daily_quota_id": 2,
+      "queue_number": 1,
+      "queue_code": "BMM-001",
+      "status": "CALLED",
+      "created_at": "2025-12-09T10:49:26.823Z"
+    },
+    {
+      "id": 4,
+      "daily_quota_id": 3,
+      "queue_number": 1,
+      "queue_code": "BDH-001",
+      "status": "CALLED",
+      "created_at": "2025-12-09T10:49:31.805Z"
+    },
+    {
+      "id": 5,
+      "daily_quota_id": 2,
+      "queue_number": 2,
+      "queue_code": "BMM-002",
+      "status": "CALLED",
+      "created_at": "2025-12-09T11:23:15.496Z"
+    },
+    {
+      "id": 6,
+      "daily_quota_id": 5,
+      "queue_number": 1,
+      "queue_code": "FIS-001",
+      "status": "CALLED",
+      "created_at": "2025-12-09T11:23:19.484Z"
+    },
+    {
+      "id": 7,
+      "daily_quota_id": 5,
+      "queue_number": 2,
+      "queue_code": "FIS-002",
+      "status": "CALLED",
+      "created_at": "2025-12-09T11:23:21.445Z"
+    },
+    {
+      "id": 8,
+      "daily_quota_id": 10,
+      "queue_number": 1,
+      "queue_code": "OBS-001",
+      "status": "CALLED",
+      "created_at": "2025-12-09T11:23:23.157Z"
+    },
+    {
+      "id": 9,
+      "daily_quota_id": 11,
+      "queue_number": 1,
+      "queue_code": "JIW-001",
+      "status": "CALLED",
+      "created_at": "2025-12-09T11:23:24.741Z"
+    },
+    {
+      "id": 10,
+      "daily_quota_id": 12,
+      "queue_number": 1,
+      "queue_code": "JIW-001",
+      "status": "CALLED",
+      "created_at": "2025-12-09T11:23:26.497Z"
+    },
+    {
+      "id": 11,
+      "daily_quota_id": 17,
+      "queue_number": 1,
+      "queue_code": "INT-001",
+      "status": "CALLED",
+      "created_at": "2025-12-09T11:23:28.341Z"
+    },
+    {
+      "id": 12,
+      "daily_quota_id": 3,
+      "queue_number": 2,
+      "queue_code": "BDH-002",
+      "status": "CALLED",
+      "created_at": "2025-12-09T13:34:20.291Z"
+    },
+    {
+      "id": 13,
+      "daily_quota_id": 2,
+      "queue_number": 3,
+      "queue_code": "BMM-003",
+      "status": "CALLED",
+      "created_at": "2025-12-09T13:59:10.267Z"
+    }
+  ]
+}
