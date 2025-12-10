@@ -16,7 +16,11 @@ import QueueStatus from './pages/QueueStatus';
 import CommandPalette from './components/CommandPalette';
 import PageWrapper from './components/PageWrapper';
 import Registration from './pages/Registration';
-import DoctorDashboard from './pages/DoctorDashboard'; // Import
+import DoctorDashboard from './pages/DoctorDashboard';
+import PatientList from './pages/PatientList'; // New
+import PatientDetail from './pages/PatientDetail'; // New
+import PharmacyDashboard from './pages/PharmacyDashboard'; // New
+import CashierDashboard from './pages/CashierDashboard'; // New
 
 function AnimatedRoutes() {
   const location = useLocation();
@@ -49,6 +53,17 @@ function AnimatedRoutes() {
           <Route path="/admin/counter" element={<PageWrapper><StaffCounter /></PageWrapper>} />
           <Route path="/registration" element={<PageWrapper><Registration /></PageWrapper>} />
           <Route path="/doctor/dashboard" element={<PageWrapper><DoctorDashboard /></PageWrapper>} />
+
+
+          {/* Patient Hub */}
+          <Route path="/admin/patients" element={<PageWrapper><PatientList /></PageWrapper>} />
+          <Route path="/admin/patients/:id" element={<PageWrapper><PatientDetail /></PageWrapper>} />
+
+          {/* Pharmacy Module */}
+          <Route path="/pharmacy" element={<PageWrapper><PharmacyDashboard /></PageWrapper>} />
+
+          {/* Cashier Module */}
+          <Route path="/cashier" element={<PageWrapper><CashierDashboard /></PageWrapper>} />
         </Route>
       </Routes>
     </AnimatePresence>

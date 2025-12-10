@@ -25,6 +25,7 @@ model Doctor {
   schedules     DoctorSchedule[]
   leaves        DoctorLeave[]
   medical_records MedicalRecord[]
+  prescriptions Prescription[]
 }
 
 model DoctorLeave {
@@ -83,10 +84,13 @@ model Patient {
   address     String?
   phone       String?
   bpjs_no     String?
+  allergies   String?  // New: SOP Safety
   created_at  DateTime @default(now())
   updated_at  DateTime @updatedAt
   queues      Queue[]
   medical_records MedicalRecord[]
+  prescriptions Prescription[]
+  transactions Transaction[]
 }
 
 model Sequence {
@@ -136,6 +140,14 @@ model MedicalRecord {
   queue       Queue?   @relation(fields: [queue_id], references: [id])
   visit_date  DateTime @default(now())
   
+  // Vitals (SOP Standard)
+  systolic    Int?
+  diastolic   Int?
+  heart_rate  Int?
+  temperature Float?
+  weight      Float?
+  height      Float?
+
   // SOAP
   subjective  String   @db.Text // Keluhan
   objective   String   @db.Text // Pemeriksaan Fisik
@@ -143,5 +155,79 @@ model MedicalRecord {
   plan        String   @db.Text // Tindakan/Resep
   
   created_at  DateTime @default(now())
-  updated_at  DateTime @updatedAt
+  updated_at  DateTime @updatedAt // Fixed: Use @updatedAt here if desired, or manually manage
+  prescriptions Prescription[]
+  transaction   Transaction?
+}
+
+model Medicine {
+  id        Int      @id @default(autoincrement())
+  name      String
+  code      String   @unique
+  category  String?  // Tablet, Syrup, Injection
+  stock     Int      @default(0)
+  unit      String   // strips, bottles, pcs
+  price     Float    @default(0)
+  expiry    DateTime?
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+  
+  prescription_items PrescriptionItem[]
+}
+
+model Prescription {
+  id              Int      @id @default(autoincrement())
+  medical_record_id Int
+  medical_record  MedicalRecord @relation(fields: [medical_record_id], references: [id])
+  doctor_id       Int
+  doctor          Doctor   @relation(fields: [doctor_id], references: [id])
+  patient_id      Int
+  patient         Patient  @relation(fields: [patient_id], references: [id])
+  
+  status          String   @default("PENDING") // PENDING, PREPARING, COMPLETED, CANCELLED
+  notes           String?
+  
+  created_at      DateTime @default(now())
+  updated_at      DateTime @updatedAt
+  
+  items           PrescriptionItem[]
+}
+
+model PrescriptionItem {
+  id              Int      @id @default(autoincrement())
+  prescription_id Int
+  prescription    Prescription @relation(fields: [prescription_id], references: [id], onDelete: Cascade)
+  medicine_id     Int
+  medicine        Medicine @relation(fields: [medicine_id], references: [id])
+  
+  quantity        Int
+  dosage          String   // e.g. "3x1 after meal"
+  notes           String?
+}
+
+model Transaction {
+  id              Int      @id @default(autoincrement())
+  invoice_no      String   @unique // INV/YYYYMMDD/001
+  medical_record_id Int    @unique // One transaction per visit
+  medical_record  MedicalRecord @relation(fields: [medical_record_id], references: [id])
+  patient_id      Int
+  patient         Patient  @relation(fields: [patient_id], references: [id])
+  
+  total_amount    Float
+  status          String   @default("UNPAID") // UNPAID, PAID, CANCELLED
+  payment_method  String?  // CASH, QRIS, TRANSFER
+  
+  created_at      DateTime @default(now())
+  updated_at      DateTime @updatedAt
+  
+  items           TransactionItem[]
+}
+
+model TransactionItem {
+  id              Int      @id @default(autoincrement())
+  transaction_id  Int
+  transaction     Transaction @relation(fields: [transaction_id], references: [id], onDelete: Cascade)
+  description     String   // "Jasa Dokter", "Paracetamol", "Biaya Daftar"
+  amount          Float
+  quantity        Int      @default(1)
 }

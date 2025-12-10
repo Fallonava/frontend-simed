@@ -135,9 +135,22 @@ exports.takeTicket = async (req, res) => {
                 data: { current_count: { increment: 1 } }
             });
 
-            // Create Queue
+            // Create Queue with Doctor Initials
+            const docName = dailyQuota.doctor.name;
+            // Generate initials: "Dr. Budi Santoso" -> "BS" (ignore titles like Dr.)
+            const cleanName = docName.replace(/^Dr\.\s+/i, '').replace(/,/g, '');
+            const parts = cleanName.split(' ').filter(p => p.length > 0);
+            let initials = '';
+            if (parts.length >= 2) {
+                initials = (parts[0][0] + parts[1][0]).toUpperCase();
+            } else if (parts.length === 1) {
+                initials = parts[0].substring(0, 2).toUpperCase();
+            } else {
+                initials = 'DR';
+            }
+
             const queueNumber = updatedQuota.current_count;
-            const queueCode = `${dailyQuota.doctor.poliklinik.queue_code}-${String(queueNumber).padStart(3, '0')}`;
+            const queueCode = `${initials}-${String(queueNumber).padStart(3, '0')}`; // e.g. BS-001
 
             const newQueue = await tx.queue.create({
                 data: {
@@ -193,6 +206,7 @@ exports.getWaiting = async (req, res) => {
         const queues = await prisma.queue.findMany({
             where: whereClause,
             include: {
+                patient: true, // Include Patient Data
                 daily_quota: {
                     include: {
                         doctor: {
@@ -237,6 +251,7 @@ exports.callNext = async (req, res) => {
                 where: whereClause,
                 orderBy: { created_at: 'asc' }, // FIFO
                 include: {
+                    patient: true, // Include Patient
                     daily_quota: {
                         include: {
                             doctor: {
@@ -343,6 +358,7 @@ exports.getSkipped = async (req, res) => {
         const queues = await prisma.queue.findMany({
             where: whereClause,
             include: {
+                patient: true,
                 daily_quota: {
                     include: {
                         doctor: {
@@ -369,6 +385,7 @@ exports.recallSkipped = async (req, res) => {
         const ticket = await prisma.queue.findUnique({
             where: { id: parseInt(ticket_id) },
             include: {
+                patient: true,
                 daily_quota: {
                     include: {
                         doctor: {
@@ -440,6 +457,7 @@ exports.getTicket = async (req, res) => {
         const ticket = await prisma.queue.findUnique({
             where: { id: parseInt(id) },
             include: {
+                patient: true,
                 daily_quota: {
                     include: {
                         doctor: {

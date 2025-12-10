@@ -102,3 +102,4 @@ Unique constraint failed on the fields: (`nik`)
 [2025-12-10T10:32:18.591Z] Request Body: {"nik":"45445","name":"tryrtty","gender":"L","birth_date":"2025-12-03","address":"etert","phone":"","bpjs_no":""}
 [2025-12-10T10:45:41.212Z] Request Body: {"nik":"4","name":"f","gender":"L","birth_date":"2025-12-10","address":"4","phone":"","bpjs_no":""}
 [2025-12-10T11:06:15.090Z] Request Body: {"name":"fakt","nik":"3303","gender":"L","birth_date":"2025-12-05","address":"pbg","phone":"0"}
+[2025-12-10T13:37:10.119Z] Request Body: {"name":"fakt","nik":"09","gender":"L","birth_date":"2025-12-03","address":"-","phone":"-"}

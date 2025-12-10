@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Search, Plus, User, FileText, Printer, CheckCircle, MapPin, Phone, CreditCard, Stethoscope, Activity, ChevronRight, X } from 'lucide-react';
+import { Search, Plus, User, FileText, Printer, CheckCircle, MapPin, Phone, CreditCard, Stethoscope, Activity, ChevronRight, X, ArrowRight, RefreshCcw } from 'lucide-react';
 import toast, { Toaster } from 'react-hot-toast';
 import { useNavigate } from 'react-router-dom';
 import { QRCodeCanvas } from 'qrcode.react';
@@ -12,6 +12,7 @@ const Registration = () => {
     const [searchTerm, setSearchTerm] = useState('');
     const [isSearching, setIsSearching] = useState(false);
     const [patientFound, setPatientFound] = useState(null);
+    const [searchResults, setSearchResults] = useState([]);
     const [clinics, setClinics] = useState([]);
     const [doctors, setDoctors] = useState([]);
     const [selectedClinic, setSelectedClinic] = useState(null);
@@ -57,11 +58,13 @@ const Registration = () => {
         try {
             const res = await api.get(`/patients/search?q=${searchTerm}`);
             if (res.data.length > 0) {
-                setPatientFound(res.data[0]);
-                toast.success('Patient Found');
-                setSearchTerm('');
+                setSearchResults(res.data);
+                setPatientFound(null); // Clear selection on new search
+                toast.success(`${res.data.length} Patients Found`);
+                // setSearchTerm(''); // Optional: Keep search term or clear? Usually keep matching term.
             } else {
                 toast.error('Patient not found');
+                setSearchResults([]);
                 setPatientFound(null);
             }
         } catch (error) {
@@ -82,6 +85,17 @@ const Registration = () => {
         } catch (error) {
             toast.error(error.response?.data?.error || 'Registration Failed');
         }
+    };
+
+    const handleReset = () => {
+        setSearchTerm('');
+        setPatientFound(null);
+        setSelectedClinic(null);
+        setSelectedDoctor(null);
+        setPaymentMethod(null);
+        setTicketData(null);
+        setIsSearching(false);
+        toast('Form Reset', { icon: '🔄' });
     };
 
     const handleRegister = async () => {
@@ -136,14 +150,28 @@ const Registration = () => {
         <PageWrapper title="Registration">
             <Toaster position="top-center" toastOptions={{ className: 'backdrop-blur-md bg-white/80 dark:bg-gray-800/80' }} />
 
-            <div className="flex h-[calc(100vh-100px)] gap-6 p-6 max-w-[1920px] mx-auto print:hidden">
+            <div className="flex flex-col lg:flex-row h-auto lg:h-[calc(100vh-100px)] gap-6 p-6 max-w-[1920px] mx-auto print:hidden">
 
                 {/* LEFT PANEL: PATIENT IDENTIFICATION */}
-                <div className="w-[22%] flex flex-col gap-6">
-                    <div>
-                        <h1 className="text-2xl font-extrabold text-gray-900 dark:text-white tracking-tight">Check-In</h1>
-                        <p className="text-xs text-gray-500 font-medium">Identify patient to start</p>
-                        <button onClick={() => navigate('/menu')} className="mt-2 text-xs font-bold text-gray-400 hover:text-gray-600 flex items-center gap-1">← Back to Menu</button>
+                <div className="w-full lg:w-[22%] flex flex-col gap-6">
+                    <div className="flex flex-col gap-4">
+                        <div>
+                            <h1 className="text-2xl font-extrabold text-gray-900 dark:text-white tracking-tight">Check-In</h1>
+                            <p className="text-xs text-gray-500 font-medium">Identify patient to start</p>
+                        </div>
+
+                        <div className="flex gap-2">
+                            <button onClick={() => navigate('/menu')} className="flex-1 bg-gray-100 dark:bg-gray-800 hover:bg-white dark:hover:bg-gray-700 hover:shadow-md transition-all rounded-xl px-4 py-2.5 text-[11px] font-bold text-gray-500 dark:text-gray-400 border border-transparent hover:border-gray-200 dark:hover:border-gray-600 flex items-center justify-center gap-2 group">
+                                <span className="group-hover:-translate-x-0.5 transition-transform">←</span> Menu
+                            </button>
+                            <button onClick={() => navigate('/admin/counter')} className="flex-1 bg-blue-50 dark:bg-blue-900/20 hover:bg-blue-100 dark:hover:bg-blue-900/30 hover:shadow-md transition-all rounded-xl px-4 py-2.5 text-[11px] font-bold text-blue-600 dark:text-blue-400 border border-transparent hover:border-blue-200 dark:hover:border-blue-800 flex items-center justify-center gap-2 group">
+                                Counter <ArrowRight size={12} className="group-hover:translate-x-0.5 transition-transform" />
+                            </button>
+                        </div>
+
+                        <button onClick={handleReset} className="w-full bg-white dark:bg-gray-800 hover:bg-red-50 dark:hover:bg-red-900/20 hover:text-red-500 hover:shadow-sm border border-gray-200 dark:border-gray-700 transition-all rounded-xl px-4 py-2 text-[11px] font-bold text-gray-400 flex items-center justify-center gap-2">
+                            <RefreshCcw size={12} /> Reset Form
+                        </button>
                     </div>
 
                     <div className="bg-white/60 dark:bg-gray-800/60 backdrop-blur-xl p-4 rounded-[24px] shadow-lg border border-white/20 relative group transition-all focus-within:ring-4 focus-within:ring-blue-500/20">
@@ -162,47 +190,117 @@ const Registration = () => {
                     </div>
 
                     <div className="flex-1 overflow-y-auto space-y-4">
-                        {patientFound ? (
-                            <div className="bg-white/80 dark:bg-gray-800/90 backdrop-blur-xl p-5 rounded-[24px] shadow-xl border border-white/20 animate-in fade-in slide-in-from-bottom-4 duration-500">
-                                <div className="flex justify-between items-start mb-4">
-                                    <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white text-xl font-bold shadow-lg shadow-blue-500/30">
-                                        {patientFound.name.charAt(0)}
-                                    </div>
-                                    <span className="bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 px-2 py-1 rounded-lg text-[10px] font-extrabold tracking-wide uppercase">
-                                        RM: {patientFound.no_rm}
-                                    </span>
+                        {searchResults.length > 0 ? (
+                            <div className="space-y-3 p-2 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                                <div className="flex justify-between items-center px-1">
+                                    <p className="text-xs font-bold text-gray-500 uppercase tracking-widest">{searchResults.length} Patients Found</p>
+                                    <button onClick={() => { setSearchResults([]); setPatientFound(null); }} className="text-[10px] text-red-500 font-bold hover:underline">Clear Search</button>
                                 </div>
-                                <h2 className="text-xl font-bold text-gray-900 dark:text-white leading-tight mb-1">{patientFound.name}</h2>
-                                <p className="text-[10px] text-gray-500 font-semibold uppercase tracking-wider mb-4">Registered Patient</p>
+                                {searchResults.map((patient) => {
+                                    const isExpanded = patientFound?.id === patient.id;
+                                    return (
+                                        <motion.div
+                                            layout
+                                            key={patient.id}
+                                            onClick={() => !isExpanded && setPatientFound(patient)}
+                                            initial={{ opacity: 0, y: 20 }}
+                                            animate={{ opacity: 1, y: 0 }}
+                                            transition={{ layout: { duration: 0.3, type: 'spring', stiffness: 300, damping: 30 } }}
+                                            className={`rounded-[24px] overflow-hidden cursor-pointer relative transition-all duration-300
+                                                ${isExpanded
+                                                    ? 'bg-white dark:bg-gray-800 ring-2 ring-inset ring-blue-500 shadow-2xl shadow-blue-500/20 z-10 scale-[1.01]'
+                                                    : 'bg-white/60 dark:bg-gray-800/60 backdrop-blur-md border border-white/20 shadow-sm hover:bg-white/80 dark:hover:bg-gray-700/80 hover:shadow-lg hover:scale-[1.005]'
+                                                }
+                                            `}
+                                        >
+                                            <div className="p-5 flex items-center justify-between">
+                                                <div className="flex items-center gap-5">
+                                                    <motion.div
+                                                        layout="position"
+                                                        className={`w-12 h-12 rounded-2xl flex items-center justify-center text-sm font-bold shadow-sm transition-colors ${isExpanded ? 'bg-blue-600 text-white' : 'bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400'}`}
+                                                    >
+                                                        {patient.name.charAt(0)}
+                                                    </motion.div>
+                                                    <div className="flex flex-col">
+                                                        <motion.h3 layout="position" className={`font-bold text-base leading-tight transition-colors ${isExpanded ? 'text-gray-900 dark:text-white' : 'text-gray-900 dark:text-white'}`}>
+                                                            {patient.name}
+                                                        </motion.h3>
+                                                        <motion.div layout="position" className="flex items-center gap-2 mt-1">
+                                                            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 border border-blue-100 dark:border-blue-800">
+                                                                RM: {patient.no_rm}
+                                                            </span>
+                                                        </motion.div>
+                                                    </div>
+                                                </div>
+                                                <div className={`w-8 h-8 rounded-full flex items-center justify-center transition-all duration-500 ${isExpanded ? 'bg-blue-50 text-blue-500 rotate-90' : 'text-gray-300'}`}>
+                                                    <ChevronRight size={18} />
+                                                </div>
+                                            </div>
 
-                                <div className="space-y-3 mb-6">
-                                    <div className="flex items-center gap-3 p-3 bg-gray-50 dark:bg-gray-700/50 rounded-xl">
-                                        <CreditCard size={14} className="text-gray-400" />
-                                        <div>
-                                            <p className="text-[9px] text-gray-400 uppercase font-bold">NIK</p>
-                                            <p className="text-xs font-bold text-gray-700 dark:text-gray-200">{patientFound.nik}</p>
-                                        </div>
-                                    </div>
-                                    <div className="flex items-center gap-3 p-3 bg-gray-50 dark:bg-gray-700/50 rounded-xl">
-                                        <MapPin size={14} className="text-gray-400" />
-                                        <div>
-                                            <p className="text-[9px] text-gray-400 uppercase font-bold">Address</p>
-                                            <p className="text-xs font-bold text-gray-700 dark:text-gray-200 line-clamp-2">{patientFound.address || '-'}</p>
-                                        </div>
-                                    </div>
-                                </div>
+                                            {/* Expanded Content - iOS Style Reveal */}
+                                            <AnimatePresence>
+                                                {isExpanded && (
+                                                    <motion.div
+                                                        initial={{ opacity: 0, height: 0 }}
+                                                        animate={{ opacity: 1, height: 'auto' }}
+                                                        exit={{ opacity: 0, height: 0 }}
+                                                        transition={{ duration: 0.3, ease: 'easeOut' }}
+                                                    >
+                                                        <div className="px-5 pb-5 pt-0">
+                                                            <motion.div
+                                                                initial={{ opacity: 0, y: 10 }}
+                                                                animate={{ opacity: 1, y: 0 }}
+                                                                transition={{ delay: 0.1 }}
+                                                                className="p-4 bg-gray-50/80 dark:bg-gray-700/30 rounded-2xl border border-gray-100 dark:border-gray-700/50 space-y-3"
+                                                            >
+                                                                <div className="flex items-center gap-3">
+                                                                    <div className="w-8 h-8 rounded-full bg-white dark:bg-gray-600 flex items-center justify-center shadow-sm">
+                                                                        <CreditCard size={14} className="text-gray-400" />
+                                                                    </div>
+                                                                    <div>
+                                                                        <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">NIK Identity</p>
+                                                                        <p className="text-sm font-semibold text-gray-700 dark:text-gray-200">{patient.nik}</p>
+                                                                    </div>
+                                                                </div>
+                                                                <div className="w-full h-px bg-gray-100 dark:bg-gray-600/50"></div>
+                                                                <div className="flex items-center gap-3">
+                                                                    <div className="w-8 h-8 rounded-full bg-white dark:bg-gray-600 flex items-center justify-center shadow-sm">
+                                                                        <MapPin size={14} className="text-gray-400" />
+                                                                    </div>
+                                                                    <div>
+                                                                        <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Resident Address</p>
+                                                                        <p className="text-sm font-semibold text-gray-700 dark:text-gray-200 leading-tight">{patient.address || '-'}</p>
+                                                                    </div>
+                                                                </div>
+                                                            </motion.div>
 
-                                <div className="grid grid-cols-2 gap-2">
-                                    <button onClick={() => setPatientFound(null)} className="py-3 rounded-xl text-xs font-bold text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
-                                        Change
-                                    </button>
-                                    <button
-                                        onClick={() => setShowCardModal(true)}
-                                        className="py-3 rounded-xl text-xs font-bold text-blue-600 bg-blue-50 hover:bg-blue-100 dark:bg-blue-900/20 dark:hover:bg-blue-900/30 transition-colors flex items-center justify-center gap-2"
-                                    >
-                                        <CreditCard size={14} /> Print Card
-                                    </button>
-                                </div>
+                                                            <div className="grid grid-cols-2 gap-3 mt-4">
+                                                                <motion.button
+                                                                    initial={{ opacity: 0, scale: 0.9 }}
+                                                                    animate={{ opacity: 1, scale: 1 }}
+                                                                    transition={{ delay: 0.2 }}
+                                                                    onClick={(e) => { e.stopPropagation(); setPatientFound(null); }}
+                                                                    className="py-3.5 rounded-2xl text-xs font-bold text-gray-500 hover:text-gray-700 hover:bg-gray-50 transition-colors"
+                                                                >
+                                                                    Cancel Selection
+                                                                </motion.button>
+                                                                <motion.button
+                                                                    initial={{ opacity: 0, scale: 0.9 }}
+                                                                    animate={{ opacity: 1, scale: 1 }}
+                                                                    transition={{ delay: 0.3 }}
+                                                                    onClick={(e) => { e.stopPropagation(); setShowCardModal(true); }}
+                                                                    className="py-3.5 rounded-2xl text-xs font-bold text-white bg-black dark:bg-white dark:text-black shadow-lg shadow-gray-200 dark:shadow-none hover:scale-105 active:scale-95 transition-all flex items-center justify-center gap-2"
+                                                                >
+                                                                    <CreditCard size={16} /> Print ID Card
+                                                                </motion.button>
+                                                            </div>
+                                                        </div>
+                                                    </motion.div>
+                                                )}
+                                            </AnimatePresence>
+                                        </motion.div>
+                                    );
+                                })}
                             </div>
                         ) : (
                             <div className="bg-white/40 dark:bg-gray-800/40 border-2 border-dashed border-gray-300/50 dark:border-gray-700/50 rounded-[24px] p-6 text-center flex flex-col items-center justify-center gap-4 min-h-[300px] hover:bg-white/60 dark:hover:bg-gray-800/60 transition-colors group">
@@ -222,7 +320,7 @@ const Registration = () => {
                 </div>
 
                 {/* RIGHT PANEL: SERVICES */}
-                <div className="flex-1 bg-gray-50 dark:bg-gray-900 p-8 flex flex-col overflow-y-auto rounded-[32px]">
+                <div className="flex-1 bg-gray-50 dark:bg-gray-900 p-8 flex flex-col overflow-y-auto rounded-[32px] min-h-[500px] lg:min-h-0 pb-40">
                     <div className="max-w-6xl mx-auto w-full space-y-8">
 
                         {/* Header */}
@@ -247,16 +345,21 @@ const Registration = () => {
                                 {clinics.map((clinic, index) => (
                                     <motion.button
                                         key={clinic.id}
-                                        initial={{ opacity: 0, y: 20 }}
-                                        animate={{ opacity: 1, y: 0 }}
-                                        transition={{ delay: index * 0.04, type: 'spring', stiffness: 300, damping: 20 }}
-                                        whileHover={{ scale: 1.03, y: -4 }}
-                                        whileTap={{ scale: 0.96 }}
+                                        initial={{ opacity: 0, scale: 0.8 }}
+                                        animate={{ opacity: 1, scale: 1 }}
+                                        transition={{
+                                            delay: index * 0.05,
+                                            type: 'spring',
+                                            stiffness: 400,
+                                            damping: 25
+                                        }}
+                                        whileHover={{ scale: 1.05, y: -5 }}
+                                        whileTap={{ scale: 0.95 }}
                                         onClick={() => { setSelectedClinic(clinic.id); setSelectedDoctor(null); }}
-                                        className={`relative h-32 rounded-[24px] flex flex-col items-center justify-center gap-4 transition-all duration-300 group overflow-hidden
+                                        className={`relative h-36 rounded-[24px] flex flex-col items-center justify-center gap-4 transition-all duration-300 group overflow-hidden border border-transparent
                                             ${selectedClinic === clinic.id
-                                                ? 'text-white shadow-xl shadow-blue-500/30'
-                                                : 'bg-white dark:bg-gray-800 text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-750'
+                                                ? 'shadow-2xl shadow-blue-500/30 scale-[1.02]'
+                                                : 'bg-white dark:bg-gray-800 text-gray-400 dark:text-gray-500 hover:bg-white/80 dark:hover:bg-gray-700/80 hover:shadow-xl hover:shadow-gray-200/50 dark:hover:shadow-black/50 hover:border-white/50'
                                             }`}
                                     >
                                         {/* Animated Fluid Background for Selection */}
@@ -265,25 +368,25 @@ const Registration = () => {
                                                 layoutId="clinicActiveBg"
                                                 className="absolute inset-0 bg-gradient-to-bl from-blue-600 to-indigo-600"
                                                 initial={false}
-                                                transition={{ type: "spring", stiffness: 400, damping: 30 }}
+                                                transition={{ type: "spring", stiffness: 300, damping: 30 }}
                                             />
                                         )}
 
                                         {/* Glassy Glow Effect on Hover (Unselected) */}
                                         {selectedClinic !== clinic.id && (
-                                            <div className="absolute inset-0 bg-gradient-to-tr from-blue-50/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                                            <div className="absolute inset-0 bg-gradient-to-tr from-blue-50/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
                                         )}
 
-                                        <div className={`relative z-10 p-3.5 rounded-2xl transition-all duration-300 shadow-sm
+                                        <div className={`relative z-10 p-4 rounded-full transition-all duration-300 shadow-sm
                                             ${selectedClinic === clinic.id
-                                                ? 'bg-white/20 backdrop-blur-md shadow-inner text-white'
-                                                : 'bg-gray-50 dark:bg-gray-700/50 text-gray-400 dark:text-gray-500 group-hover:bg-blue-50 group-hover:text-blue-500 group-hover:scale-110'
+                                                ? 'bg-white/20 backdrop-blur-md shadow-inner text-white ring-2 ring-white/30'
+                                                : 'bg-gray-50 dark:bg-gray-700/50 text-gray-300 dark:text-gray-600 group-hover:bg-blue-50 group-hover:text-blue-500 group-hover:scale-110'
                                             }`}>
-                                            <Stethoscope size={24} strokeWidth={selectedClinic === clinic.id ? 2.5 : 2} />
+                                            <Stethoscope size={28} strokeWidth={selectedClinic === clinic.id ? 2.5 : 2} />
                                         </div>
 
                                         <span className={`relative z-10 font-bold text-xs tracking-wide transition-colors px-2 truncate w-full
-                                            ${selectedClinic === clinic.id ? 'text-white' : 'text-gray-600 dark:text-gray-300'}`}>
+                                            ${selectedClinic === clinic.id ? 'text-white' : 'text-gray-500 dark:text-gray-400 group-hover:text-gray-700 dark:group-hover:text-gray-200'}`}>
                                             {clinic.name}
                                         </span>
 
@@ -292,8 +395,8 @@ const Registration = () => {
                                             <motion.div
                                                 initial={{ scale: 0 }}
                                                 animate={{ scale: 1 }}
-                                                transition={{ delay: 0.1 }}
-                                                className="absolute top-3 right-3 w-1.5 h-1.5 bg-white rounded-full shadow-lg shadow-white/50"
+                                                transition={{ delay: 0.1, type: 'spring' }}
+                                                className="absolute top-3 right-3 w-2 h-2 bg-white rounded-full shadow-[0_0_10px_rgba(255,255,255,0.8)]"
                                             />
                                         )}
                                     </motion.button>
@@ -301,7 +404,7 @@ const Registration = () => {
                             </div>
                         </section>
 
-                        <div className="h-8"></div>
+                        <div className="h-6"></div>
 
                         {/* Step 2: Doctor - Minimalist List/Grid */}
                         <section className="relative">
@@ -309,100 +412,128 @@ const Registration = () => {
                                 2. Select Doctor
                             </h3>
                             {selectedClinic ? (
-                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                                <motion.div
+                                    className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"
+                                    layout
+                                >
                                     <AnimatePresence mode="popLayout">
                                         {filteredDoctors.map((doc, index) => (
                                             <motion.button
                                                 key={doc.id}
                                                 layout
-                                                initial={{ opacity: 0, scale: 0.95 }}
-                                                animate={{ opacity: 1, scale: 1 }}
-                                                exit={{ opacity: 0, scale: 0.95 }}
-                                                transition={{ delay: index * 0.04 }}
-                                                whileHover={{ scale: 1.02 }}
-                                                whileTap={{ scale: 0.98 }}
+                                                initial={{ opacity: 0, scale: 0.9, y: 20 }}
+                                                animate={{ opacity: 1, scale: 1, y: 0 }}
+                                                exit={{ opacity: 0, scale: 0.9, transition: { duration: 0.2 } }}
+                                                transition={{
+                                                    delay: index * 0.05,
+                                                    type: 'spring',
+                                                    stiffness: 350,
+                                                    damping: 25
+                                                }}
+                                                whileHover={{ scale: 1.03, zIndex: 10 }}
+                                                whileTap={{ scale: 0.97 }}
                                                 onClick={() => setSelectedDoctor(doc.id)}
-                                                className={`group relative p-4 rounded-2xl text-left border transition-all duration-200 flex items-center gap-4
+                                                className={`group relative p-4 rounded-2xl text-left border transition-all duration-300 flex items-center gap-4 overflow-hidden
                                                     ${selectedDoctor === doc.id
-                                                        ? 'bg-white dark:bg-gray-800 border-blue-500 ring-2 ring-blue-500/10 shadow-lg z-10'
-                                                        : 'bg-white dark:bg-gray-800 border-gray-100 dark:border-gray-800 hover:border-gray-300 dark:hover:border-gray-600 hover:shadow-md'
+                                                        ? 'bg-white dark:bg-gray-800 border-blue-500 ring-4 ring-blue-500/10 shadow-2xl z-10'
+                                                        : 'bg-white dark:bg-gray-800 border-gray-100 dark:border-gray-800 hover:border-gray-200 dark:hover:border-gray-600 hover:shadow-xl hover:shadow-gray-200/50 dark:hover:shadow-black/20'
                                                     }`}
                                             >
-                                                <div className="w-12 h-12 rounded-full overflow-hidden bg-gray-100 shrink-0 border border-gray-100 dark:border-gray-700">
+                                                {/* Selection Highlight */}
+                                                {selectedDoctor === doc.id && (
+                                                    <motion.div
+                                                        layoutId="docActiveBorder"
+                                                        className="absolute inset-0 border-2 border-blue-500 rounded-2xl"
+                                                        initial={false}
+                                                        transition={{ type: "spring", stiffness: 300, damping: 30 }}
+                                                    />
+                                                )}
+
+                                                <div className="w-14 h-14 rounded-full overflow-hidden bg-gray-100 shrink-0 border-2 border-white dark:border-gray-700 shadow-md group-hover:scale-110 transition-transform duration-300">
                                                     <img src={`https://ui-avatars.com/api/?name=${doc.name}&background=random`} alt={doc.name} className="w-full h-full object-cover" />
                                                 </div>
 
-                                                <div className="flex-1 min-w-0">
-                                                    <div className={`font-semibold text-sm truncate transition-colors ${selectedDoctor === doc.id ? 'text-blue-600 dark:text-blue-400' : 'text-gray-900 dark:text-white'}`}>
+                                                <div className="flex-1 min-w-0 relative z-10">
+                                                    <div className={`font-bold text-sm truncate transition-colors ${selectedDoctor === doc.id ? 'text-blue-600 dark:text-blue-400' : 'text-gray-900 dark:text-white'}`}>
                                                         {doc.name}
                                                     </div>
-                                                    <div className="text-[11px] text-gray-500 font-medium truncate mb-1">{doc.specialist}</div>
+                                                    <div className="text-[11px] text-gray-500 font-medium truncate mb-2">{doc.specialist}</div>
 
-                                                    {/* Minimalist Quota Pill */}
+                                                    {/* Minimalist Quota Pill with Animated Bar */}
                                                     {doc.quota && (
-                                                        <div className="inline-flex items-center gap-1.5 bg-gray-50 dark:bg-gray-700/50 px-2 py-0.5 rounded-full">
-                                                            <div className={`w-1.5 h-1.5 rounded-full ${doc.quota.current_count >= doc.quota.max_quota ? 'bg-red-500' : 'bg-green-500'}`}></div>
-                                                            <span className="text-[10px] font-medium text-gray-500 dark:text-gray-400">{doc.quota.current_count}/{doc.quota.max_quota}</span>
+                                                        <div className="w-full h-1.5 bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden">
+                                                            <motion.div
+                                                                initial={{ width: 0 }}
+                                                                animate={{ width: `${(doc.quota.current_count / doc.quota.max_quota) * 100}%` }}
+                                                                transition={{ duration: 1, ease: "easeOut" }}
+                                                                className={`h-full rounded-full ${doc.quota.current_count >= doc.quota.max_quota ? 'bg-red-500' : 'bg-green-500'}`}
+                                                            />
                                                         </div>
                                                     )}
                                                 </div>
 
-                                                {/* Apple-style Checkmark */}
-                                                <div className={`w-6 h-6 rounded-full flex items-center justify-center transition-all duration-300 ${selectedDoctor === doc.id ? 'bg-blue-500 scale-100' : 'bg-gray-100 dark:bg-gray-700 scale-0 opacity-0'}`}>
+                                                {/* Apple-style Animated Checkmark */}
+                                                <div className={`absolute top-3 right-3 w-6 h-6 rounded-full flex items-center justify-center transition-all duration-300 ${selectedDoctor === doc.id ? 'bg-blue-500 scale-100 shadow-lg shadow-blue-500/40' : 'bg-transparent scale-0 opacity-0'}`}>
                                                     <CheckCircle size={14} className="text-white" strokeWidth={3} />
                                                 </div>
                                             </motion.button>
                                         ))}
                                     </AnimatePresence>
-                                    {filteredDoctors.length === 0 && <div className="col-span-full text-center py-12 text-gray-400 text-sm bg-gray-50/50 dark:bg-gray-800/50 rounded-2xl border border-dashed border-gray-200">No doctors scheduled.</div>}
-                                </div>
+                                    {filteredDoctors.length === 0 && <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="col-span-full text-center py-16 text-gray-400 text-sm bg-gray-50/50 dark:bg-gray-800/50 rounded-3xl border border-dashed border-gray-200">No doctors scheduled.</motion.div>}
+                                </motion.div>
                             ) : (
-                                <div className="h-40 flex flex-col items-center justify-center text-center text-gray-400 border border-dashed border-gray-200 rounded-2xl bg-gray-50/30">
-                                    <Stethoscope size={24} className="mb-2 opacity-20" />
-                                    <span className="text-xs font-medium">Please select a Poliklinik</span>
-                                </div>
+                                <motion.div
+                                    initial={{ opacity: 0, y: 10 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    className="h-48 flex flex-col items-center justify-center text-center text-gray-400 border border-dashed border-gray-200 rounded-[32px] bg-gray-50/30"
+                                >
+                                    <div className="w-16 h-16 bg-white rounded-full shadow-sm flex items-center justify-center mb-4">
+                                        <Stethoscope size={28} className="text-gray-300" />
+                                    </div>
+                                    <span className="text-xs font-medium uppercase tracking-wider opacity-70">Please Select a Poliklinik</span>
+                                </motion.div>
                             )}
                         </section>
 
-                        <hr className="border-gray-200 dark:border-gray-800 border-dashed" />
+                        <hr className="border-gray-200 dark:border-gray-800 border-dashed opacity-50" />
 
                         {/* Step 3: Payment */}
                         <section className="relative">
-                            <div className="absolute -left-4 top-0 bottom-0 w-1 bg-gradient-to-b from-transparent via-gray-200 dark:via-gray-700 to-transparent opacity-50"></div>
                             <h3 className="text-xs font-bold uppercase tracking-widest text-gray-400 mb-6 flex items-center gap-2"><span className="w-6 h-6 rounded-full bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 flex items-center justify-center text-[10px] font-bold">3</span> PAYMENT</h3>
-                            <div className="flex gap-4">
+                            <div className="flex gap-5">
                                 {[
-                                    { id: 'TUNAI', label: 'TUNAI', icon: <CreditCard size={18} />, style: 'from-emerald-400 to-emerald-600 shadow-emerald-500/30' },
-                                    { id: 'BPJS', label: 'BPJS', icon: <CheckCircle size={18} />, style: 'from-green-500 to-green-700 shadow-green-600/30' },
-                                    { id: 'ASURANSI', label: 'ASURANSI', icon: <Activity size={18} />, style: 'from-blue-500 to-indigo-600 shadow-indigo-500/30' }
-                                ].map(method => (
+                                    { id: 'TUNAI', label: 'TUNAI', icon: <CreditCard size={20} />, style: 'from-emerald-400 to-emerald-600 shadow-emerald-500/40' },
+                                    { id: 'BPJS', label: 'BPJS', icon: <CheckCircle size={20} />, style: 'from-green-500 to-green-700 shadow-green-600/40' },
+                                    { id: 'ASURANSI', label: 'ASURANSI', icon: <Activity size={20} />, style: 'from-blue-500 to-indigo-600 shadow-indigo-500/40' }
+                                ].map((method, idx) => (
                                     <motion.button
                                         key={method.id}
+                                        initial={{ opacity: 0, x: -20 }}
+                                        animate={{ opacity: 1, x: 0 }}
+                                        transition={{ delay: 0.2 + (idx * 0.1) }}
                                         onClick={() => setPaymentMethod(method.id)}
-                                        whileHover={{ scale: 1.05 }}
+                                        whileHover={{ scale: 1.05, y: -2 }}
                                         whileTap={{ scale: 0.95 }}
-                                        className={`relative overflow-hidden px-6 py-4 rounded-2xl font-bold text-xs transition-colors duration-300 flex items-center gap-3 w-40 justify-center
+                                        className={`relative overflow-hidden px-8 py-6 rounded-3xl font-bold text-xs transition-all duration-300 flex items-center gap-4 w-48 justify-center group
                                             ${paymentMethod === method.id
-                                                ? `bg-gradient-to-br ${method.style} text-white shadow-lg shadow-blue-900/20`
-                                                : 'bg-white dark:bg-gray-800 border border-transparent shadow-sm text-gray-500 dark:text-gray-400'
+                                                ? `bg-gradient-to-br ${method.style} text-white shadow-2xl scale-105`
+                                                : 'bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 shadow-sm text-gray-400 dark:text-gray-500 hover:shadow-lg hover:border-gray-300'
                                             }`}
                                     >
-                                        <div className="relative z-10 mr-1">
+                                        <div className="relative z-10 flex items-center gap-3">
                                             {paymentMethod === method.id && (
                                                 <motion.div
-                                                    layoutId="paymentCircle"
-                                                    className="absolute inset-0 -m-2 bg-white/20 rounded-full blur-sm"
+                                                    layoutId="paymentGlow"
+                                                    className="absolute inset-0 bg-white/20 rounded-full blur-xl"
                                                     initial={false}
                                                     transition={{ type: "spring", stiffness: 500, damping: 30 }}
                                                 />
                                             )}
-                                            <div className={`transition-transform duration-300 ${paymentMethod === method.id ? 'scale-110' : ''}`}>
+                                            <div className={`transition-transform duration-500 ${paymentMethod === method.id ? 'scale-125 rotate-6' : 'group-hover:scale-110'}`}>
                                                 {method.icon}
                                             </div>
+                                            <span className="relative z-10 text-sm tracking-wide">{method.label}</span>
                                         </div>
-                                        <span className="relative z-10">{method.label}</span>
-
-                                        {/* Optional: Keep a subtle border glow or highlight if needed, or rely on the circle */}
                                     </motion.button>
                                 ))}
                             </div>
@@ -413,32 +544,37 @@ const Registration = () => {
                 </div>
             </div>
 
-            {/* FLOATING ACTION BAR - Optimized & Apple Style */}
-            <div className="fixed bottom-0 right-0 w-[78%] bg-white/90 dark:bg-gray-900/90 backdrop-blur-2xl border-t border-gray-200/50 dark:border-gray-800/50 px-8 py-5 flex justify-between items-center z-20 shadow-[0_-5px_30px_rgba(0,0,0,0.03)] transition-all duration-300 print:hidden">
-                <div className="flex items-center gap-8 text-sm font-medium">
-                    <div className={`flex items-center gap-3 transition-all duration-300 ${patientFound ? 'text-gray-900 dark:text-white' : 'text-gray-400'}`}>
-                        <div className={`w-2.5 h-2.5 rounded-full transition-all duration-500 ${patientFound ? 'bg-green-500 shadow-[0_0_10px_rgba(34,197,94,0.6)] scale-110' : 'bg-gray-300 dark:bg-gray-700'}`}></div>
-                        <span className="tracking-tight">Patient Identity</span>
+            {/* FLOATING ACTION BAR - Glassmorphic Premium */}
+            <div className="fixed bottom-6 left-4 right-4 lg:left-[calc(22%+2rem)] lg:right-6 z-[100]">
+                <div className="bg-white/80 dark:bg-gray-900/80 backdrop-blur-2xl rounded-[32px] border border-white/40 dark:border-gray-700/40 p-3 pl-8 flex justify-between items-center shadow-[0_20px_40px_rgba(0,0,0,0.1)] hover:shadow-[0_30px_60px_rgba(0,0,0,0.15)] transition-shadow duration-500 print:hidden">
+
+                    <div className="flex items-center gap-10 text-sm font-medium">
+                        <div className={`flex items-center gap-3 transition-all duration-300 ${patientFound ? 'text-gray-900 dark:text-white' : 'text-gray-300 dark:text-gray-600'}`}>
+                            <div className={`w-3 h-3 rounded-full transition-all duration-500 ring-4 ${patientFound ? 'bg-green-500 ring-green-500/20 scale-110' : 'bg-gray-200 dark:bg-gray-700 ring-transparent'}`}></div>
+                            <span className="tracking-tight font-bold">Identity</span>
+                        </div>
+                        <ChevronRight size={16} className="text-gray-200 dark:text-gray-700" />
+                        <div className={`flex items-center gap-3 transition-all duration-300 ${selectedClinic ? 'text-gray-900 dark:text-white' : 'text-gray-300 dark:text-gray-600'}`}>
+                            <div className={`w-3 h-3 rounded-full transition-all duration-500 ring-4 ${selectedClinic ? 'bg-green-500 ring-green-500/20 scale-110' : 'bg-gray-200 dark:bg-gray-700 ring-transparent'}`}></div>
+                            <span className="tracking-tight font-bold">Clinic</span>
+                        </div>
+                        <ChevronRight size={16} className="text-gray-200 dark:text-gray-700" />
+                        <div className={`flex items-center gap-3 transition-all duration-300 ${selectedDoctor ? 'text-gray-900 dark:text-white' : 'text-gray-300 dark:text-gray-600'}`}>
+                            <div className={`w-3 h-3 rounded-full transition-all duration-500 ring-4 ${selectedDoctor ? 'bg-green-500 ring-green-500/20 scale-110' : 'bg-gray-200 dark:bg-gray-700 ring-transparent'}`}></div>
+                            <span className="tracking-tight font-bold">Doctor</span>
+                        </div>
                     </div>
-                    <div className="w-1.5 h-1.5 rounded-full bg-gray-200 dark:bg-gray-800"></div>
-                    <div className={`flex items-center gap-3 transition-all duration-300 ${selectedClinic ? 'text-gray-900 dark:text-white' : 'text-gray-400'}`}>
-                        <div className={`w-2.5 h-2.5 rounded-full transition-all duration-500 ${selectedClinic ? 'bg-green-500 shadow-[0_0_10px_rgba(34,197,94,0.6)] scale-110' : 'bg-gray-300 dark:bg-gray-700'}`}></div>
-                        <span className="tracking-tight">Clinic</span>
-                    </div>
-                    <div className="w-1.5 h-1.5 rounded-full bg-gray-200 dark:bg-gray-800"></div>
-                    <div className={`flex items-center gap-3 transition-all duration-300 ${selectedDoctor ? 'text-gray-900 dark:text-white' : 'text-gray-400'}`}>
-                        <div className={`w-2.5 h-2.5 rounded-full transition-all duration-500 ${selectedDoctor ? 'bg-green-500 shadow-[0_0_10px_rgba(34,197,94,0.6)] scale-110' : 'bg-gray-300 dark:bg-gray-700'}`}></div>
-                        <span className="tracking-tight">Doctor</span>
-                    </div>
+
+                    <button
+                        onClick={handleRegister}
+                        disabled={!patientFound || !selectedDoctor}
+                        className="relative overflow-hidden bg-black dark:bg-white text-white dark:text-black px-10 py-5 rounded-[24px] font-bold text-base shadow-2xl shadow-blue-500/20 dark:shadow-none hover:scale-105 active:scale-95 transition-all disabled:opacity-30 disabled:cursor-not-allowed flex items-center gap-3 disabled:hover:scale-100 disabled:shadow-none group"
+                    >
+                        <div className="absolute inset-0 bg-gradient-to-r from-blue-600 to-indigo-600 opacity-0 group-hover:opacity-100 transition-opacity duration-500 dark:hidden"></div>
+                        <Printer size={20} strokeWidth={2.5} className="relative z-10 group-hover:animate-pulse" />
+                        <span className="relative z-10 tracking-tight">Register & Print</span>
+                    </button>
                 </div>
-                <button
-                    onClick={handleRegister}
-                    disabled={!patientFound || !selectedDoctor}
-                    className="bg-black dark:bg-white text-white dark:text-black px-8 py-4 rounded-2xl font-bold text-base shadow-xl shadow-gray-900/10 dark:shadow-none hover:scale-105 active:scale-95 transition-all disabled:opacity-30 disabled:cursor-not-allowed flex items-center gap-3 disabled:hover:scale-105 disabled:shadow-none"
-                >
-                    <Printer size={18} strokeWidth={2.5} />
-                    <span>Print Ticket</span>
-                </button>
             </div>
 
             {/* NEW PATIENT MODAL */}

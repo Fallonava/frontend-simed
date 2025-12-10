@@ -17,8 +17,14 @@ const DoctorDashboard = () => {
         subjective: '',
         objective: '',
         assessment: '',
-        plan: ''
+        plan: '',
+        systolic: '', diastolic: '', heart_rate: '', temperature: '', weight: '', height: ''
     });
+
+    // Prescription State
+    const [medicines, setMedicines] = useState([]);
+    const [prescriptionItems, setPrescriptionItems] = useState([]); // { medicine_id, name, quantity, dosage, notes }
+    const [showMedSelector, setShowMedSelector] = useState(false);
 
     const [patientHistory, setPatientHistory] = useState([]);
     const [viewMode, setViewMode] = useState('record'); // 'record' or 'history'
@@ -37,7 +43,16 @@ const DoctorDashboard = () => {
                 setLoading(false);
             }
         };
+        const fetchMedicines = async () => {
+            try {
+                const res = await api.get('/medicines');
+                setMedicines(res.data);
+            } catch (error) {
+                console.error("Failed to load medicines", error);
+            }
+        };
         fetchDoctors();
+        fetchMedicines();
     }, []);
 
     // Fetch Queue when Doctor changes
@@ -66,8 +81,11 @@ const DoctorDashboard = () => {
     useEffect(() => {
         if (selectedQueue?.patient_id) {
             fetchHistory(selectedQueue.patient_id);
-            // Reset SOAP
-            setSoap({ subjective: '', objective: '', assessment: '', plan: '' });
+            // Reset SOAP & Vitals
+            setSoap({
+                subjective: '', objective: '', assessment: '', plan: '',
+                systolic: '', diastolic: '', heart_rate: '', temperature: '', weight: '', height: ''
+            });
         }
     }, [selectedQueue]);
 
@@ -85,12 +103,24 @@ const DoctorDashboard = () => {
         if (!selectedQueue) return;
 
         try {
-            await api.post('/medical-records', {
+            // 1. Create Medical Record
+            const recordRes = await api.post('/medical-records', {
                 patient_id: selectedQueue.patient_id,
                 doctor_id: selectedDoctor.id,
                 queue_id: selectedQueue.id,
                 ...soap
             });
+
+            // 2. Create Prescription (if items exist)
+            if (prescriptionItems.length > 0) {
+                await api.post('/prescriptions', {
+                    medical_record_id: recordRes.data.id,
+                    doctor_id: selectedDoctor.id,
+                    patient_id: selectedQueue.patient_id,
+                    items: prescriptionItems
+                });
+                toast.success("Prescription Sent to Pharmacy");
+            }
 
             toast.success("Medical Record Saved!");
 
@@ -104,16 +134,37 @@ const DoctorDashboard = () => {
         }
     };
 
+    const addPrescriptionItem = (med) => {
+        setPrescriptionItems([...prescriptionItems, {
+            medicine_id: med.id,
+            name: med.name,
+            quantity: 1,
+            dosage: '3x1 after meal',
+            notes: ''
+        }]);
+        setShowMedSelector(false);
+    };
+
+    const updateItem = (index, field, value) => {
+        const newItems = [...prescriptionItems];
+        newItems[index][field] = value;
+        setPrescriptionItems(newItems);
+    };
+
+    const removeItem = (index) => {
+        setPrescriptionItems(prescriptionItems.filter((_, i) => i !== index));
+    };
+
     if (loading) return <div className="flex items-center justify-center h-screen text-gray-500">Loading Dashboard...</div>;
 
     return (
         <PageWrapper title="Doctor Dashboard">
             <Toaster position="top-center" toastOptions={{ className: 'backdrop-blur-md bg-white/80 dark:bg-gray-800/80' }} />
 
-            <div className="flex h-[calc(100vh-100px)] gap-6 p-6 max-w-[1600px] mx-auto">
+            <div className="flex flex-col lg:flex-row h-auto lg:h-[calc(100vh-100px)] gap-6 p-6 max-w-[1600px] mx-auto">
 
                 {/* LEFT PANEL: QUEUE LIST */}
-                <div className="w-[30%] flex flex-col gap-6">
+                <div className="w-full lg:w-[30%] flex flex-col gap-6">
                     {/* Doctor Selector */}
                     <div className="bg-white/60 dark:bg-gray-800/60 backdrop-blur-xl p-4 rounded-[24px] shadow-lg border border-white/20">
                         <label className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2 block">Viewing As</label>
@@ -168,8 +219,8 @@ const DoctorDashboard = () => {
                                         transition={{ delay: idx * 0.05 }}
                                         onClick={() => setSelectedQueue(q)}
                                         className={`p-4 rounded-[20px] cursor-pointer transition-all border ${selectedQueue?.id === q.id
-                                                ? 'bg-blue-500 text-white shadow-lg shadow-blue-500/30 border-transparent'
-                                                : 'bg-white dark:bg-gray-700/50 hover:bg-gray-50 dark:hover:bg-gray-700 border-transparent hover:border-blue-200 dark:border-gray-600'
+                                            ? 'bg-blue-500 text-white shadow-lg shadow-blue-500/30 border-transparent'
+                                            : 'bg-white dark:bg-gray-700/50 hover:bg-gray-50 dark:hover:bg-gray-700 border-transparent hover:border-blue-200 dark:border-gray-600'
                                             }`}
                                     >
                                         <div className="flex justify-between items-start">
@@ -193,7 +244,7 @@ const DoctorDashboard = () => {
                 </div>
 
                 {/* RIGHT PANEL: MAIN WORKSPACE */}
-                <div className="flex-1 bg-white/80 dark:bg-gray-900/80 backdrop-blur-2xl rounded-[40px] shadow-2xl border border-white/20 dark:border-gray-700 overflow-hidden flex flex-col relative">
+                <div className="flex-1 bg-white/80 dark:bg-gray-900/80 backdrop-blur-2xl rounded-[40px] shadow-2xl border border-white/20 dark:border-gray-700 overflow-hidden flex flex-col relative min-h-[600px] lg:min-h-0">
                     {!selectedQueue ? (
                         <div className="flex-1 flex flex-col items-center justify-center text-gray-400">
                             <div className="w-24 h-24 bg-gray-50 dark:bg-gray-800 rounded-full flex items-center justify-center mb-6 shadow-inner">
@@ -239,6 +290,52 @@ const DoctorDashboard = () => {
                             <div className="flex-1 overflow-y-auto p-10">
                                 {viewMode === 'record' ? (
                                     <form onSubmit={handleSave} className="max-w-4xl mx-auto space-y-8">
+                                        {/* ALLERGY ALERT */}
+                                        {selectedQueue.patient?.allergies && (
+                                            <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 p-4 rounded-2xl flex items-start gap-3 animate-pulse">
+                                                <div className="bg-red-100 dark:bg-red-800 p-2 rounded-lg text-red-600 dark:text-red-200">
+                                                    <Activity size={24} />
+                                                </div>
+                                                <div>
+                                                    <h3 className="font-bold text-red-700 dark:text-red-200">PATIENT HAS ALLERGIES</h3>
+                                                    <p className="text-red-600 dark:text-red-300 font-medium text-sm">{selectedQueue.patient.allergies}</p>
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        {/* VITALS CARD (SOP) */}
+                                        <div className="bg-white dark:bg-gray-800 p-6 rounded-[24px] shadow-sm border border-gray-100 dark:border-gray-700">
+                                            <h3 className="font-bold text-gray-400 uppercase tracking-wider text-xs mb-4 flex items-center gap-2">
+                                                <Activity size={16} /> Vital Signs (Tanda Vital)
+                                            </h3>
+                                            <div className="grid grid-cols-3 md:grid-cols-6 gap-4">
+                                                <div className="space-y-1">
+                                                    <label className="text-[10px] font-bold text-gray-400 uppercase">Systolic</label>
+                                                    <input type="number" placeholder="120" className="w-full p-3 bg-gray-50 dark:bg-gray-700 rounded-xl font-bold text-center" value={soap.systolic || ''} onChange={e => setSoap({ ...soap, systolic: e.target.value })} />
+                                                </div>
+                                                <div className="space-y-1">
+                                                    <label className="text-[10px] font-bold text-gray-400 uppercase">Diastolic</label>
+                                                    <input type="number" placeholder="80" className="w-full p-3 bg-gray-50 dark:bg-gray-700 rounded-xl font-bold text-center" value={soap.diastolic || ''} onChange={e => setSoap({ ...soap, diastolic: e.target.value })} />
+                                                </div>
+                                                <div className="space-y-1">
+                                                    <label className="text-[10px] font-bold text-gray-400 uppercase">HR (bpm)</label>
+                                                    <input type="number" placeholder="80" className="w-full p-3 bg-gray-50 dark:bg-gray-700 rounded-xl font-bold text-center" value={soap.heart_rate || ''} onChange={e => setSoap({ ...soap, heart_rate: e.target.value })} />
+                                                </div>
+                                                <div className="space-y-1">
+                                                    <label className="text-[10px] font-bold text-gray-400 uppercase">Temp (°C)</label>
+                                                    <input type="number" step="0.1" placeholder="36.5" className="w-full p-3 bg-gray-50 dark:bg-gray-700 rounded-xl font-bold text-center" value={soap.temperature || ''} onChange={e => setSoap({ ...soap, temperature: e.target.value })} />
+                                                </div>
+                                                <div className="space-y-1">
+                                                    <label className="text-[10px] font-bold text-gray-400 uppercase">Weight (kg)</label>
+                                                    <input type="number" step="0.1" placeholder="60" className="w-full p-3 bg-gray-50 dark:bg-gray-700 rounded-xl font-bold text-center" value={soap.weight || ''} onChange={e => setSoap({ ...soap, weight: e.target.value })} />
+                                                </div>
+                                                <div className="space-y-1">
+                                                    <label className="text-[10px] font-bold text-gray-400 uppercase">Height (cm)</label>
+                                                    <input type="number" placeholder="170" className="w-full p-3 bg-gray-50 dark:bg-gray-700 rounded-xl font-bold text-center" value={soap.height || ''} onChange={e => setSoap({ ...soap, height: e.target.value })} />
+                                                </div>
+                                            </div>
+                                        </div>
+
                                         <div className="grid grid-cols-2 gap-8">
                                             {/* Subjective */}
                                             <div className="space-y-3">
@@ -289,15 +386,69 @@ const DoctorDashboard = () => {
                                             <div className="space-y-3">
                                                 <label className="flex items-center gap-2 text-sm font-bold text-gray-500 uppercase tracking-wider">
                                                     <span className="w-6 h-6 rounded-full bg-green-100 text-green-600 flex items-center justify-center text-xs">P</span>
-                                                    Plan (Terapi/Tindakan)
+                                                    Plan (Terapi/Tindakan) & E-Prescription
                                                 </label>
                                                 <textarea
-                                                    className="w-full h-32 p-5 rounded-[24px] bg-gray-50 dark:bg-gray-800 border-none focus:ring-2 focus:ring-green-500 transition-all text-lg resize-none shadow-inner"
-                                                    placeholder="Resep obat dan tindakan..."
+                                                    className="w-full h-24 p-5 rounded-[24px] bg-gray-50 dark:bg-gray-800 border-none focus:ring-2 focus:ring-green-500 transition-all text-lg resize-none shadow-inner mb-4"
+                                                    placeholder="Resep obat dan tindakan (Teks)..."
                                                     value={soap.plan}
                                                     onChange={e => setSoap({ ...soap, plan: e.target.value })}
                                                     required
                                                 />
+
+                                                {/* E-PRESCRIPTION UI */}
+                                                <div className="bg-white dark:bg-gray-800 p-4 rounded-2xl border border-gray-100 dark:border-gray-700 space-y-3">
+                                                    <div className="flex justify-between items-center">
+                                                        <h4 className="font-bold text-sm text-gray-600 dark:text-gray-300">Prescription Items</h4>
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => setShowMedSelector(!showMedSelector)}
+                                                            className="text-xs font-bold text-blue-600 bg-blue-50 px-3 py-1 rounded-lg hover:bg-blue-100"
+                                                        >
+                                                            + Add Medicine
+                                                        </button>
+                                                    </div>
+
+                                                    {/* Medicine Selector Dropdown */}
+                                                    {showMedSelector && (
+                                                        <div className="bg-white dark:bg-gray-700 shadow-xl rounded-xl p-2 absolute z-50 w-64 max-h-60 overflow-y-auto border border-gray-100">
+                                                            {medicines.map(m => (
+                                                                <div
+                                                                    key={m.id}
+                                                                    onClick={() => addPrescriptionItem(m)}
+                                                                    className="p-2 hover:bg-gray-100 dark:hover:bg-gray-600 cursor-pointer rounded-lg text-sm font-medium"
+                                                                >
+                                                                    <div className="font-bold">{m.name}</div>
+                                                                    <div className="text-xs text-gray-500">Stok: {m.stock} {m.unit}</div>
+                                                                </div>
+                                                            ))}
+                                                        </div>
+                                                    )}
+
+                                                    {/* Selected Items List */}
+                                                    <div className="space-y-2">
+                                                        {prescriptionItems.map((item, idx) => (
+                                                            <div key={idx} className="flex items-center gap-2 bg-gray-50 dark:bg-gray-700/50 p-2 rounded-xl text-sm">
+                                                                <div className="font-bold flex-1">{item.name}</div>
+                                                                <input
+                                                                    type="number"
+                                                                    className="w-16 p-1 rounded-lg bg-white dark:bg-gray-600 font-bold text-center"
+                                                                    value={item.quantity}
+                                                                    onChange={e => updateItem(idx, 'quantity', parseInt(e.target.value))}
+                                                                />
+                                                                <input
+                                                                    type="text"
+                                                                    className="w-32 p-1 rounded-lg bg-white dark:bg-gray-600 font-medium"
+                                                                    value={item.dosage}
+                                                                    onChange={e => updateItem(idx, 'dosage', e.target.value)}
+                                                                    placeholder="3x1..."
+                                                                />
+                                                                <button type="button" onClick={() => removeItem(idx)} className="text-red-500 p-1"><Trash2 size={16} /></button>
+                                                            </div>
+                                                        ))}
+                                                        {prescriptionItems.length === 0 && <div className="text-xs text-gray-400 italic text-center py-2">No medicines selected</div>}
+                                                    </div>
+                                                </div>
                                             </div>
                                         </div>
 

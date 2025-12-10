@@ -186,11 +186,11 @@ const Counter = () => {
             <audio ref={audioRef} src="/notification.mp3" />
 
             {/* Layout Grid */}
-            <div className="flex-1 grid grid-cols-12 gap-0 transition-all duration-500 ease-in-out">
+            <div className="flex-1 grid grid-cols-1 lg:grid-cols-12 gap-0 transition-all duration-500 ease-in-out">
 
                 {/* LEFT: Multimedia Player (30%) */}
                 {showVideo && (
-                    <div className="col-span-4 bg-black relative flex items-center justify-center overflow-hidden border-r border-white/10 animate-in slide-in-from-left duration-500">
+                    <div className="lg:col-span-4 bg-black relative flex items-center justify-center overflow-hidden border-r border-white/10 animate-in slide-in-from-left duration-500">
                         {playlist.length > 0 && currentMedia ? (
                             currentMedia.type === 'VIDEO' ? (
                                 <div className="w-full h-full pointer-events-none">
@@ -237,7 +237,7 @@ const Counter = () => {
                 )}
 
                 {/* RIGHT: Queue Info (70% or 100%) */}
-                <div className={`${showVideo ? 'col-span-8' : 'col-span-12'} bg-modern-bg flex flex-col p-6 relative transition-all duration-500`}>
+                <div className={`${showVideo ? 'lg:col-span-8' : 'lg:col-span-12'} bg-modern-bg flex flex-col p-6 relative transition-all duration-500`}>
                     {/* Header */}
                     <header className="flex justify-between items-center mb-6">
                         <div className="flex items-center gap-4">

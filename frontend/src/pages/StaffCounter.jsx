@@ -2,13 +2,15 @@ import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 import { io } from 'socket.io-client';
 import { Toaster, toast } from 'react-hot-toast';
-import { Mic, Bell, CheckCircle, Users, LogOut, Volume2 } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { Mic, Bell, CheckCircle, Users, LogOut, Volume2, ArrowRight } from 'lucide-react';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
 const SOCKET_URL = import.meta.env.VITE_SOCKET_URL || 'http://localhost:3000';
 const CHIME_URL = '/airport-chime.mp3';
 
 const StaffCounter = () => {
+    const navigate = useNavigate();
     // Initialization State
     const [isInitialized, setIsInitialized] = useState(false);
     const [config, setConfig] = useState({
@@ -366,53 +368,58 @@ const StaffCounter = () => {
             </div>
 
             {/* Main Content */}
-            <div className="flex-1 p-8 flex flex-col bg-theme-bg relative overflow-hidden">
+            <div className="flex-1 p-4 md:p-8 flex flex-col bg-theme-bg relative overflow-hidden">
                 <div className="absolute top-[-20%] right-[-10%] w-[500px] h-[500px] bg-salm-light-blue/20 rounded-full blur-[100px] pointer-events-none" />
                 <div className="absolute bottom-[-20%] left-[-10%] w-[500px] h-[500px] bg-salm-light-pink/20 rounded-full blur-[100px] pointer-events-none" />
 
-                <header className="flex justify-between items-center mb-10 relative z-10">
+                <header className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 md:mb-10 relative z-10 gap-4">
                     <div>
-                        <h1 className="text-4xl font-black text-gray-900 dark:text-white tracking-tight">Counter Dashboard</h1>
+                        <h1 className="text-2xl md:text-4xl font-black text-gray-900 dark:text-white tracking-tight">Counter Dashboard</h1>
                         <p className="text-gray-500 font-medium mt-1">Serving: <span className="text-salm-blue font-bold">{config.poliId === 'all' ? 'All Poliklinik' : polies.find(p => p.id == config.poliId)?.name}</span></p>
                     </div>
-                    <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-md px-5 py-2.5 rounded-full shadow-sm border border-white/50 dark:border-white/10 flex items-center gap-3">
-                        <div className="w-2.5 h-2.5 bg-modern-green rounded-full animate-pulse shadow-[0_0_10px_#40d4a8]"></div>
-                        <span className="text-sm font-bold text-gray-600 dark:text-gray-300">System Online</span>
+                    <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-md px-5 py-2.5 rounded-full shadow-sm border border-white/50 dark:border-white/10 flex items-center gap-3 w-full md:w-auto justify-between md:justify-start">
+                        <button onClick={() => navigate('/registration')} className="text-sm font-bold text-gray-600 dark:text-gray-300 hover:text-salm-blue flex items-center gap-2 mr-4 border-r border-gray-300 pr-4">
+                            Registration <ArrowRight size={14} />
+                        </button>
+                        <div className="flex items-center gap-2">
+                            <div className="w-2.5 h-2.5 bg-modern-green rounded-full animate-pulse shadow-[0_0_10px_#40d4a8]"></div>
+                            <span className="text-sm font-bold text-gray-600 dark:text-gray-300">Online</span>
+                        </div>
                     </div>
                 </header>
-                <div className="flex-1 flex flex-col items-center justify-center relative z-10">
+                <div className="flex-1 flex flex-col items-center justify-center relative z-10 w-full">
                     {currentTicket ? (
-                        <div className="bg-white dark:bg-gray-800 rounded-[3rem] shadow-2xl p-12 w-full max-w-2xl text-center border border-white/60 dark:border-white/10 animate-in zoom-in duration-300 relative overflow-hidden backdrop-blur-xl">
+                        <div className="bg-white dark:bg-gray-800 rounded-[2rem] md:rounded-[3rem] shadow-2xl p-6 md:p-12 w-full max-w-2xl text-center border border-white/60 dark:border-white/10 animate-in zoom-in duration-300 relative overflow-hidden backdrop-blur-xl">
                             <div className="absolute top-0 left-0 w-full h-2 bg-salm-gradient"></div>
-                            <p className="text-gray-400 font-bold uppercase tracking-[0.2em] mb-4 text-xs">Current Ticket</p>
+                            <p className="text-gray-400 font-bold uppercase tracking-[0.2em] mb-4 text-[10px] md:text-xs">Current Ticket</p>
 
                             {/* Tampilan Nomor Besar */}
-                            <div className="text-[10rem] leading-none font-black text-transparent bg-clip-text bg-gradient-to-br from-gray-900 to-gray-700 dark:from-white dark:to-gray-400 tracking-tighter mb-8 font-mono filter drop-shadow-sm">
+                            <div className="text-6xl md:text-[10rem] leading-none font-black text-transparent bg-clip-text bg-gradient-to-br from-gray-900 to-gray-700 dark:from-white dark:to-gray-400 tracking-tighter mb-6 md:mb-8 font-mono filter drop-shadow-sm">
                                 {currentTicket.queue_code}
                             </div>
 
-                            <div className="inline-block bg-salm-light-blue/30 text-salm-blue px-8 py-3 rounded-full text-xl font-bold mb-12 border border-salm-light-blue/50">
+                            <div className="inline-block bg-salm-light-blue/30 text-salm-blue px-6 py-2 md:px-8 md:py-3 rounded-full text-sm md:text-xl font-bold mb-8 md:mb-12 border border-salm-light-blue/50">
                                 {currentTicket.poli_name}
                             </div>
-                            <div className="grid grid-cols-3 gap-6">
-                                <button onClick={handleRecall} className="flex items-center justify-center gap-2 bg-theme-orange/10 text-theme-orange py-5 rounded-2xl font-bold text-lg hover:bg-theme-orange/20 transition-all border border-theme-orange/20 shadow-sm active:scale-95"><Mic className="w-6 h-6" /> Recall</button>
-                                <button onClick={handleSkip} className="flex items-center justify-center gap-2 bg-red-50 text-red-500 py-5 rounded-2xl font-bold text-lg hover:bg-red-100 transition-all border border-red-200 shadow-sm active:scale-95"><LogOut className="w-6 h-6" /> Skip</button>
-                                <button onClick={handleFinish} className="flex items-center justify-center gap-2 bg-modern-green/10 text-modern-green py-5 rounded-2xl font-bold text-lg hover:bg-modern-green/20 transition-all border border-modern-green/20 shadow-sm active:scale-95"><CheckCircle className="w-6 h-6" /> Finish</button>
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-3 md:gap-6">
+                                <button onClick={handleRecall} className="flex items-center justify-center gap-2 bg-theme-orange/10 text-theme-orange py-3 md:py-5 rounded-xl md:rounded-2xl font-bold text-sm md:text-lg hover:bg-theme-orange/20 transition-all border border-theme-orange/20 shadow-sm active:scale-95"><Mic className="w-5 h-5 md:w-6 md:h-6" /> Recall</button>
+                                <button onClick={handleSkip} className="flex items-center justify-center gap-2 bg-red-50 text-red-500 py-3 md:py-5 rounded-xl md:rounded-2xl font-bold text-sm md:text-lg hover:bg-red-100 transition-all border border-red-200 shadow-sm active:scale-95"><LogOut className="w-5 h-5 md:w-6 md:h-6" /> Skip</button>
+                                <button onClick={handleFinish} className="flex items-center justify-center gap-2 bg-modern-green/10 text-modern-green py-3 md:py-5 rounded-xl md:rounded-2xl font-bold text-sm md:text-lg hover:bg-modern-green/20 transition-all border border-modern-green/20 shadow-sm active:scale-95"><CheckCircle className="w-5 h-5 md:w-6 md:h-6" /> Finish</button>
                             </div>
                         </div>
                     ) : (
                         <div className="text-center text-gray-400">
-                            <div className="w-40 h-40 bg-white/80 rounded-full flex items-center justify-center mx-auto mb-8 border border-white shadow-xl shadow-salm-purple/5 backdrop-blur-sm">
-                                <Bell className="w-16 h-16 text-gray-300" />
+                            <div className="w-24 h-24 md:w-40 md:h-40 bg-white/80 rounded-full flex items-center justify-center mx-auto mb-6 md:mb-8 border border-white shadow-xl shadow-salm-purple/5 backdrop-blur-sm">
+                                <Bell className="w-10 h-10 md:w-16 md:h-16 text-gray-300" />
                             </div>
-                            <h2 className="text-3xl font-bold text-gray-700 dark:text-white mb-2">Ready to Serve</h2>
-                            <p className="text-gray-500">Click "Call Next" to start serving</p>
+                            <h2 className="text-xl md:text-3xl font-bold text-gray-700 dark:text-white mb-2">Ready to Serve</h2>
+                            <p className="text-sm md:text-base text-gray-500">Click "Call Next" to start serving</p>
                         </div>
                     )}
                 </div>
-                <div className="mt-10 flex justify-center relative z-10">
-                    <button onClick={handleCallNext} disabled={loading || currentTicket} className={`flex items-center gap-4 px-16 py-7 rounded-[2rem] font-bold text-2xl shadow-2xl shadow-salm-purple/30 transition-all transform hover:scale-105 active:scale-95 ${loading || currentTicket ? 'bg-gray-200 text-gray-400 cursor-not-allowed shadow-none' : 'bg-salm-gradient text-white ring-4 ring-white/30'}`}>
-                        <Bell className="w-8 h-8" /> {loading ? 'Calling...' : 'Call Next Patient'}
+                <div className="mt-8 md:mt-10 flex justify-center relative z-10 w-full">
+                    <button onClick={handleCallNext} disabled={loading || currentTicket} className={`w-full md:w-auto flex items-center justify-center gap-4 px-8 md:px-16 py-5 md:py-7 rounded-[2rem] font-bold text-lg md:text-2xl shadow-2xl shadow-salm-purple/30 transition-all transform hover:scale-105 active:scale-95 ${loading || currentTicket ? 'bg-gray-200 text-gray-400 cursor-not-allowed shadow-none' : 'bg-salm-gradient text-white ring-4 ring-white/30'}`}>
+                        <Bell className="w-6 h-6 md:w-8 md:h-8" /> {loading ? 'Calling...' : 'Call Next Patient'}
                     </button>
                 </div>
             </div>

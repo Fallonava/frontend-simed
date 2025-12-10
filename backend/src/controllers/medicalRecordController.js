@@ -14,7 +14,13 @@ exports.create = async (req, res) => {
                 subjective,
                 objective,
                 assessment,
-                plan
+                plan,
+                systolic: req.body.systolic ? parseInt(req.body.systolic) : null,
+                diastolic: req.body.diastolic ? parseInt(req.body.diastolic) : null,
+                heart_rate: req.body.heart_rate ? parseInt(req.body.heart_rate) : null,
+                temperature: req.body.temperature ? parseFloat(req.body.temperature) : null,
+                weight: req.body.weight ? parseFloat(req.body.weight) : null,
+                height: req.body.height ? parseFloat(req.body.height) : null
             },
             include: {
                 patient: true,

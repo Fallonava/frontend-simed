@@ -1,7 +1,7 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import useAuthStore from '../store/useAuthStore';
-import { LayoutDashboard, Users, Database, LogOut, Monitor, Calendar, Activity } from 'lucide-react';
+import { LayoutDashboard, Users, Database, LogOut, Monitor, Calendar, Activity, FileText, Pill, Receipt } from 'lucide-react';
 import ThemeToggle from '../components/ThemeToggle';
 
 const MainMenu = () => {
@@ -53,6 +53,30 @@ const MainMenu = () => {
             path: '/doctor/dashboard',
             roles: ['ADMIN', 'STAFF'],
             color: 'bg-gradient-to-br from-emerald-500 to-teal-600'
+        },
+        {
+            title: 'Data Pasien',
+            description: 'Patient Center & History',
+            icon: <FileText size={40} />,
+            path: '/admin/patients',
+            roles: ['ADMIN', 'STAFF'],
+            color: 'bg-gradient-to-br from-blue-500 to-indigo-600'
+        },
+        {
+            title: 'Apotek & Farmasi',
+            description: 'Pharmacy & Drug Queue',
+            icon: <Pill size={40} />,
+            path: '/pharmacy',
+            roles: ['ADMIN', 'STAFF'], // In a real app, maybe 'PHARMACIST'
+            color: 'bg-gradient-to-br from-emerald-400 to-teal-500'
+        },
+        {
+            title: 'Kasir & Billing',
+            description: 'Payment & Invoicing',
+            icon: <Receipt size={40} />,
+            path: '/cashier',
+            roles: ['ADMIN', 'STAFF'], // e.g. 'CASHIER'
+            color: 'bg-gradient-to-br from-purple-500 to-pink-500'
         },
         {
             title: 'Public Display',

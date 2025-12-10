@@ -390,13 +390,13 @@ const MasterData = () => {
                 {/* Main Content Card */}
                 <div className="bg-white/70 dark:bg-gray-900/70 backdrop-blur-xl rounded-[2.5rem] shadow-2xl border border-gray-200 dark:border-white/10 overflow-hidden min-h-[600px] flex flex-col">
                     {/* Toolbar */}
-                    <div className="p-8 border-b border-gray-200 dark:border-white/5 flex justify-between items-center bg-gray-50/50 dark:bg-white/5">
-                        <div className="relative">
+                    <div className="p-4 md:p-8 border-b border-gray-200 dark:border-white/5 flex flex-col md:flex-row justify-between items-center bg-gray-50/50 dark:bg-white/5 gap-4">
+                        <div className="relative w-full md:w-auto">
                             <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-modern-text-secondary w-5 h-5" />
                             <input
                                 type="text"
                                 placeholder="Search..."
-                                className="pl-12 pr-4 py-3 bg-white dark:bg-gray-800 border border-gray-200 dark:border-white/5 rounded-2xl w-64 focus:ring-2 focus:ring-modern-blue/50 outline-none transition-all text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500"
+                                className="pl-12 pr-4 py-3 bg-white dark:bg-gray-800 border border-gray-200 dark:border-white/5 rounded-2xl w-full md:w-64 focus:ring-2 focus:ring-modern-blue/50 outline-none transition-all text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500"
                             />
                         </div>
                         <button
@@ -407,7 +407,7 @@ const MasterData = () => {
                                 if (activeTab === 'leave') openLeaveModal();
                                 if (activeTab === 'playlist') openPlaylistModal();
                             }}
-                            className="bg-modern-text text-modern-bg px-6 py-3 rounded-2xl font-semibold flex items-center gap-2 hover:bg-white hover:text-modern-text transition-all shadow-lg hover:shadow-xl active:scale-95"
+                            className="w-full md:w-auto bg-modern-text text-modern-bg px-6 py-3 rounded-2xl font-semibold flex items-center justify-center gap-2 hover:bg-white hover:text-modern-text transition-all shadow-lg hover:shadow-xl active:scale-95"
                         >
                             <Plus size={20} />
                             Add New

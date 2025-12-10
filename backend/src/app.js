@@ -102,6 +102,10 @@ app.get('/api/analytics/daily', analyticsController.getDailyStats);
 const patientController = require('./controllers/patientController');
 app.get('/api/patients/search', authMiddleware, patientController.search);
 app.post('/api/patients', authMiddleware, patientController.create);
+app.get('/api/patients', authMiddleware, patientController.getAll);           // New
+app.get('/api/patients/:id', authMiddleware, patientController.getById);      // New
+app.put('/api/patients/:id', authMiddleware, patientController.update);       // New
+app.delete('/api/patients/:id', authMiddleware, patientController.delete);    // New
 
 // Queue Routes
 app.post('/api/quota/generate', queueController.generateQuota);
@@ -122,6 +126,26 @@ const medicalRecordController = require('./controllers/medicalRecordController')
 app.post('/api/medical-records', authMiddleware, medicalRecordController.create);
 app.get('/api/medical-records/history', authMiddleware, medicalRecordController.getHistory);
 app.get('/api/medical-records/patient/:patient_id', authMiddleware, medicalRecordController.getByPatient);
+
+// Pharmacy Routes
+const medicineController = require('./controllers/medicineController');
+const prescriptionController = require('./controllers/prescriptionController');
+
+app.get('/api/medicines', authMiddleware, medicineController.getAll);
+app.post('/api/medicines', authMiddleware, medicineController.create);
+app.put('/api/medicines/:id', authMiddleware, medicineController.update);
+app.delete('/api/medicines/:id', authMiddleware, medicineController.delete);
+
+app.post('/api/prescriptions', authMiddleware, prescriptionController.create);
+app.get('/api/prescriptions', authMiddleware, prescriptionController.getAll);
+app.put('/api/prescriptions/:id/status', authMiddleware, prescriptionController.updateStatus);
+
+// Transaction & Billing Routes
+const transactionController = require('./controllers/transactionController');
+app.get('/api/transactions/unbilled', authMiddleware, transactionController.getPending); // Or unbilled
+app.get('/api/transactions', authMiddleware, transactionController.getPending); // Using same pending logic for now
+app.post('/api/transactions/invoice', authMiddleware, transactionController.createInvoice);
+app.put('/api/transactions/:id/pay', authMiddleware, transactionController.pay);
 
 
 // Master Data Routes
