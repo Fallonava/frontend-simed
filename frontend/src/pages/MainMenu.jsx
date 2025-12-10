@@ -1,7 +1,7 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import useAuthStore from '../store/useAuthStore';
-import { LayoutDashboard, Users, Database, LogOut, Monitor, Calendar } from 'lucide-react';
+import { LayoutDashboard, Users, Database, LogOut, Monitor, Calendar, Activity } from 'lucide-react';
 import ThemeToggle from '../components/ThemeToggle';
 
 const MainMenu = () => {
@@ -38,7 +38,22 @@ const MainMenu = () => {
             roles: ['ADMIN'],
             color: 'bg-salm-purple'
         },
-
+        {
+            title: 'Pendaftaran',
+            description: 'Patient Registration & Ticketing',
+            icon: <Calendar size={40} />,
+            path: '/registration',
+            roles: ['ADMIN', 'STAFF'],
+            color: 'bg-gradient-to-br from-green-400 to-emerald-600'
+        },
+        {
+            title: 'Doctor Desk',
+            description: 'Rekam Medis & Antrian',
+            icon: <Activity size={40} />,
+            path: '/doctor/dashboard',
+            roles: ['ADMIN', 'STAFF'],
+            color: 'bg-gradient-to-br from-emerald-500 to-teal-600'
+        },
         {
             title: 'Public Display',
             description: 'Open TV Display view',

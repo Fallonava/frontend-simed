@@ -24,6 +24,7 @@ model Doctor {
   DailyQuota    DailyQuota[]
   schedules     DoctorSchedule[]
   leaves        DoctorLeave[]
+  medical_records MedicalRecord[]
 }
 
 model DoctorLeave {
@@ -58,14 +59,40 @@ model DailyQuota {
   @@unique([doctor_id, date])
 }
 
+
 model Queue {
   id             Int         @id @default(autoincrement())
   daily_quota_id Int
   daily_quota    DailyQuota  @relation(fields: [daily_quota_id], references: [id])
+  patient_id     Int?        // Link to Patient (Optional for transition)
+  patient        Patient?    @relation(fields: [patient_id], references: [id])
   queue_number   Int
   queue_code     String
   status         String      @default("WAITING") // WAITING, CALLED, SERVED, SKIPPED
   created_at     DateTime    @default(now())
+  medical_records MedicalRecord[]
+}
+
+model Patient {
+  id          Int      @id @default(autoincrement())
+  nik         String   @unique
+  no_rm       String   @unique // 00-00-01
+  name        String
+  gender      String   // L/P
+  birth_date  DateTime
+  address     String?
+  phone       String?
+  bpjs_no     String?
+  created_at  DateTime @default(now())
+  updated_at  DateTime @updatedAt
+  queues      Queue[]
+  medical_records MedicalRecord[]
+}
+
+model Sequence {
+  id    Int    @id @default(autoincrement())
+  key   String @unique // e.g. "medical_record"
+  value Int    @default(0)
 }
 
 model User {
@@ -97,4 +124,24 @@ model Setting {
   key       String   @unique
   value     String
   updatedAt DateTime @updatedAt
+}
+
+model MedicalRecord {
+  id          Int      @id @default(autoincrement())
+  patient_id  Int
+  patient     Patient  @relation(fields: [patient_id], references: [id])
+  doctor_id   Int
+  doctor      Doctor   @relation(fields: [doctor_id], references: [id])
+  queue_id    Int?     // Optional link to specific queue ticket
+  queue       Queue?   @relation(fields: [queue_id], references: [id])
+  visit_date  DateTime @default(now())
+  
+  // SOAP
+  subjective  String   @db.Text // Keluhan
+  objective   String   @db.Text // Pemeriksaan Fisik
+  assessment  String   @db.Text // Diagnosa
+  plan        String   @db.Text // Tindakan/Resep
+  
+  created_at  DateTime @default(now())
+  updated_at  DateTime @updatedAt
 }

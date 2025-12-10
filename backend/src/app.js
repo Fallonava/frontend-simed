@@ -98,7 +98,12 @@ app.delete('/api/users/:id', authMiddleware, userController.delete);
 // Analytics Routes
 app.get('/api/analytics/daily', analyticsController.getDailyStats);
 
-// Routes
+// Patient Routes
+const patientController = require('./controllers/patientController');
+app.get('/api/patients/search', authMiddleware, patientController.search);
+app.post('/api/patients', authMiddleware, patientController.create);
+
+// Queue Routes
 app.post('/api/quota/generate', queueController.generateQuota);
 app.post('/api/quota/toggle', queueController.toggleStatus);
 app.post('/api/queue/ticket', queueController.takeTicket);
@@ -111,6 +116,13 @@ app.post('/api/queues/skip', queueController.skipTicket);
 app.get('/api/queues/skipped', queueController.getSkipped);
 app.post('/api/queues/recall-skipped', queueController.recallSkipped);
 app.get('/api/doctors', queueController.getDoctors); // Helper to get doctors and their status
+
+// Medical Record Routes
+const medicalRecordController = require('./controllers/medicalRecordController');
+app.post('/api/medical-records', authMiddleware, medicalRecordController.create);
+app.get('/api/medical-records/history', authMiddleware, medicalRecordController.getHistory);
+app.get('/api/medical-records/patient/:patient_id', authMiddleware, medicalRecordController.getByPatient);
+
 
 // Master Data Routes
 app.get('/api/polies', poliklinikController.getAll);

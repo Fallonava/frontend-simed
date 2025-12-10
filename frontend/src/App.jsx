@@ -15,6 +15,8 @@ import Welcome from './pages/Welcome';
 import QueueStatus from './pages/QueueStatus';
 import CommandPalette from './components/CommandPalette';
 import PageWrapper from './components/PageWrapper';
+import Registration from './pages/Registration';
+import DoctorDashboard from './pages/DoctorDashboard'; // Import
 
 function AnimatedRoutes() {
   const location = useLocation();
@@ -45,6 +47,8 @@ function AnimatedRoutes() {
         {/* Staff Routes */}
         <Route element={<ProtectedRoute allowedRoles={['STAFF', 'ADMIN']} />}>
           <Route path="/admin/counter" element={<PageWrapper><StaffCounter /></PageWrapper>} />
+          <Route path="/registration" element={<PageWrapper><Registration /></PageWrapper>} />
+          <Route path="/doctor/dashboard" element={<PageWrapper><DoctorDashboard /></PageWrapper>} />
         </Route>
       </Routes>
     </AnimatePresence>

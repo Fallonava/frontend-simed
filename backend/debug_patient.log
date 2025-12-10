@@ -1,0 +1,104 @@
+
+[2025-12-10T10:32:18.057Z] Request Body: {"nik":"45445","name":"tryrtty","gender":"L","birth_date":"2025-12-03","address":"etert","phone":"","bpjs_no":""}
+[2025-12-10T10:32:18.059Z] Request Body: {"nik":"45445","name":"tryrtty","gender":"L","birth_date":"2025-12-03","address":"etert","phone":"","bpjs_no":""}
+[2025-12-10T10:32:18.061Z] Request Body: {"nik":"45445","name":"tryrtty","gender":"L","birth_date":"2025-12-03","address":"etert","phone":"","bpjs_no":""}
+[2025-12-10T10:32:18.061Z] Request Body: {"nik":"45445","name":"tryrtty","gender":"L","birth_date":"2025-12-03","address":"etert","phone":"","bpjs_no":""}
+[2025-12-10T10:32:18.063Z] Request Body: {"nik":"45445","name":"tryrtty","gender":"L","birth_date":"2025-12-03","address":"etert","phone":"","bpjs_no":""}
+[2025-12-10T10:32:18.099Z] Request Body: {"nik":"45445","name":"tryrtty","gender":"L","birth_date":"2025-12-03","address":"etert","phone":"","bpjs_no":""}
+[2025-12-10T10:32:18.282Z] Request Body: {"nik":"45445","name":"tryrtty","gender":"L","birth_date":"2025-12-03","address":"etert","phone":"","bpjs_no":""}
+[2025-12-10T10:32:18.446Z] Request Body: {"nik":"45445","name":"tryrtty","gender":"L","birth_date":"2025-12-03","address":"etert","phone":"","bpjs_no":""}
+[2025-12-10T10:32:18.489Z] Error: 
+Invalid `prisma.patient.create()` invocation in
+F:\PROJECT\frontend-simed-1\backend\src\controllers\patientController.js:51:46
+
+  48 const no_rm = await rmService.generateNextRM();
+  49 
+  50 // 3. Create
+→ 51 const patient = await prisma.patient.create(
+Unique constraint failed on the fields: (`nik`)
+Stack: PrismaClientKnownRequestError: 
+Invalid `prisma.patient.create()` invocation in
+F:\PROJECT\frontend-simed-1\backend\src\controllers\patientController.js:51:46
+
+  48 const no_rm = await rmService.generateNextRM();
+  49 
+  50 // 3. Create
+→ 51 const patient = await prisma.patient.create(
+Unique constraint failed on the fields: (`nik`)
+    at $n.handleRequestError (F:\PROJECT\frontend-simed-1\backend\node_modules\@prisma\client\runtime\library.js:121:7315)
+    at $n.handleAndLogRequestError (F:\PROJECT\frontend-simed-1\backend\node_modules\@prisma\client\runtime\library.js:121:6623)
+    at $n.request (F:\PROJECT\frontend-simed-1\backend\node_modules\@prisma\client\runtime\library.js:121:6307)
+    at async l (F:\PROJECT\frontend-simed-1\backend\node_modules\@prisma\client\runtime\library.js:130:9633)
+    at async exports.create (F:\PROJECT\frontend-simed-1\backend\src\controllers\patientController.js:51:25)
+[2025-12-10T10:32:18.497Z] Error: 
+Invalid `prisma.patient.create()` invocation in
+F:\PROJECT\frontend-simed-1\backend\src\controllers\patientController.js:51:46
+
+  48 const no_rm = await rmService.generateNextRM();
+  49 
+  50 // 3. Create
+→ 51 const patient = await prisma.patient.create(
+Unique constraint failed on the fields: (`nik`)
+Stack: PrismaClientKnownRequestError: 
+Invalid `prisma.patient.create()` invocation in
+F:\PROJECT\frontend-simed-1\backend\src\controllers\patientController.js:51:46
+
+  48 const no_rm = await rmService.generateNextRM();
+  49 
+  50 // 3. Create
+→ 51 const patient = await prisma.patient.create(
+Unique constraint failed on the fields: (`nik`)
+    at $n.handleRequestError (F:\PROJECT\frontend-simed-1\backend\node_modules\@prisma\client\runtime\library.js:121:7315)
+    at $n.handleAndLogRequestError (F:\PROJECT\frontend-simed-1\backend\node_modules\@prisma\client\runtime\library.js:121:6623)
+    at $n.request (F:\PROJECT\frontend-simed-1\backend\node_modules\@prisma\client\runtime\library.js:121:6307)
+    at async l (F:\PROJECT\frontend-simed-1\backend\node_modules\@prisma\client\runtime\library.js:130:9633)
+    at async exports.create (F:\PROJECT\frontend-simed-1\backend\src\controllers\patientController.js:51:25)
+[2025-12-10T10:32:18.509Z] Error: 
+Invalid `prisma.patient.create()` invocation in
+F:\PROJECT\frontend-simed-1\backend\src\controllers\patientController.js:51:46
+
+  48 const no_rm = await rmService.generateNextRM();
+  49 
+  50 // 3. Create
+→ 51 const patient = await prisma.patient.create(
+Unique constraint failed on the fields: (`nik`)
+Stack: PrismaClientKnownRequestError: 
+Invalid `prisma.patient.create()` invocation in
+F:\PROJECT\frontend-simed-1\backend\src\controllers\patientController.js:51:46
+
+  48 const no_rm = await rmService.generateNextRM();
+  49 
+  50 // 3. Create
+→ 51 const patient = await prisma.patient.create(
+Unique constraint failed on the fields: (`nik`)
+    at $n.handleRequestError (F:\PROJECT\frontend-simed-1\backend\node_modules\@prisma\client\runtime\library.js:121:7315)
+    at $n.handleAndLogRequestError (F:\PROJECT\frontend-simed-1\backend\node_modules\@prisma\client\runtime\library.js:121:6623)
+    at $n.request (F:\PROJECT\frontend-simed-1\backend\node_modules\@prisma\client\runtime\library.js:121:6307)
+    at async l (F:\PROJECT\frontend-simed-1\backend\node_modules\@prisma\client\runtime\library.js:130:9633)
+    at async exports.create (F:\PROJECT\frontend-simed-1\backend\src\controllers\patientController.js:51:25)
+[2025-12-10T10:32:18.532Z] Error: 
+Invalid `prisma.patient.create()` invocation in
+F:\PROJECT\frontend-simed-1\backend\src\controllers\patientController.js:51:46
+
+  48 const no_rm = await rmService.generateNextRM();
+  49 
+  50 // 3. Create
+→ 51 const patient = await prisma.patient.create(
+Unique constraint failed on the fields: (`nik`)
+Stack: PrismaClientKnownRequestError: 
+Invalid `prisma.patient.create()` invocation in
+F:\PROJECT\frontend-simed-1\backend\src\controllers\patientController.js:51:46
+
+  48 const no_rm = await rmService.generateNextRM();
+  49 
+  50 // 3. Create
+→ 51 const patient = await prisma.patient.create(
+Unique constraint failed on the fields: (`nik`)
+    at $n.handleRequestError (F:\PROJECT\frontend-simed-1\backend\node_modules\@prisma\client\runtime\library.js:121:7315)
+    at $n.handleAndLogRequestError (F:\PROJECT\frontend-simed-1\backend\node_modules\@prisma\client\runtime\library.js:121:6623)
+    at $n.request (F:\PROJECT\frontend-simed-1\backend\node_modules\@prisma\client\runtime\library.js:121:6307)
+    at async l (F:\PROJECT\frontend-simed-1\backend\node_modules\@prisma\client\runtime\library.js:130:9633)
+    at async exports.create (F:\PROJECT\frontend-simed-1\backend\src\controllers\patientController.js:51:25)
+[2025-12-10T10:32:18.591Z] Request Body: {"nik":"45445","name":"tryrtty","gender":"L","birth_date":"2025-12-03","address":"etert","phone":"","bpjs_no":""}
+[2025-12-10T10:45:41.212Z] Request Body: {"nik":"4","name":"f","gender":"L","birth_date":"2025-12-10","address":"4","phone":"","bpjs_no":""}
+[2025-12-10T11:06:15.090Z] Request Body: {"name":"fakt","nik":"3303","gender":"L","birth_date":"2025-12-05","address":"pbg","phone":"0"}
