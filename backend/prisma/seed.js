@@ -104,7 +104,7 @@ async function main() {
             ]
         },
         {
-            name: 'NuR Kumala Ratri',
+            name: 'Nur Kumala Ratri',
             specialist: 'Fisioterapis',
             poliCode: 'FIS',
             schedules: [
