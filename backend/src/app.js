@@ -43,13 +43,15 @@ const defaultOrigins = ["http://localhost:5173", "http://127.0.0.1:5173", "http:
 const envOrigins = process.env.CORS_ORIGIN ? process.env.CORS_ORIGIN.split(',') : [];
 
 const checkOrigin = (origin, callback) => {
-    if (!origin) return callback(null, true);
-    const allowed = [...defaultOrigins, ...envOrigins];
-    if (allowed.includes(origin) || origin.startsWith('http://192.168.') || origin.startsWith('http://172.') || origin.startsWith('http://10.')) {
-        callback(null, true);
-    } else {
-        callback(new Error('Not allowed by CORS'));
-    }
+    console.log('Check Origin:', origin); // DEBUG: Log origin
+    // if (!origin) return callback(null, true);
+    // const allowed = [...defaultOrigins, ...envOrigins];
+    // if (allowed.includes(origin) || origin.startsWith('http://192.168.') || origin.startsWith('http://172.') || origin.startsWith('http://10.')) {
+    //     callback(null, true);
+    // } else {
+    //     callback(new Error('Not allowed by CORS'));
+    // }
+    callback(null, true); // DEBUG: Allow all
 };
 
 const io = new Server(server, {
