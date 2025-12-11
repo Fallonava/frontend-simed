@@ -25,7 +25,7 @@ echo -e "\n[2/4] Wiping and preparing server..."
 $SSH_CMD "pm2 stop all; sudo rm -rf ~/simed"
 
 # Step 3: Clone, Setup DB, and Seed
-echo -e "\n[3/4] Installing fresh application with Local DB..."
+echo -e "\n[3/4] Installing fresh application (Backend & Frontend)..."
 # We use 'prisma db push' because we don't have migration files commit
 $SSH_CMD "git clone $REPO_URL ~/simed && \
 cd ~/simed/backend && \
@@ -33,7 +33,10 @@ npm install && \
 echo 'DATABASE_URL=\"postgresql://postgres:postgres@localhost:5432/simed?schema=public\"' > .env && \
 npx prisma generate && \
 npx prisma db push && \
-npx prisma db seed"
+npx prisma db seed && \
+cd ~/simed/frontend && \
+npm install && \
+npm run build"
 
 # Step 4: Start Backend
 echo -e "\n[4/4] Starting Backend..."
