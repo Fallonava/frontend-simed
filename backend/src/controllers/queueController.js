@@ -135,47 +135,85 @@ exports.takeTicket = async (req, res) => {
                 data: { current_count: { increment: 1 } }
             });
 
-            // Create Queue with Doctor Initials
-            const docName = dailyQuota.doctor.name;
-            // Generate initials: "Dr. Budi Santoso" -> "BS" (ignore titles like Dr.)
-            const cleanName = docName.replace(/^Dr\.\s+/i, '').replace(/,/g, '');
-            const parts = cleanName.split(' ').filter(p => p.length > 0);
-            let initials = '';
-            if (parts.length >= 2) {
-                initials = (parts[0][0] + parts[1][0]).toUpperCase();
-            } else if (parts.length === 1) {
-                initials = parts[0].substring(0, 2).toUpperCase();
-            } else {
-                initials = 'DR';
-            }
+            const doctor = dailyQuota.doctor;
+            const poliklinik = doctor.poliklinik;
+            let queueCode = '';
+            let queueNumber = updatedQuota.current_count;
 
-            const queueNumber = updatedQuota.current_count;
-            const queueCode = `${initials}-${String(queueNumber).padStart(3, '0')}`; // e.g. BS-001
+            // CHECK: Is this Kiosk (Anonymous) or Registration (Patient ID)?
+            if (!patient_id) {
+                // KIOSK / ANONYMOUS -> Use Poliklinik Code (e.g. A-001)
+                const poliCode = poliklinik.queue_code || 'A'; // Default if missing
+
+                // For Kiosk, we ideally want a sequence based on the POLI, not just the doctor.
+                // However, preserving existing 'queue_number' as doctor-quota-count is safer for internal logic.
+                // We will count how many "Anonymous" tickets exist for this Poli today to give a nice "A-001, A-002" sequence.
+
+                const todayStart = new Date();
+                todayStart.setHours(0, 0, 0, 0);
+                const todayEnd = new Date();
+                todayEnd.setHours(23, 59, 59, 999);
+
+                const poliTicketCount = await tx.queue.count({
+                    where: {
+                        daily_quota: {
+                            doctor: { poliklinik_id: poliklinik.id },
+                            date: { gte: todayStart, lte: todayEnd }
+                        },
+                        // Optional: Count only anonymous tickets? Or all tickets in this Poli? 
+                        // Usually "Antrian Pendaftaran" is inclusive. Let's count all tickets in this Poli.
+                    }
+                });
+
+                const poliSequence = poliTicketCount + 1;
+                queueCode = `${poliCode}-${String(poliSequence).padStart(3, '0')}`;
+
+            } else {
+                // REGISTRATION / NAMED -> Use Doctor Initials (e.g. BS-001)
+                // Generate initials: "Dr. Budi Santoso" -> "BS"
+                const cleanName = doctor.name.replace(/^Dr\.\s+/i, '').replace(/,/g, '');
+                const parts = cleanName.split(' ').filter(p => p.length > 0);
+                let initials = '';
+                if (parts.length >= 2) {
+                    initials = (parts[0][0] + parts[1][0]).toUpperCase();
+                } else if (parts.length === 1) {
+                    initials = parts[0].substring(0, 2).toUpperCase();
+                } else {
+                    initials = 'DR';
+                }
+
+                // Doctor Queue uses the Doctor's own quota count
+                queueCode = `${initials}-${String(queueNumber).padStart(3, '0')}`;
+            }
 
             const newQueue = await tx.queue.create({
                 data: {
                     daily_quota_id: dailyQuota.id,
-                    patient_id: patient_id ? parseInt(patient_id) : null, // Link Patient
-                    queue_number: queueNumber,
+                    patient_id: patient_id ? parseInt(patient_id) : null,
+                    queue_number: queueNumber, // Keep internal rotation number
                     queue_code: queueCode,
                     status: 'WAITING'
                 }
             });
 
-            return newQueue;
+            return { newQueue, updatedQuota };
         });
 
         // Emit Socket
         const io = req.io;
         if (io) {
-            io.emit('queue_updated', { type: 'new_ticket' });
+            io.emit('queue_update', {
+                ticket: result.newQueue,
+                updatedQuota: result.updatedQuota,
+                doctor: dailyQuota.doctor
+            });
         } else {
             console.warn('Socket.io instance not found in request');
         }
 
         res.status(201).json({
             message: 'Ticket created',
-            ticket: result
+            ticket: result.newQueue
         });
 
     } catch (error) {
