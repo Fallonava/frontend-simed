@@ -202,44 +202,46 @@ const PharmacyDashboard = () => {
                     ) : (
                         <div className="space-y-6">
                             <div className="flex justify-between items-center">
-                                <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Medicine Stock</h2>
+                                <h2 className="text-xl md:text-2xl font-bold text-gray-900 dark:text-white">Medicine Stock</h2>
                                 <button onClick={openAddModal} className="bg-emerald-500 hover:bg-emerald-600 text-white px-5 py-2.5 rounded-xl font-bold shadow-lg shadow-emerald-500/20 flex items-center gap-2">
-                                    <Plus size={18} /> Add Medicine
+                                    <Plus size={18} /> <span className="hidden md:inline">Add Medicine</span><span className="md:hidden">Add</span>
                                 </button>
                             </div>
 
                             <div className="bg-white dark:bg-gray-800 rounded-[24px] shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden">
-                                <table className="w-full text-left">
-                                    <thead className="bg-gray-50 dark:bg-gray-700/50 text-gray-500 uppercase text-xs font-bold">
-                                        <tr>
-                                            <th className="p-4">Name</th>
-                                            <th className="p-4">Code</th>
-                                            <th className="p-4">Category</th>
-                                            <th className="p-4 text-center">Stock</th>
-                                            <th className="p-4 text-right">Price</th>
-                                            <th className="p-4 text-right">Actions</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
-                                        {medicines.map((m) => (
-                                            <tr key={m.id} className="hover:bg-gray-50 dark:hover:bg-gray-700/30 transition-colors">
-                                                <td className="p-4 font-bold text-gray-900 dark:text-white">{m.name}</td>
-                                                <td className="p-4 text-gray-500 font-mono text-sm">{m.code}</td>
-                                                <td className="p-4 text-gray-500">{m.category}</td>
-                                                <td className="p-4 text-center">
-                                                    <span className={`px-3 py-1 rounded-full text-xs font-bold ${m.stock < 10 ? 'bg-red-100 text-red-600' : 'bg-green-100 text-green-600'}`}>
-                                                        {m.stock} {m.unit}
-                                                    </span>
-                                                </td>
-                                                <td className="p-4 text-right font-mono">Rp {m.price.toLocaleString()}</td>
-                                                <td className="p-4 text-right flex justify-end gap-2">
-                                                    <button onClick={() => openEditModal(m)} className="p-2 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded-lg text-blue-500"><Edit2 size={16} /></button>
-                                                    <button onClick={() => handleDeleteMedicine(m.id)} className="p-2 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-lg text-red-500"><Trash2 size={16} /></button>
-                                                </td>
+                                <div className="overflow-x-auto">
+                                    <table className="w-full text-left min-w-[600px]">
+                                        <thead className="bg-gray-50 dark:bg-gray-700/50 text-gray-500 uppercase text-xs font-bold">
+                                            <tr>
+                                                <th className="p-4">Name</th>
+                                                <th className="p-4">Code</th>
+                                                <th className="p-4">Category</th>
+                                                <th className="p-4 text-center">Stock</th>
+                                                <th className="p-4 text-right">Price</th>
+                                                <th className="p-4 text-right">Actions</th>
                                             </tr>
-                                        ))}
-                                    </tbody>
-                                </table>
+                                        </thead>
+                                        <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
+                                            {medicines.map((m) => (
+                                                <tr key={m.id} className="hover:bg-gray-50 dark:hover:bg-gray-700/30 transition-colors">
+                                                    <td className="p-4 font-bold text-gray-900 dark:text-white">{m.name}</td>
+                                                    <td className="p-4 text-gray-500 font-mono text-sm">{m.code}</td>
+                                                    <td className="p-4 text-gray-500">{m.category}</td>
+                                                    <td className="p-4 text-center">
+                                                        <span className={`px-3 py-1 rounded-full text-xs font-bold ${m.stock < 10 ? 'bg-red-100 text-red-600' : 'bg-green-100 text-green-600'}`}>
+                                                            {m.stock} {m.unit}
+                                                        </span>
+                                                    </td>
+                                                    <td className="p-4 text-right font-mono">Rp {m.price.toLocaleString()}</td>
+                                                    <td className="p-4 text-right flex justify-end gap-2">
+                                                        <button onClick={() => openEditModal(m)} className="p-2 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded-lg text-blue-500"><Edit2 size={16} /></button>
+                                                        <button onClick={() => handleDeleteMedicine(m.id)} className="p-2 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-lg text-red-500"><Trash2 size={16} /></button>
+                                                    </td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </div>
                             </div>
                         </div>
                     )}
