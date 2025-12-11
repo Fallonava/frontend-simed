@@ -38,6 +38,9 @@ $SSH_CMD "git clone -b dev $REPO_URL ~/simed && \
 cd ~/simed/backend && \
 npm install && \
 echo "DATABASE_URL=postgresql://postgres:postgres@localhost:5432/simed?schema=public" > .env && \
+# Ensure Database Exists and Password is set
+sudo -u postgres psql -c "ALTER USER postgres PASSWORD 'postgres';" && \
+if ! sudo -u postgres psql -lqt | cut -d \| -f 1 | grep -qw simed; then sudo -u postgres psql -c "CREATE DATABASE simed;"; fi && \
 npx prisma generate && \
 npx prisma db push && \
 npx prisma db seed && \
