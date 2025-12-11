@@ -13,7 +13,6 @@ const PharmacyDashboard = () => {
     const [prescriptions, setPrescriptions] = useState([]);
     const [medicines, setMedicines] = useState([]);
     const [loading, setLoading] = useState(false);
-    const [searchTerm, setSearchTerm] = useState('');
 
     // Socket
     useEffect(() => {
@@ -84,18 +83,48 @@ const PharmacyDashboard = () => {
 
     // Inventory Handlers
     const [showMedModal, setShowMedModal] = useState(false);
-    const [newMed, setNewMed] = useState({ name: '', code: '', stock: 0, price: 0, unit: 'strips', category: 'Drug' });
+    const [isEditing, setIsEditing] = useState(false);
+    const [selectedMedId, setSelectedMedId] = useState(null);
+    const [medForm, setMedForm] = useState({ name: '', code: '', stock: 0, price: 0, unit: 'strips', category: 'Drug' });
 
-    const handleAddMedicine = async (e) => {
+    const openAddModal = () => {
+        setIsEditing(false);
+        setMedForm({ name: '', code: '', stock: 0, price: 0, unit: 'strips', category: 'Drug' });
+        setShowMedModal(true);
+    };
+
+    const openEditModal = (med) => {
+        setIsEditing(true);
+        setSelectedMedId(med.id);
+        setMedForm(med); // Pre-fill
+        setShowMedModal(true);
+    };
+
+    const handleSubmitMedicine = async (e) => {
         e.preventDefault();
         try {
-            await api.post('/medicines', newMed);
-            toast.success('Medicine Added');
+            if (isEditing) {
+                await api.put(`/medicines/${selectedMedId}`, medForm);
+                toast.success('Medicine Updated');
+            } else {
+                await api.post('/medicines', medForm);
+                toast.success('Medicine Added');
+            }
             setShowMedModal(false);
             fetchMedicines();
-            setNewMed({ name: '', code: '', stock: 0, price: 0, unit: 'strips', category: 'Drug' });
         } catch (error) {
-            toast.error('Failed to add medicine');
+            toast.error(isEditing ? 'Failed to update' : 'Failed to add');
+        }
+    };
+
+    const handleDeleteMedicine = async (id) => {
+        if (!window.confirm('Are you sure you want to delete this medicine?')) return;
+        try {
+            await api.delete(`/medicines/${id}`);
+            toast.success('Medicine Deleted');
+            fetchMedicines();
+        } catch (error) {
+            toast.error('Failed to delete');
         }
     };
 
@@ -174,7 +203,7 @@ const PharmacyDashboard = () => {
                         <div className="space-y-6">
                             <div className="flex justify-between items-center">
                                 <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Medicine Stock</h2>
-                                <button onClick={() => setShowMedModal(true)} className="bg-emerald-500 hover:bg-emerald-600 text-white px-5 py-2.5 rounded-xl font-bold shadow-lg shadow-emerald-500/20 flex items-center gap-2">
+                                <button onClick={openAddModal} className="bg-emerald-500 hover:bg-emerald-600 text-white px-5 py-2.5 rounded-xl font-bold shadow-lg shadow-emerald-500/20 flex items-center gap-2">
                                     <Plus size={18} /> Add Medicine
                                 </button>
                             </div>
@@ -188,7 +217,7 @@ const PharmacyDashboard = () => {
                                             <th className="p-4">Category</th>
                                             <th className="p-4 text-center">Stock</th>
                                             <th className="p-4 text-right">Price</th>
-                                            <th className="p-4"></th>
+                                            <th className="p-4 text-right">Actions</th>
                                         </tr>
                                     </thead>
                                     <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
@@ -203,8 +232,9 @@ const PharmacyDashboard = () => {
                                                     </span>
                                                 </td>
                                                 <td className="p-4 text-right font-mono">Rp {m.price.toLocaleString()}</td>
-                                                <td className="p-4 text-right">
-                                                    <button className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg text-gray-400 hover:text-blue-500"><Edit2 size={16} /></button>
+                                                <td className="p-4 text-right flex justify-end gap-2">
+                                                    <button onClick={() => openEditModal(m)} className="p-2 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded-lg text-blue-500"><Edit2 size={16} /></button>
+                                                    <button onClick={() => handleDeleteMedicine(m.id)} className="p-2 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-lg text-red-500"><Trash2 size={16} /></button>
                                                 </td>
                                             </tr>
                                         ))}
@@ -215,7 +245,7 @@ const PharmacyDashboard = () => {
                     )}
                 </div>
 
-                {/* Add Medicine Modal */}
+                {/* Add/Edit Medicine Modal */}
                 <AnimatePresence>
                     {showMedModal && (
                         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
@@ -223,24 +253,24 @@ const PharmacyDashboard = () => {
                                 initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.9 }}
                                 className="bg-white dark:bg-gray-800 rounded-[24px] p-8 w-full max-w-lg shadow-2xl"
                             >
-                                <h2 className="text-2xl font-bold mb-6 dark:text-white">Add New Medicine</h2>
-                                <form onSubmit={handleAddMedicine} className="space-y-4">
+                                <h2 className="text-2xl font-bold mb-6 dark:text-white">{isEditing ? 'Edit Medicine' : 'Add New Medicine'}</h2>
+                                <form onSubmit={handleSubmitMedicine} className="space-y-4">
                                     <div className="grid grid-cols-2 gap-4">
                                         <div className="space-y-1">
                                             <label className="text-xs font-bold text-gray-500 uppercase">Name</label>
-                                            <input required className="w-full p-3 bg-gray-50 dark:bg-gray-700 rounded-xl font-bold" value={newMed.name} onChange={e => setNewMed({ ...newMed, name: e.target.value })} />
+                                            <input required className="w-full p-3 bg-gray-50 dark:bg-gray-700 rounded-xl font-bold" value={medForm.name} onChange={e => setMedForm({ ...medForm, name: e.target.value })} />
                                         </div>
                                         <div className="space-y-1">
                                             <label className="text-xs font-bold text-gray-500 uppercase">Code</label>
-                                            <input required className="w-full p-3 bg-gray-50 dark:bg-gray-700 rounded-xl font-bold" value={newMed.code} onChange={e => setNewMed({ ...newMed, code: e.target.value })} />
+                                            <input required className="w-full p-3 bg-gray-50 dark:bg-gray-700 rounded-xl font-bold" value={medForm.code} onChange={e => setMedForm({ ...medForm, code: e.target.value })} />
                                         </div>
                                         <div className="space-y-1">
                                             <label className="text-xs font-bold text-gray-500 uppercase">Stock</label>
-                                            <input type="number" required className="w-full p-3 bg-gray-50 dark:bg-gray-700 rounded-xl font-bold" value={newMed.stock} onChange={e => setNewMed({ ...newMed, stock: e.target.value })} />
+                                            <input type="number" required className="w-full p-3 bg-gray-50 dark:bg-gray-700 rounded-xl font-bold" value={medForm.stock} onChange={e => setMedForm({ ...medForm, stock: e.target.value })} />
                                         </div>
                                         <div className="space-y-1">
                                             <label className="text-xs font-bold text-gray-500 uppercase">Unit</label>
-                                            <select className="w-full p-3 bg-gray-50 dark:bg-gray-700 rounded-xl font-bold" value={newMed.unit} onChange={e => setNewMed({ ...newMed, unit: e.target.value })}>
+                                            <select className="w-full p-3 bg-gray-50 dark:bg-gray-700 rounded-xl font-bold" value={medForm.unit} onChange={e => setMedForm({ ...medForm, unit: e.target.value })}>
                                                 <option value="strips">Strips</option>
                                                 <option value="bottle">Bottle</option>
                                                 <option value="pcs">Pcs</option>
@@ -249,16 +279,16 @@ const PharmacyDashboard = () => {
                                         </div>
                                         <div className="space-y-1">
                                             <label className="text-xs font-bold text-gray-500 uppercase">Price</label>
-                                            <input type="number" required className="w-full p-3 bg-gray-50 dark:bg-gray-700 rounded-xl font-bold" value={newMed.price} onChange={e => setNewMed({ ...newMed, price: e.target.value })} />
+                                            <input type="number" required className="w-full p-3 bg-gray-50 dark:bg-gray-700 rounded-xl font-bold" value={medForm.price} onChange={e => setMedForm({ ...medForm, price: e.target.value })} />
                                         </div>
                                         <div className="space-y-1">
                                             <label className="text-xs font-bold text-gray-500 uppercase">Category</label>
-                                            <input className="w-full p-3 bg-gray-50 dark:bg-gray-700 rounded-xl font-bold" value={newMed.category} onChange={e => setNewMed({ ...newMed, category: e.target.value })} />
+                                            <input className="w-full p-3 bg-gray-50 dark:bg-gray-700 rounded-xl font-bold" value={medForm.category} onChange={e => setMedForm({ ...medForm, category: e.target.value })} />
                                         </div>
                                     </div>
                                     <div className="flex justify-end gap-3 pt-4">
                                         <button type="button" onClick={() => setShowMedModal(false)} className="px-5 py-2 rounded-xl font-bold text-gray-500 hover:bg-gray-100">Cancel</button>
-                                        <button type="submit" className="px-5 py-2 bg-emerald-500 text-white rounded-xl font-bold shadow-lg shadow-emerald-500/20">Save Medicine</button>
+                                        <button type="submit" className="px-5 py-2 bg-emerald-500 text-white rounded-xl font-bold shadow-lg shadow-emerald-500/20">{isEditing ? 'Update Medicine' : 'Save Medicine'}</button>
                                     </div>
                                 </form>
                             </motion.div>
