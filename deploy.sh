@@ -41,12 +41,14 @@ $SSH_CMD "
          sed -i 's/localhost/127.0.0.1/g' .env
     fi
     npm install
+    chmod -R +x node_modules/.bin
     npx prisma generate
 
     echo '[3/6] Setup Frontend...'
     cd ~/simed/frontend
     rm -rf dist
     npm install
+    chmod -R +x node_modules/.bin
     
     # Set Env for Build
     export VITE_API_URL=https://dev.fallonava.my.id/api
