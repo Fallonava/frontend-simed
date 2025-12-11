@@ -333,29 +333,7 @@ const MasterData = () => {
     };
 
 
-    // Animation Variants - Refined & Subtle
-    const containerVariants = {
-        hidden: { opacity: 0 },
-        visible: {
-            opacity: 1,
-            transition: {
-                staggerChildren: 0.05,
-                delayChildren: 0.1
-            }
-        },
-        exit: { opacity: 0, transition: { duration: 0.1 } }
-    };
 
-    const itemVariants = {
-        hidden: { opacity: 0, y: 10 },
-        visible: { opacity: 1, y: 0, transition: { duration: 0.2, ease: "easeOut" } }
-    };
-
-    const tabContentVariants = {
-        hidden: { opacity: 0, y: 5 },
-        visible: { opacity: 1, y: 0, transition: { duration: 0.3, ease: "easeOut" } },
-        exit: { opacity: 0, y: -5, transition: { duration: 0.1 } }
-    };
 
     // Render Helpers
     const TabButton = ({ id, label, icon: Icon }) => (
@@ -475,219 +453,204 @@ const MasterData = () => {
 
                     {/* Table Content */}
                     <div className="flex-1 overflow-y-auto custom-scrollbar relative z-10">
-                        <AnimatePresence mode="wait">
-                            {activeTab === 'settings' ? (
-                                <motion.div
-                                    key="settings"
-                                    variants={tabContentVariants}
-                                    initial="hidden"
-                                    animate="visible"
-                                    exit="exit"
-                                    className="flex items-center justify-center h-full p-8"
-                                >
-                                    <div className="w-full max-w-2xl bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl border border-white/20 dark:border-white/10 shadow-2xl rounded-3xl p-8 lg:p-10">
-                                        <h2 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">Display Settings</h2>
-                                        <p className="text-gray-500 mb-8">Configure global running text for Kiosk and TV displays.</p>
+                        {activeTab === 'settings' ? (
+                            <div className="flex items-center justify-center h-full p-8">
+                                <div className="w-full max-w-2xl bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl border border-white/20 dark:border-white/10 shadow-2xl rounded-3xl p-8 lg:p-10">
+                                    <h2 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">Display Settings</h2>
+                                    <p className="text-gray-500 mb-8">Configure global running text for Kiosk and TV displays.</p>
 
-                                        <div className="space-y-6">
-                                            <div>
-                                                <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-3 ml-1">Running Text Content</label>
-                                                <textarea
-                                                    className="w-full h-40 p-5 border border-gray-200 dark:border-gray-600 rounded-2xl bg-gray-50/50 dark:bg-gray-900/50 text-gray-800 dark:text-gray-100 text-base shadow-inner focus:ring-4 focus:ring-salm-blue/20 focus:border-salm-blue/50 outline-none transition-all resize-none"
-                                                    value={settings?.running_text || ''}
-                                                    onChange={e => setSettings(prev => ({ ...(prev || {}), running_text: e.target.value }))}
-                                                    placeholder="Enter the announcement text here..."
-                                                />
-                                            </div>
+                                    <div className="space-y-6">
+                                        <div>
+                                            <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-3 ml-1">Running Text Content</label>
+                                            <textarea
+                                                className="w-full h-40 p-5 border border-gray-200 dark:border-gray-600 rounded-2xl bg-gray-50/50 dark:bg-gray-900/50 text-gray-800 dark:text-gray-100 text-base shadow-inner focus:ring-4 focus:ring-salm-blue/20 focus:border-salm-blue/50 outline-none transition-all resize-none"
+                                                value={settings?.running_text || ''}
+                                                onChange={e => setSettings(prev => ({ ...(prev || {}), running_text: e.target.value }))}
+                                                placeholder="Enter the announcement text here..."
+                                            />
+                                        </div>
 
-                                            <div className="flex items-center justify-between pt-4">
-                                                <span className="text-xs font-semibold text-gray-400 bg-gray-100 dark:bg-gray-700 px-3 py-1.5 rounded-lg">
-                                                    {settings?.updatedAt ? `Last Saved: ${new Date(settings.updatedAt).toLocaleTimeString()}` : 'Not saved yet'}
-                                                </span>
-                                                <motion.button
-                                                    whileHover={{ scale: 1.05 }}
-                                                    whileTap={{ scale: 0.95 }}
-                                                    onClick={handleSettingSubmit}
-                                                    className="bg-salm-blue text-white px-8 py-3.5 rounded-2xl hover:bg-salm-blue/90 font-bold transition-all shadow-lg shadow-salm-blue/30"
-                                                >
-                                                    Save Changes
-                                                </motion.button>
-                                            </div>
+                                        <div className="flex items-center justify-between pt-4">
+                                            <span className="text-xs font-semibold text-gray-400 bg-gray-100 dark:bg-gray-700 px-3 py-1.5 rounded-lg">
+                                                {settings?.updatedAt ? `Last Saved: ${new Date(settings.updatedAt).toLocaleTimeString()}` : 'Not saved yet'}
+                                            </span>
+                                            <motion.button
+                                                whileHover={{ scale: 1.05 }}
+                                                whileTap={{ scale: 0.95 }}
+                                                onClick={handleSettingSubmit}
+                                                className="bg-salm-blue text-white px-8 py-3.5 rounded-2xl hover:bg-salm-blue/90 font-bold transition-all shadow-lg shadow-salm-blue/30"
+                                            >
+                                                Save Changes
+                                            </motion.button>
                                         </div>
                                     </div>
-                                </motion.div>
-                            ) : (
-                                <motion.div
-                                    key={activeTab}
-                                    initial="hidden"
-                                    animate="visible"
-                                    exit="exit"
-                                    variants={containerVariants}
-                                >
-                                    <table className="w-full text-left border-collapse">
-                                        <thead className="sticky top-0 bg-gray-50/95 dark:bg-gray-800/95 backdrop-blur-md z-20 shadow-sm">
-                                            <tr>
-                                                {activeTab === 'poliklinik' && (
-                                                    <>
-                                                        <th className="p-5 pl-8 text-xs font-bold text-gray-400 uppercase tracking-widest">ID</th>
-                                                        <th className="p-5 text-xs font-bold text-gray-400 uppercase tracking-widest">Nama Poli</th>
-                                                        <th className="p-5 text-xs font-bold text-gray-400 uppercase tracking-widest">Kode</th>
-                                                    </>
-                                                )}
-                                                {activeTab === 'doctors' && (
-                                                    <>
-                                                        <th className="p-5 pl-8 text-xs font-bold text-gray-400 uppercase tracking-widest">Doctor Profile</th>
-                                                        <th className="p-5 text-xs font-bold text-gray-400 uppercase tracking-widest">Specialist</th>
-                                                        <th className="p-5 text-xs font-bold text-gray-400 uppercase tracking-widest">Assignment</th>
-                                                    </>
-                                                )}
-                                                {activeTab === 'counters' && (
-                                                    <>
-                                                        <th className="p-5 pl-8 text-xs font-bold text-gray-400 uppercase tracking-widest">ID</th>
-                                                        <th className="p-5 text-xs font-bold text-gray-400 uppercase tracking-widest">Counter Name</th>
-                                                        <th className="p-5 text-xs font-bold text-gray-400 uppercase tracking-widest">Current Status</th>
-                                                    </>
-                                                )}
-                                                {activeTab === 'leave' && (
-                                                    <>
-                                                        <th className="p-5 pl-8 text-xs font-bold text-gray-400 uppercase tracking-widest">Doctor</th>
-                                                        <th className="p-5 text-xs font-bold text-gray-400 uppercase tracking-widest">Date</th>
-                                                        <th className="p-5 text-xs font-bold text-gray-400 uppercase tracking-widest">Reason</th>
-                                                    </>
-                                                )}
-                                                {activeTab === 'playlist' && (
-                                                    <>
-                                                        <th className="p-5 pl-8 text-xs font-bold text-gray-400 uppercase tracking-widest">Seq</th>
-                                                        <th className="p-5 text-xs font-bold text-gray-400 uppercase tracking-widest">Format</th>
-                                                        <th className="p-5 text-xs font-bold text-gray-400 uppercase tracking-widest">Source</th>
-                                                        <th className="p-5 text-xs font-bold text-gray-400 uppercase tracking-widest">Duration</th>
-                                                    </>
-                                                )}
-                                                <th className="p-5 pr-8 text-xs font-bold text-gray-400 uppercase tracking-widest text-right">Actions</th>
+                                </div>
+                            </div>
+                        ) : (
+                            <div>
+                                <table className="w-full text-left border-collapse">
+                                    <thead className="sticky top-0 bg-gray-50/95 dark:bg-gray-800/95 backdrop-blur-md z-20 shadow-sm">
+                                        <tr>
+                                            {activeTab === 'poliklinik' && (
+                                                <>
+                                                    <th className="p-5 pl-8 text-xs font-bold text-gray-400 uppercase tracking-widest">ID</th>
+                                                    <th className="p-5 text-xs font-bold text-gray-400 uppercase tracking-widest">Nama Poli</th>
+                                                    <th className="p-5 text-xs font-bold text-gray-400 uppercase tracking-widest">Kode</th>
+                                                </>
+                                            )}
+                                            {activeTab === 'doctors' && (
+                                                <>
+                                                    <th className="p-5 pl-8 text-xs font-bold text-gray-400 uppercase tracking-widest">Doctor Profile</th>
+                                                    <th className="p-5 text-xs font-bold text-gray-400 uppercase tracking-widest">Specialist</th>
+                                                    <th className="p-5 text-xs font-bold text-gray-400 uppercase tracking-widest">Assignment</th>
+                                                </>
+                                            )}
+                                            {activeTab === 'counters' && (
+                                                <>
+                                                    <th className="p-5 pl-8 text-xs font-bold text-gray-400 uppercase tracking-widest">ID</th>
+                                                    <th className="p-5 text-xs font-bold text-gray-400 uppercase tracking-widest">Counter Name</th>
+                                                    <th className="p-5 text-xs font-bold text-gray-400 uppercase tracking-widest">Current Status</th>
+                                                </>
+                                            )}
+                                            {activeTab === 'leave' && (
+                                                <>
+                                                    <th className="p-5 pl-8 text-xs font-bold text-gray-400 uppercase tracking-widest">Doctor</th>
+                                                    <th className="p-5 text-xs font-bold text-gray-400 uppercase tracking-widest">Date</th>
+                                                    <th className="p-5 text-xs font-bold text-gray-400 uppercase tracking-widest">Reason</th>
+                                                </>
+                                            )}
+                                            {activeTab === 'playlist' && (
+                                                <>
+                                                    <th className="p-5 pl-8 text-xs font-bold text-gray-400 uppercase tracking-widest">Seq</th>
+                                                    <th className="p-5 text-xs font-bold text-gray-400 uppercase tracking-widest">Format</th>
+                                                    <th className="p-5 text-xs font-bold text-gray-400 uppercase tracking-widest">Source</th>
+                                                    <th className="p-5 text-xs font-bold text-gray-400 uppercase tracking-widest">Duration</th>
+                                                </>
+                                            )}
+                                            <th className="p-5 pr-8 text-xs font-bold text-gray-400 uppercase tracking-widest text-right">Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className="divide-y divide-gray-100 dark:divide-white/5">
+                                        {activeTab === 'poliklinik' && polies.map((poli) => (
+                                            <tr key={poli.id} className="hover:bg-blue-50/50 dark:hover:bg-white/5 transition-colors group">
+                                                <td className="p-5 pl-8 text-gray-500 font-mono text-sm group-hover:text-salm-blue transition-colors">#{poli.id}</td>
+                                                <td className="p-5 font-bold text-gray-800 dark:text-gray-100 text-lg">{poli.name}</td>
+                                                <td className="p-5">
+                                                    <span className="bg-gradient-to-r from-blue-50 to-blue-100 text-blue-600 px-3 py-1.5 rounded-lg text-xs font-bold tracking-wide border border-blue-200 shadow-sm">
+                                                        {poli.queue_code}
+                                                    </span>
+                                                </td>
+                                                <td className="p-5 pr-8 text-right">
+                                                    <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                        <ActionButton onClick={() => openPoliModal(poli)} icon={Edit} colorClass="text-blue-500 hover:bg-blue-100" />
+                                                        <ActionButton onClick={() => handleDeletePoli(poli.id)} icon={Trash2} colorClass="text-red-500 hover:bg-red-100" />
+                                                    </div>
+                                                </td>
                                             </tr>
-                                        </thead>
-                                        <tbody className="divide-y divide-gray-100 dark:divide-white/5">
-                                            {activeTab === 'poliklinik' && polies.map((poli) => (
-                                                <motion.tr variants={itemVariants} key={poli.id} className="hover:bg-blue-50/50 dark:hover:bg-white/5 transition-colors group">
-                                                    <td className="p-5 pl-8 text-gray-500 font-mono text-sm group-hover:text-salm-blue transition-colors">#{poli.id}</td>
-                                                    <td className="p-5 font-bold text-gray-800 dark:text-gray-100 text-lg">{poli.name}</td>
-                                                    <td className="p-5">
-                                                        <span className="bg-gradient-to-r from-blue-50 to-blue-100 text-blue-600 px-3 py-1.5 rounded-lg text-xs font-bold tracking-wide border border-blue-200 shadow-sm">
-                                                            {poli.queue_code}
-                                                        </span>
-                                                    </td>
-                                                    <td className="p-5 pr-8 text-right">
-                                                        <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                                            <ActionButton onClick={() => openPoliModal(poli)} icon={Edit} colorClass="text-blue-500 hover:bg-blue-100" />
-                                                            <ActionButton onClick={() => handleDeletePoli(poli.id)} icon={Trash2} colorClass="text-red-500 hover:bg-red-100" />
-                                                        </div>
-                                                    </td>
-                                                </motion.tr>
-                                            ))}
+                                        ))}
 
-                                            {activeTab === 'doctors' && doctors.map((doc) => (
-                                                <motion.tr variants={itemVariants} key={doc.id} className="hover:bg-purple-50/50 dark:hover:bg-white/5 transition-colors group">
-                                                    <td className="p-5 pl-8">
-                                                        <div className="flex items-center gap-4">
-                                                            <div className="relative">
-                                                                <img src={doc.photo_url || defaultAvatar} alt={doc.name} className="w-12 h-12 rounded-2xl object-cover shadow-md ring-2 ring-white dark:ring-gray-700" />
-                                                                <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-green-500 rounded-full border-2 border-white dark:border-gray-800"></div>
-                                                            </div>
-                                                            <div>
-                                                                <span className="block font-bold text-gray-900 dark:text-white text-base">{doc.name}</span>
-                                                                <span className="text-xs text-gray-400 font-medium">ID: {doc.id}</span>
-                                                            </div>
+                                        {activeTab === 'doctors' && doctors.map((doc) => (
+                                            <tr key={doc.id} className="hover:bg-purple-50/50 dark:hover:bg-white/5 transition-colors group">
+                                                <td className="p-5 pl-8">
+                                                    <div className="flex items-center gap-4">
+                                                        <div className="relative">
+                                                            <img src={doc.photo_url || defaultAvatar} alt={doc.name} className="w-12 h-12 rounded-2xl object-cover shadow-md ring-2 ring-white dark:ring-gray-700" />
+                                                            <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-green-500 rounded-full border-2 border-white dark:border-gray-800"></div>
                                                         </div>
-                                                    </td>
-                                                    <td className="p-5">
-                                                        <div className="flex items-center gap-2">
-                                                            <span className="w-2 h-2 rounded-full bg-salm-purple"></span>
-                                                            <span className="text-gray-600 dark:text-gray-300 font-medium">{doc.specialist}</span>
+                                                        <div>
+                                                            <span className="block font-bold text-gray-900 dark:text-white text-base">{doc.name}</span>
+                                                            <span className="text-xs text-gray-400 font-medium">ID: {doc.id}</span>
                                                         </div>
-                                                    </td>
-                                                    <td className="p-5">
-                                                        <span className="bg-purple-50 dark:bg-purple-900/20 text-purple-600 dark:text-purple-300 px-3 py-1.5 rounded-lg text-xs font-bold tracking-wide border border-purple-100 dark:border-purple-800">
-                                                            {doc.poliklinik ? doc.poliklinik.name : '-'}
-                                                        </span>
-                                                    </td>
-                                                    <td className="p-5 pr-8 text-right">
-                                                        <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                                            <ActionButton onClick={() => openDoctorModal(doc)} icon={Edit} colorClass="text-blue-500 hover:bg-blue-100" />
-                                                            <ActionButton onClick={() => handleDeleteDoctor(doc.id)} icon={Trash2} colorClass="text-red-500 hover:bg-red-100" />
-                                                        </div>
-                                                    </td>
-                                                </motion.tr>
-                                            ))}
+                                                    </div>
+                                                </td>
+                                                <td className="p-5">
+                                                    <div className="flex items-center gap-2">
+                                                        <span className="w-2 h-2 rounded-full bg-salm-purple"></span>
+                                                        <span className="text-gray-600 dark:text-gray-300 font-medium">{doc.specialist}</span>
+                                                    </div>
+                                                </td>
+                                                <td className="p-5">
+                                                    <span className="bg-purple-50 dark:bg-purple-900/20 text-purple-600 dark:text-purple-300 px-3 py-1.5 rounded-lg text-xs font-bold tracking-wide border border-purple-100 dark:border-purple-800">
+                                                        {doc.poliklinik ? doc.poliklinik.name : '-'}
+                                                    </span>
+                                                </td>
+                                                <td className="p-5 pr-8 text-right">
+                                                    <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                        <ActionButton onClick={() => openDoctorModal(doc)} icon={Edit} colorClass="text-blue-500 hover:bg-blue-100" />
+                                                        <ActionButton onClick={() => handleDeleteDoctor(doc.id)} icon={Trash2} colorClass="text-red-500 hover:bg-red-100" />
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        ))}
 
-                                            {activeTab === 'counters' && counters.map((counter) => (
-                                                <motion.tr variants={itemVariants} key={counter.id} className="hover:bg-green-50/50 dark:hover:bg-white/5 transition-colors group">
-                                                    <td className="p-5 pl-8 text-gray-500 font-mono text-sm">#{counter.id}</td>
-                                                    <td className="p-5 font-bold text-gray-800 dark:text-gray-100">{counter.name}</td>
-                                                    <td className="p-5">
-                                                        <span className={`
-                                                px-3 py-1.5 rounded-full text-xs font-bold tracking-wide border flex items-center gap-1.5 w-fit
-                                                ${counter.status === 'OPEN' ? 'bg-green-100 text-green-700 border-green-200' :
-                                                                counter.status === 'BUSY' ? 'bg-yellow-100 text-yellow-700 border-yellow-200' :
-                                                                    'bg-red-100 text-red-700 border-red-200'}
-                                            `}>
-                                                            <span className={`w-1.5 h-1.5 rounded-full ${counter.status === 'OPEN' ? 'bg-green-600' : counter.status === 'BUSY' ? 'bg-yellow-600' : 'bg-red-600'}`}></span>
-                                                            {counter.status || 'CLOSED'}
-                                                        </span>
-                                                    </td>
-                                                    <td className="p-5 pr-8 text-right">
-                                                        <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                                            <ActionButton onClick={() => openCounterModal(counter)} icon={Edit} colorClass="text-blue-500 hover:bg-blue-100" />
-                                                            <ActionButton onClick={() => handleDeleteCounter(counter.id)} icon={Trash2} colorClass="text-red-500 hover:bg-red-100" />
-                                                        </div>
-                                                    </td>
-                                                </motion.tr>
-                                            ))}
+                                        {activeTab === 'counters' && counters.map((counter) => (
+                                            <tr key={counter.id} className="hover:bg-green-50/50 dark:hover:bg-white/5 transition-colors group">
+                                                <td className="p-5 pl-8 text-gray-500 font-mono text-sm">#{counter.id}</td>
+                                                <td className="p-5 font-bold text-gray-800 dark:text-gray-100">{counter.name}</td>
+                                                <td className="p-5">
+                                                    <span className={`
+                                            px-3 py-1.5 rounded-full text-xs font-bold tracking-wide border flex items-center gap-1.5 w-fit
+                                            ${counter.status === 'OPEN' ? 'bg-green-100 text-green-700 border-green-200' :
+                                                            counter.status === 'BUSY' ? 'bg-yellow-100 text-yellow-700 border-yellow-200' :
+                                                                'bg-red-100 text-red-700 border-red-200'}
+                                        `}>
+                                                        <span className={`w-1.5 h-1.5 rounded-full ${counter.status === 'OPEN' ? 'bg-green-600' : counter.status === 'BUSY' ? 'bg-yellow-600' : 'bg-red-600'}`}></span>
+                                                        {counter.status || 'CLOSED'}
+                                                    </span>
+                                                </td>
+                                                <td className="p-5 pr-8 text-right">
+                                                    <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                        <ActionButton onClick={() => openCounterModal(counter)} icon={Edit} colorClass="text-blue-500 hover:bg-blue-100" />
+                                                        <ActionButton onClick={() => handleDeleteCounter(counter.id)} icon={Trash2} colorClass="text-red-500 hover:bg-red-100" />
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        ))}
 
-                                            {activeTab === 'leave' && leaves.map((leave) => (
-                                                <motion.tr variants={itemVariants} key={leave.id} className="hover:bg-red-50/50 dark:hover:bg-white/5 transition-colors group">
-                                                    <td className="p-5 pl-8">
-                                                        <div className="font-bold text-gray-800 dark:text-gray-200">{leave.doctor?.name || `Doctor #${leave.doctor_id}`}</div>
-                                                    </td>
-                                                    <td className="p-5 text-gray-600 dark:text-gray-400 font-medium">
-                                                        {new Date(leave.date).toLocaleDateString('id-ID', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' })}
-                                                    </td>
-                                                    <td className="p-5">
-                                                        <span className="text-gray-600 italic">"{leave.reason}"</span>
-                                                    </td>
-                                                    <td className="p-5 pr-8 text-right">
-                                                        <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                                            <ActionButton onClick={() => handleDeleteLeave(leave.id)} icon={Trash2} colorClass="text-red-500 hover:bg-red-100" />
-                                                        </div>
-                                                    </td>
-                                                </motion.tr>
-                                            ))}
+                                        {activeTab === 'leave' && leaves.map((leave) => (
+                                            <tr key={leave.id} className="hover:bg-red-50/50 dark:hover:bg-white/5 transition-colors group">
+                                                <td className="p-5 pl-8">
+                                                    <div className="font-bold text-gray-800 dark:text-gray-200">{leave.doctor?.name || `Doctor #${leave.doctor_id}`}</div>
+                                                </td>
+                                                <td className="p-5 text-gray-600 dark:text-gray-400 font-medium">
+                                                    {new Date(leave.date).toLocaleDateString('id-ID', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' })}
+                                                </td>
+                                                <td className="p-5">
+                                                    <span className="text-gray-600 italic">"{leave.reason}"</span>
+                                                </td>
+                                                <td className="p-5 pr-8 text-right">
+                                                    <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                        <ActionButton onClick={() => handleDeleteLeave(leave.id)} icon={Trash2} colorClass="text-red-500 hover:bg-red-100" />
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        ))}
 
-                                            {activeTab === 'playlist' && playlist.map((item) => (
-                                                <motion.tr variants={itemVariants} key={item.id} className="hover:bg-indigo-50/50 dark:hover:bg-white/5 transition-colors group">
-                                                    <td className="p-5 pl-8 text-gray-500 font-mono font-bold">{item.order}</td>
-                                                    <td className="p-5">
-                                                        <span className={`
-                                                px-3 py-1 rounded-lg text-xs font-bold tracking-wide border
-                                                ${item.type === 'VIDEO' ? 'bg-red-100 text-red-600 border-red-200' : 'bg-blue-100 text-blue-600 border-blue-200'}
-                                            `}>
-                                                            {item.type}
-                                                        </span>
-                                                    </td>
-                                                    <td className="p-5 font-mono text-xs text-gray-600 max-w-[200px] truncate bg-gray-50 dark:bg-gray-800 rounded px-2 py-1 border border-gray-100 dark:border-gray-700">{item.url}</td>
-                                                    <td className="p-5 text-gray-600 font-medium">{item.duration}s</td>
-                                                    <td className="p-5 pr-8 text-right">
-                                                        <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                                            <ActionButton onClick={() => openPlaylistModal(item)} icon={Edit} colorClass="text-blue-500 hover:bg-blue-100" />
-                                                            <ActionButton onClick={() => handleDeletePlaylist(item.id)} icon={Trash2} colorClass="text-red-500 hover:bg-red-100" />
-                                                        </div>
-                                                    </td>
-                                                </motion.tr>
-                                            ))}
-                                        </tbody>
-                                    </table>
-                                </motion.div>
-                            )}
-                        </AnimatePresence>
+                                        {activeTab === 'playlist' && playlist.map((item) => (
+                                            <tr key={item.id} className="hover:bg-indigo-50/50 dark:hover:bg-white/5 transition-colors group">
+                                                <td className="p-5 pl-8 text-gray-500 font-mono font-bold">{item.order}</td>
+                                                <td className="p-5">
+                                                    <span className={`
+                                            px-3 py-1 rounded-lg text-xs font-bold tracking-wide border
+                                            ${item.type === 'VIDEO' ? 'bg-red-100 text-red-600 border-red-200' : 'bg-blue-100 text-blue-600 border-blue-200'}
+                                        `}>
+                                                        {item.type}
+                                                    </span>
+                                                </td>
+                                                <td className="p-5 font-mono text-xs text-gray-600 max-w-[200px] truncate bg-gray-50 dark:bg-gray-800 rounded px-2 py-1 border border-gray-100 dark:border-gray-700">{item.url}</td>
+                                                <td className="p-5 text-gray-600 font-medium">{item.duration}s</td>
+                                                <td className="p-5 pr-8 text-right">
+                                                    <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                        <ActionButton onClick={() => openPlaylistModal(item)} icon={Edit} colorClass="text-blue-500 hover:bg-blue-100" />
+                                                        <ActionButton onClick={() => handleDeletePlaylist(item.id)} icon={Trash2} colorClass="text-red-500 hover:bg-red-100" />
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                        )}
 
                         {/* Empty States */}
                         {activeTab === 'poliklinik' && polies.length === 0 && <EmptyState />}
