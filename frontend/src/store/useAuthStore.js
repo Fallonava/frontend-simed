@@ -25,18 +25,17 @@ const useAuthStore = create((set) => ({
             });
             return true;
         } catch (error) {
-            set({
-                const status = error.response?.status;
-                const statusText = error.response?.statusText;
-                const apiMessage = error.response?.data?.error; // Assuming backend sends { error: "..." }
+            const status = error.response?.status;
+            const statusText = error.response?.statusText;
+            const apiMessage = error.response?.data?.error; // Assuming backend sends { error: "..." }
 
-                let finalMessage = 'Login failed';
+            let finalMessage = 'Login failed';
 
-                if(status) {
-                    finalMessage = `Login failed (${status} ${statusText}): ${apiMessage || 'No details'}`;
-                } else if(error.request) {
+            if (status) {
+                finalMessage = `Login failed (${status} ${statusText}): ${apiMessage || 'No details'}`;
+            } else if (error.request) {
                 // The request was made but no response was received
-                finalMessage = `Network Error: No response received. ${error.message}`;
+                finalMessage = `Network Error: No response received via ${error.message}`;
             } else {
                 // Something happened in setting up the request
                 finalMessage = `Request Error: ${error.message}`;
@@ -44,23 +43,23 @@ const useAuthStore = create((set) => ({
 
             console.error("Login Error Detail:", error);
 
-    set({
-        error: finalMessage,
-        isLoading: false
+            set({
+                error: finalMessage,
+                isLoading: false
             });
             return false;
-}
+        }
     },
 
-logout: () => {
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
-    set({
-        user: null,
-        token: null,
-        isAuthenticated: false
-    });
-}
+    logout: () => {
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+        set({
+            user: null,
+            token: null,
+            isAuthenticated: false
+        });
+    }
 }));
 
 export default useAuthStore;
