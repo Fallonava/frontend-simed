@@ -111,49 +111,49 @@ const AdminDashboard = () => {
                 <nav className="space-y-2 flex-1">
                     <button
                         onClick={() => scrollToSection('dashboard')}
-                        className={`w-full flex items-center gap-4 px-4 py-3.5 rounded-2xl transition-all text-left font-medium ${activeTab === 'dashboard' ? 'bg-salm-gradient text-white shadow-lg shadow-salm-purple/30' : 'text-theme-gray dark:text-gray-400 hover:bg-salm-light-pink/20 dark:hover:bg-salm-light-pink/10 hover:text-salm-pink'}`}
+                        className={`w-full flex items-center gap-4 px-4 py-3.5 rounded-2xl text-left font-medium group relative overflow-hidden transition-all duration-300 ease-out hover:scale-[1.02] active:scale-[0.95] ${activeTab === 'dashboard' ? 'bg-salm-gradient text-white shadow-xl shadow-salm-purple/30 ring-1 ring-white/20' : 'text-theme-gray dark:text-gray-400 hover:bg-white dark:hover:bg-gray-700/50 hover:shadow-lg hover:shadow-purple-500/5'}`}
                     >
-                        <LayoutGrid className="w-5 h-5" />
-                        Dashboard
+                        <LayoutGrid className={`w-5 h-5 transition-transform duration-300 group-hover:scale-110 ${activeTab === 'dashboard' ? 'text-white' : 'text-gray-400 group-hover:text-salm-purple'}`} />
+                        <span className="relative z-10">Dashboard</span>
                     </button>
                     <button
                         onClick={() => scrollToSection('schedule')}
-                        className={`w-full flex items-center gap-4 px-4 py-3.5 rounded-2xl transition-all text-left font-medium ${activeTab === 'schedule' ? 'bg-salm-gradient text-white shadow-lg shadow-salm-purple/30' : 'text-theme-gray dark:text-gray-400 hover:bg-salm-light-pink/20 dark:hover:bg-salm-light-pink/10 hover:text-salm-pink'}`}
+                        className={`w-full flex items-center gap-4 px-4 py-3.5 rounded-2xl text-left font-medium group relative overflow-hidden transition-all duration-300 ease-out hover:scale-[1.02] active:scale-[0.95] ${activeTab === 'schedule' ? 'bg-salm-gradient text-white shadow-xl shadow-salm-purple/30 ring-1 ring-white/20' : 'text-theme-gray dark:text-gray-400 hover:bg-white dark:hover:bg-gray-700/50 hover:shadow-lg hover:shadow-purple-500/5'}`}
                     >
-                        <ScheduleCalendarIcon className="w-5 h-5" />
-                        Schedule
+                        <ScheduleCalendarIcon className={`w-5 h-5 transition-transform duration-300 group-hover:scale-110 ${activeTab === 'schedule' ? 'text-white' : 'text-gray-400 group-hover:text-salm-purple'}`} />
+                        <span className="relative z-10">Schedule</span>
                     </button>
                     <button
                         onClick={() => scrollToSection('live-status')}
-                        className={`w-full flex items-center gap-4 px-4 py-3.5 rounded-2xl transition-all text-left font-medium ${activeTab === 'live-status' ? 'bg-salm-gradient text-white shadow-lg shadow-salm-purple/30' : 'text-theme-gray dark:text-gray-400 hover:bg-salm-light-pink/20 dark:hover:bg-salm-light-pink/10 hover:text-salm-pink'}`}
+                        className={`w-full flex items-center gap-4 px-4 py-3.5 rounded-2xl text-left font-medium group relative overflow-hidden transition-all duration-300 ease-out hover:scale-[1.02] active:scale-[0.95] ${activeTab === 'live-status' ? 'bg-salm-gradient text-white shadow-xl shadow-salm-purple/30 ring-1 ring-white/20' : 'text-theme-gray dark:text-gray-400 hover:bg-white dark:hover:bg-gray-700/50 hover:shadow-lg hover:shadow-purple-500/5'}`}
                     >
-                        <Activity className="w-5 h-5" />
-                        Live Status
+                        <Activity className={`w-5 h-5 transition-transform duration-300 group-hover:scale-110 ${activeTab === 'live-status' ? 'text-white' : 'text-gray-400 group-hover:text-salm-purple'}`} />
+                        <span className="relative z-10">Live Status</span>
                     </button>
                     <button
                         onClick={() => setActiveTab('leave-calendar')}
-                        className={`w-full flex items-center gap-4 px-4 py-3.5 rounded-2xl transition-all text-left font-medium ${activeTab === 'leave-calendar' ? 'bg-salm-gradient text-white shadow-lg shadow-salm-purple/30' : 'text-theme-gray dark:text-gray-400 hover:bg-salm-light-pink/20 dark:hover:bg-salm-light-pink/10 hover:text-salm-pink'}`}
+                        className={`w-full flex items-center gap-4 px-4 py-3.5 rounded-2xl text-left font-medium group relative overflow-hidden transition-all duration-300 ease-out hover:scale-[1.02] active:scale-[0.95] ${activeTab === 'leave-calendar' ? 'bg-salm-gradient text-white shadow-xl shadow-salm-purple/30 ring-1 ring-white/20' : 'text-theme-gray dark:text-gray-400 hover:bg-white dark:hover:bg-gray-700/50 hover:shadow-lg hover:shadow-purple-500/5'}`}
                     >
-                        <ScheduleCalendarIcon className="w-5 h-5" />
-                        Calendar
+                        <ScheduleCalendarIcon className={`w-5 h-5 transition-transform duration-300 group-hover:scale-110 ${activeTab === 'leave-calendar' ? 'text-white' : 'text-gray-400 group-hover:text-salm-purple'}`} />
+                        <span className="relative z-10">Calendar</span>
                     </button>
                     <button
                         onClick={() => setActiveTab('users')}
-                        className={`w-full flex items-center gap-4 px-4 py-3.5 rounded-2xl transition-all text-left font-medium ${activeTab === 'users' ? 'bg-salm-gradient text-white shadow-lg shadow-salm-purple/30' : 'text-theme-gray dark:text-gray-400 hover:bg-salm-light-pink/20 dark:hover:bg-salm-light-pink/10 hover:text-salm-pink'}`}
+                        className={`w-full flex items-center gap-4 px-4 py-3.5 rounded-2xl text-left font-medium group relative overflow-hidden transition-all duration-300 ease-out hover:scale-[1.02] active:scale-[0.95] ${activeTab === 'users' ? 'bg-salm-gradient text-white shadow-xl shadow-salm-purple/30 ring-1 ring-white/20' : 'text-theme-gray dark:text-gray-400 hover:bg-white dark:hover:bg-gray-700/50 hover:shadow-lg hover:shadow-purple-500/5'}`}
                     >
-                        <User className="w-5 h-5" />
-                        User Management
+                        <User className={`w-5 h-5 transition-transform duration-300 group-hover:scale-110 ${activeTab === 'users' ? 'text-white' : 'text-gray-400 group-hover:text-salm-purple'}`} />
+                        <span className="relative z-10">User Management</span>
                     </button>
                 </nav>
 
                 <div className="mt-auto pt-6 border-t border-gray-50 dark:border-gray-700 space-y-2">
-                    <Link to="/admin/master-data" className="flex items-center gap-4 px-4 py-3 rounded-2xl text-theme-gray hover:bg-salm-light-pink/20 hover:text-salm-pink transition-all">
-                        <Database className="w-5 h-5" />
-                        Master Data
+                    <Link to="/admin/master-data" className="flex items-center gap-4 px-4 py-3 rounded-2xl text-theme-gray dark:text-gray-400 group relative overflow-hidden transition-all duration-300 ease-out hover:scale-[1.02] active:scale-[0.95] hover:bg-white dark:hover:bg-gray-700/50 hover:shadow-lg hover:shadow-purple-500/5">
+                        <Database className="w-5 h-5 transition-transform duration-300 group-hover:scale-110 text-gray-400 group-hover:text-salm-purple" />
+                        <span className="relative z-10 font-medium">Master Data</span>
                     </Link>
-                    <Link to="/admin/counter" className="flex items-center gap-4 px-4 py-3 rounded-2xl text-theme-gray dark:text-gray-400 hover:bg-salm-light-pink/20 dark:hover:bg-salm-light-pink/10 hover:text-salm-pink transition-all">
-                        <Monitor className="w-5 h-5" />
-                        Counter Staff
+                    <Link to="/admin/counter" className="flex items-center gap-4 px-4 py-3 rounded-2xl text-theme-gray dark:text-gray-400 group relative overflow-hidden transition-all duration-300 ease-out hover:scale-[1.02] active:scale-[0.95] hover:bg-white dark:hover:bg-gray-700/50 hover:shadow-lg hover:shadow-purple-500/5">
+                        <Monitor className="w-5 h-5 transition-transform duration-300 group-hover:scale-110 text-gray-400 group-hover:text-salm-purple" />
+                        <span className="relative z-10 font-medium">Counter Staff</span>
                     </Link>
                 </div>
             </aside>
@@ -165,9 +165,11 @@ const AdminDashboard = () => {
                     <header className="flex items-center justify-between">
                         <div>
                             <h1 className="text-2xl font-bold text-theme-text">
-                                {activeTab === 'leave-calendar' ? 'Doctor Leaves' : 'Dashboard'}
+                                {activeTab === 'schedule' ? 'Jadwal' : activeTab === 'leave-calendar' ? 'Doctor Leaves' : activeTab === 'live-status' ? 'Live Doctor Status' : activeTab === 'users' ? 'User Management' : 'Dashboard'}
                             </h1>
-                            <p className="text-sm text-theme-gray mt-1">Welcome back, Admin!</p>
+                            <p className="text-sm text-theme-gray mt-1">
+                                {activeTab === 'schedule' ? 'Dokter & Spesialis' : activeTab === 'live-status' ? 'Real-time monitoring' : activeTab === 'users' ? 'Manage system access privileges and user roles' : 'Welcome back, Admin!'}
+                            </p>
                         </div>
 
                         <div className="flex items-center gap-6">
@@ -356,23 +358,15 @@ const AdminDashboard = () => {
                     )}
 
                     {activeTab === 'schedule' && (
-                        <div className="max-w-[1600px] mx-auto pb-10 fade-in animate-in duration-300">
-                            <div className="mb-10">
-                                <div className="flex items-center justify-between mb-6">
-                                    <h2 className="text-2xl font-bold text-theme-text">Weekly Schedule</h2>
-                                </div>
-                                <div className="card-soft p-8">
-                                    <ScheduleCalendar />
-                                </div>
-                            </div>
+                        <div className="max-w-[1600px] mx-auto h-full fade-in animate-in duration-300 pb-6">
+                            <ScheduleCalendar />
                         </div>
                     )}
 
                     {activeTab === 'live-status' && (
                         <div className="max-w-[1600px] mx-auto pb-10 fade-in animate-in duration-300">
                             <div>
-                                <div className="flex items-center justify-between mb-6">
-                                    <h2 className="text-2xl font-bold text-theme-text">Live Doctor Status</h2>
+                                <div className="flex items-center justify-end mb-6">
                                     <div className={`flex items-center gap-2 px-4 py-2 rounded-full text-xs font-bold transition-colors border ${isConnected ? 'bg-green-50 dark:bg-green-900/30 text-green-600 dark:text-green-400 border-green-100 dark:border-green-800' : 'bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400 border-red-100 dark:border-red-800'}`}>
                                         <div className={`w-2 h-2 rounded-full ${isConnected ? 'bg-green-500 animate-pulse' : 'bg-red-500'}`}></div>
                                         {isConnected ? 'System Online' : 'System Offline'}

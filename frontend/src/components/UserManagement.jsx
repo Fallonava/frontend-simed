@@ -85,14 +85,7 @@ const UserManagement = () => {
 
     return (
         <div className="max-w-[1600px] mx-auto pb-10">
-            <div className="flex items-center justify-between mb-8">
-                <div>
-                    <h2 className="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-theme-text to-theme-gray dark:from-white dark:to-gray-400 flex items-center gap-2">
-                        <User className="w-8 h-8 text-salm-purple" />
-                        User Management
-                    </h2>
-                    <p className="text-theme-gray dark:text-gray-400 mt-2 text-lg">Manage system access privileges and user roles</p>
-                </div>
+            <div className="flex items-center justify-end mb-6">
                 <button
                     onClick={() => handleOpenModal()}
                     className="bg-salm-gradient text-white px-6 py-3 rounded-2xl font-bold shadow-xl shadow-salm-purple/30 hover:shadow-2xl hover:shadow-salm-purple/40 transition-all flex items-center gap-2"
