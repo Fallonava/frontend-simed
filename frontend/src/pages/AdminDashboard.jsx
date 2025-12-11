@@ -9,6 +9,7 @@ import ThemeToggle from '../components/ThemeToggle';
 import UserManagement from '../components/UserManagement';
 import { LayoutGrid, RefreshCw, Activity, Database, Monitor, Download, Calendar as ScheduleCalendarIcon, Search, Bell, User } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
+import appIcon from '../assets/app_icon.png';
 
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8', '#82ca9d'];
 
@@ -72,9 +73,7 @@ const AdminDashboard = () => {
             {/* Mobile Header */}
             <div className="lg:hidden fixed top-0 left-0 right-0 h-16 bg-white dark:bg-gray-800 border-b border-gray-100 dark:border-gray-700 z-30 flex items-center px-4 justify-between shadow-sm">
                 <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 bg-salm-gradient rounded-full flex items-center justify-center shadow-lg shadow-salm-purple/30">
-                        <div className="w-3 h-3 bg-white rounded-full"></div>
-                    </div>
+                    <img src={appIcon} alt="SiMed Logo" className="w-8 h-8 rounded-lg shadow-lg shadow-salm-purple/20" />
                     <span className="text-lg font-bold text-theme-text">SiMed.</span>
                 </div>
                 <button
@@ -102,9 +101,7 @@ const AdminDashboard = () => {
                 ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
             `}>
                 <div className="flex items-center gap-3 mb-12 px-2">
-                    <div className="w-10 h-10 bg-salm-gradient rounded-full flex items-center justify-center shadow-lg shadow-salm-purple/30">
-                        <div className="w-4 h-4 bg-white rounded-full"></div>
-                    </div>
+                    <img src={appIcon} alt="SiMed Logo" className="w-10 h-10 rounded-xl shadow-lg shadow-salm-purple/20" />
                     <span className="text-xl font-bold text-theme-text tracking-tight">SiMed.</span>
                 </div>
 

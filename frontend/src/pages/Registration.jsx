@@ -6,6 +6,7 @@ import { useNavigate } from 'react-router-dom';
 import { QRCodeCanvas } from 'qrcode.react';
 import api from '../utils/axiosConfig';
 import PageWrapper from '../components/PageWrapper';
+import defaultAvatar from '../assets/doctor_avatar.png';
 
 const Registration = () => {
     const navigate = useNavigate(); // Added hook
@@ -450,7 +451,7 @@ const Registration = () => {
                                                 )}
 
                                                 <div className="w-14 h-14 rounded-full overflow-hidden bg-gray-100 shrink-0 border-2 border-white dark:border-gray-700 shadow-md group-hover:scale-110 transition-transform duration-300">
-                                                    <img src={`https://ui-avatars.com/api/?name=${doc.name}&background=random`} alt={doc.name} className="w-full h-full object-cover" />
+                                                    <img src={doc.photo_url || defaultAvatar} alt={doc.name} className="w-full h-full object-cover" />
                                                 </div>
 
                                                 <div className="flex-1 min-w-0 relative z-10">

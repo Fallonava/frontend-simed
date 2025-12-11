@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import useAuthStore from '../store/useAuthStore';
 import { Lock, User } from 'lucide-react';
+import appIcon from '../assets/app_icon.png';
 
 const Login = () => {
     const [username, setUsername] = useState('');
@@ -22,9 +23,7 @@ const Login = () => {
         <div className="min-h-screen bg-theme-bg flex items-center justify-center p-4 font-sans text-theme-text transition-colors duration-300">
             <div className="bg-white dark:bg-gray-800 rounded-3xl shadow-2xl p-8 w-full max-w-md border border-gray-100 dark:border-gray-700 backdrop-blur-xl">
                 <div className="text-center mb-8">
-                    <div className="w-16 h-16 bg-salm-gradient rounded-2xl mx-auto mb-4 flex items-center justify-center shadow-lg shadow-salm-purple/20">
-                        <User className="text-white w-8 h-8" />
-                    </div>
+                    <img src={appIcon} alt="SiMed Logo" className="w-20 h-20 rounded-2xl mx-auto mb-4 shadow-xl shadow-salm-purple/20 hover:scale-105 transition-transform duration-300" />
                     <h1 className="text-2xl font-bold text-gray-800 dark:text-white">Welcome Back</h1>
                     <p className="text-gray-500 dark:text-gray-400 mt-2 text-sm">Sign in to access the queue system</p>
                 </div>

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Users, MoreHorizontal, Edit2, Check, X } from 'lucide-react';
 import useQueueStore from '../store/useQueueStore';
+import defaultAvatar from '../assets/doctor_avatar.png';
 
 const DoctorCard = ({ doctor, onLeave = false, leaveReason = '' }) => {
     const { toggleStatus, callNext } = useQueueStore();
@@ -36,13 +37,7 @@ const DoctorCard = ({ doctor, onLeave = false, leaveReason = '' }) => {
                 <div className="flex items-start justify-between mb-6">
                     <div className="flex items-center gap-4">
                         <div className="w-14 h-14 rounded-2xl bg-modern-bg flex items-center justify-center overflow-hidden shadow-inner shrink-0 border border-white/5">
-                            {doctor.photo_url && !doctor.photo_url.includes('via.placeholder') ? (
-                                <img src={doctor.photo_url} alt={doctor.name} className="w-full h-full object-cover" />
-                            ) : (
-                                <span className="material-symbols-outlined text-3xl text-modern-text-secondary">
-                                    account_circle
-                                </span>
-                            )}
+                            <img src={doctor.photo_url || defaultAvatar} alt={doctor.name} className="w-full h-full object-cover" />
                         </div>
                         <div>
                             <h3 className="font-semibold text-lg text-modern-text leading-tight">{doctor.name}</h3>
