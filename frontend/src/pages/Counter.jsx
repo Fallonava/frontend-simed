@@ -13,6 +13,7 @@ const Counter = () => {
     const [activeCaller, setActiveCaller] = useState(null);
     const [isConnected, setIsConnected] = useState(false);
     const [currentTime, setCurrentTime] = useState(new Date());
+    const [timeOffset, setTimeOffset] = useState(0);
 
     // Playlist State
     const [playlist, setPlaylist] = useState([]);
@@ -29,16 +30,29 @@ const Counter = () => {
     const playerRef = useRef(null);
 
     useEffect(() => {
-        const timer = setInterval(() => setCurrentTime(new Date()), 1000);
+        const timer = setInterval(() => {
+            setCurrentTime(new Date(Date.now() + timeOffset));
+        }, 1000);
 
         // Fetch initial state & playlist
         const fetchInitialData = async () => {
             try {
-                const [countersRes, playlistRes, settingsRes] = await Promise.all([
+                const [countersRes, playlistRes, settingsRes, timeRes] = await Promise.all([
                     axios.get(`${API_URL}/counters`),
                     axios.get(`${API_URL}/playlist`),
-                    axios.get(`${API_URL}/settings`)
+                    axios.get(`${API_URL}/settings`),
+                    axios.get(`${API_URL}/time`) // Fetch server time
                 ]);
+
+                // Calculate Sync Offset
+                if (timeRes.data.time) {
+                    const serverTime = new Date(timeRes.data.time).getTime();
+                    const clientTime = Date.now();
+                    const offset = serverTime - clientTime;
+                    setTimeOffset(offset);
+                    // Update immediately
+                    setCurrentTime(new Date(Date.now() + offset));
+                }
 
                 // Process Counters
                 const initialData = {};

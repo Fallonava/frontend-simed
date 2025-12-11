@@ -39,6 +39,10 @@ app.get('/', (req, res) => {
     res.json({ message: "Hospital API is running", status: "OK", timestamp: new Date() });
 });
 
+app.get('/api/time', (req, res) => {
+    res.json({ time: new Date() });
+});
+
 const defaultOrigins = ["http://localhost:5173", "http://127.0.0.1:5173", "http://localhost:5174", "https://frontend-simed.vercel.app", "http://13.210.197.247", "https://dev.fallonava.my.id"];
 const envOrigins = process.env.CORS_ORIGIN ? process.env.CORS_ORIGIN.split(',') : [];
 
