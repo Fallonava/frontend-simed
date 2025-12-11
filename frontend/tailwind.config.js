@@ -40,6 +40,20 @@ export default {
                 'modern-blue': 'var(--color-primary)',
                 'modern-teal': '#cc8eb1',   // Map to Salm Purple
                 'modern-green': '#40d4a8ff',
+            },
+            keyframes: {
+                float: {
+                    '0%, 100%': { transform: 'translateY(0)' },
+                    '50%': { transform: 'translateY(-20px)' },
+                },
+                'pulse-slow': {
+                    '0%, 100%': { opacity: 0.4 },
+                    '50%': { opacity: 0.7 },
+                }
+            },
+            animation: {
+                'float': 'float 20s ease-in-out infinite',
+                'pulse-slow': 'pulse-slow 10s ease-in-out infinite',
             }
         },
     },

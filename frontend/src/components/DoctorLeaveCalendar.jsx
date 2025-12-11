@@ -436,7 +436,7 @@ const DoctorLeaveCalendar = () => {
         <div className="w-full h-full flex flex-col lg:flex-row gap-8 relative z-10 pb-6 text-gray-800 dark:text-gray-200 font-sans">
 
             {/* --- Left Sidebar --- */}
-            <div className="w-full lg:w-[320px] flex flex-col gap-6 shrink-0">
+            <div className="w-full lg:w-[320px] lg:h-full flex flex-col gap-4 lg:gap-6 shrink-0 transition-all">
 
                 {/* Search / Filter Header */}
                 <div className="flex items-center gap-3">
@@ -459,7 +459,7 @@ const DoctorLeaveCalendar = () => {
                             id="filterByDate"
                         />
                         <label htmlFor="filterByDate" className="text-xs text-gray-500 font-medium cursor-pointer select-none">
-                            Show only absent doctors
+                            Absent only
                         </label>
                     </div>
                 </div>
@@ -481,7 +481,7 @@ const DoctorLeaveCalendar = () => {
                 </div>
 
                 {/* Doctor List */}
-                <div className="flex-1 bg-white dark:bg-gray-800 rounded-3xl p-6 shadow-sm border border-gray-100 dark:border-gray-700 flex flex-col overflow-hidden">
+                <div className="flex-1 bg-white dark:bg-gray-800 rounded-2xl lg:rounded-3xl p-4 lg:p-6 shadow-sm border border-gray-100 dark:border-gray-700 flex flex-col overflow-hidden">
                     <div className="flex items-center justify-between mb-4">
                         <h3 className="font-bold text-gray-800 dark:text-white">Doctor List</h3>
                         <button className="text-gray-400 hover:text-gray-600"><MoreHorizontal className="w-4 h-4" /></button>
@@ -517,7 +517,7 @@ const DoctorLeaveCalendar = () => {
             </div>
 
             {/* --- Main Content (Right) --- */}
-            <div className="flex-1 bg-white dark:bg-gray-800 rounded-[32px] p-8 shadow-sm border border-gray-100 dark:border-gray-700 flex flex-col h-full overflow-hidden">
+            <div className="flex-1 bg-white dark:bg-gray-800 rounded-[24px] lg:rounded-[32px] p-4 lg:p-8 shadow-sm border border-gray-100 dark:border-gray-700 flex flex-col min-h-0 overflow-hidden">
 
                 {/* Header */}
                 <div className="flex items-center justify-between mb-8 shrink-0">
