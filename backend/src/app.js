@@ -148,7 +148,7 @@ app.put('/api/prescriptions/:id/status', authMiddleware, prescriptionController.
 
 // Transaction & Billing Routes
 const transactionController = require('./controllers/transactionController');
-app.get('/api/transactions/unbilled', authMiddleware, transactionController.getPending); // Or unbilled
+app.get('/api/transactions/unbilled', authMiddleware, transactionController.getUnbilled);
 app.get('/api/transactions', authMiddleware, transactionController.getPending); // Using same pending logic for now
 app.post('/api/transactions/invoice', authMiddleware, transactionController.createInvoice);
 app.put('/api/transactions/:id/pay', authMiddleware, transactionController.pay);
