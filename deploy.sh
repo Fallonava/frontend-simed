@@ -3,9 +3,16 @@
 # SIMED Deployment Script (Clean Wipe & Install - Specific Auth)
 SERVER_IP="13.210.197.247"
 SSH_USER="ubuntu"
-PEM_KEY="./hospital-api.pem"
+# Secure key handling for Windows/WSL/Git Bash compatibility
+cp "./hospital-api.pem" /tmp/hospital-api.pem
+chmod 400 /tmp/hospital-api.pem
+PEM_KEY="/tmp/hospital-api.pem"
+
+# Cleanup temp key on exit
+trap "rm -f /tmp/hospital-api.pem" EXIT
+
 REPO_URL="https://github.com/Fallonava/frontend-simed.git"
-SSH_CMD="ssh -i $PEM_KEY $SSH_USER@$SERVER_IP"
+SSH_CMD="ssh -o StrictHostKeyChecking=no -i $PEM_KEY $SSH_USER@$SERVER_IP"
 
 echo "========================================"
 echo "    STARTING MISSION: CLEAN DEPLOY (Specific SSH)"
@@ -27,7 +34,7 @@ $SSH_CMD "pm2 stop all; sudo rm -rf ~/simed"
 # Step 3: Clone, Setup DB, and Seed
 echo -e "\n[3/4] Installing fresh application (Backend & Frontend)..."
 # We use 'prisma db push' because we don't have migration files commit
-$SSH_CMD "git clone $REPO_URL ~/simed && \
+$SSH_CMD "git clone -b dev $REPO_URL ~/simed && \
 cd ~/simed/backend && \
 npm install && \
 echo "DATABASE_URL=postgresql://postgres:postgres@localhost:5432/simed?schema=public" > .env && \
