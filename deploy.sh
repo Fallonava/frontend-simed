@@ -36,6 +36,8 @@ npx prisma db push && \
 npx prisma db seed && \
 cd ~/simed/frontend && \
 npm install && \
+export VITE_API_URL=https://dev.fallonava.my.id/api && \
+export VITE_SOCKET_URL=https://dev.fallonava.my.id && \
 npm run build"
 
 # Step 4: Start Backend
