@@ -196,20 +196,24 @@ exports.takeTicket = async (req, res) => {
                 }
             });
 
-            return newQueue;
+            return { newQueue, updatedQuota };
         });
 
         // Emit Socket
         const io = req.io;
         if (io) {
-            io.emit('queue_updated', { type: 'new_ticket' });
+            io.emit('queue_update', {
+                ticket: result.newQueue,
+                updatedQuota: result.updatedQuota,
+                doctor: dailyQuota.doctor
+            });
         } else {
             console.warn('Socket.io instance not found in request');
         }
 
         res.status(201).json({
             message: 'Ticket created',
-            ticket: result
+            ticket: result.newQueue
         });
 
     } catch (error) {
