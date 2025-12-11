@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import axios from '../utils/axiosConfig';
 import { User, Plus, Edit2, Trash2, X, Save, Lock, Shield, Search } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
 
 const UserManagement = () => {
     const [users, setUsers] = useState([]);
@@ -86,11 +85,7 @@ const UserManagement = () => {
 
     return (
         <div className="max-w-[1600px] mx-auto pb-10">
-            <motion.div
-                initial={{ opacity: 0, y: -20 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="flex items-center justify-between mb-8"
-            >
+            <div className="flex items-center justify-between mb-8">
                 <div>
                     <h2 className="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-theme-text to-theme-gray dark:from-white dark:to-gray-400 flex items-center gap-2">
                         <User className="w-8 h-8 text-salm-purple" />
@@ -98,23 +93,17 @@ const UserManagement = () => {
                     </h2>
                     <p className="text-theme-gray dark:text-gray-400 mt-2 text-lg">Manage system access privileges and user roles</p>
                 </div>
-                <motion.button
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
+                <button
                     onClick={() => handleOpenModal()}
                     className="bg-salm-gradient text-white px-6 py-3 rounded-2xl font-bold shadow-xl shadow-salm-purple/30 hover:shadow-2xl hover:shadow-salm-purple/40 transition-all flex items-center gap-2"
                 >
                     <Plus className="w-5 h-5" />
                     Add New User
-                </motion.button>
-            </motion.div>
+                </button>
+            </div>
 
             {/* Content Card */}
-            <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="bg-white dark:bg-gray-800 rounded-[32px] shadow-xl border border-gray-100 dark:border-gray-700 overflow-hidden"
-            >
+            <div className="bg-white dark:bg-gray-800 rounded-[32px] shadow-xl border border-gray-100 dark:border-gray-700 overflow-hidden">
                 {/* Search Header */}
                 <div className="p-6 border-b border-gray-100 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-800/50 flex justify-between items-center backdrop-blur-sm">
                     <div className="relative w-72">
@@ -143,10 +132,7 @@ const UserManagement = () => {
                         </thead>
                         <tbody className="divide-y divide-gray-50 dark:divide-gray-700">
                             {filteredUsers.map((user, index) => (
-                                <motion.tr
-                                    initial={{ opacity: 0, x: -20 }}
-                                    animate={{ opacity: 1, x: 0 }}
-                                    transition={{ delay: index * 0.05 }}
+                                <tr
                                     key={user.id}
                                     className="group hover:bg-salm-light-blue/5 dark:hover:bg-gray-700/50 transition-colors"
                                 >
@@ -157,7 +143,7 @@ const UserManagement = () => {
                                             </div>
                                             <div>
                                                 <span className="font-bold text-theme-text dark:text-gray-200 text-lg block mb-0.5">{user.username}</span>
-                                                <span className="text-xs text-gray-400 font-medium">ID: #{user.id.substring(0, 8)}</span>
+                                                <span className="text-xs text-gray-400 font-medium">ID: #{String(user.id).substring(0, 8)}</span>
                                             </div>
                                         </div>
                                     </td>
@@ -188,7 +174,7 @@ const UserManagement = () => {
                                             </button>
                                         </div>
                                     </td>
-                                </motion.tr>
+                                </tr>
                             ))}
                             {users.length === 0 && !loading && (
                                 <tr>
@@ -206,118 +192,102 @@ const UserManagement = () => {
                         </tbody>
                     </table>
                 </div>
-            </motion.div>
+            </div>
 
             {/* Modal */}
-            <AnimatePresence>
-                {showModal && (
-                    <motion.div
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        exit={{ opacity: 0 }}
-                        className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center backdrop-blur-sm p-4"
-                    >
-                        <motion.div
-                            initial={{ scale: 0.95, opacity: 0, y: 20 }}
-                            animate={{ scale: 1, opacity: 1, y: 0 }}
-                            exit={{ scale: 0.95, opacity: 0, y: 20 }}
-                            className="bg-white dark:bg-gray-800 rounded-[32px] w-full max-w-md shadow-2xl border border-gray-100 dark:border-gray-700 overflow-hidden"
-                        >
-                            <div className="p-8 border-b border-gray-100 dark:border-gray-700 flex items-center justify-between bg-gray-50/50 dark:bg-gray-800/80">
-                                <div>
-                                    <h3 className="text-2xl font-bold text-theme-text dark:text-white">
-                                        {editingUser ? 'Edit User' : 'Add New User'}
-                                    </h3>
-                                    <p className="text-sm text-gray-500 mt-1">Enter user details below</p>
+            {showModal && (
+                <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center backdrop-blur-sm p-4">
+                    <div className="bg-white dark:bg-gray-800 rounded-[32px] w-full max-w-md shadow-2xl border border-gray-100 dark:border-gray-700 overflow-hidden">
+                        <div className="p-8 border-b border-gray-100 dark:border-gray-700 flex items-center justify-between bg-gray-50/50 dark:bg-gray-800/80">
+                            <div>
+                                <h3 className="text-2xl font-bold text-theme-text dark:text-white">
+                                    {editingUser ? 'Edit User' : 'Add New User'}
+                                </h3>
+                                <p className="text-sm text-gray-500 mt-1">Enter user details below</p>
+                            </div>
+                            <button
+                                onClick={() => setShowModal(false)}
+                                className="w-10 h-10 rounded-full bg-white dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600 flex items-center justify-center transition-colors shadow-sm"
+                            >
+                                <X className="w-5 h-5 text-gray-500" />
+                            </button>
+                        </div>
+
+                        <form onSubmit={handleSubmit} className="p-8 space-y-6">
+                            {error && (
+                                <div className="p-4 bg-red-50 text-red-600 text-sm rounded-2xl flex items-center gap-2 border border-red-100">
+                                    <div className="w-1.5 h-1.5 rounded-full bg-red-500"></div>
+                                    {error}
                                 </div>
-                                <button
-                                    onClick={() => setShowModal(false)}
-                                    className="w-10 h-10 rounded-full bg-white dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600 flex items-center justify-center transition-colors shadow-sm"
-                                >
-                                    <X className="w-5 h-5 text-gray-500" />
-                                </button>
+                            )}
+
+                            <div>
+                                <label className="block text-sm font-bold text-theme-gray dark:text-gray-400 mb-2 ml-1">Username</label>
+                                <div className="relative">
+                                    <User className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                                    <input
+                                        type="text"
+                                        value={formData.username}
+                                        onChange={(e) => setFormData({ ...formData, username: e.target.value })}
+                                        disabled={!!editingUser}
+                                        className="w-full pl-12 pr-4 py-3.5 rounded-2xl border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:border-salm-purple focus:ring-2 focus:ring-salm-purple/20 disabled:opacity-60 transition-all font-medium"
+                                        placeholder="Enter username"
+                                        required
+                                    />
+                                </div>
                             </div>
 
-                            <form onSubmit={handleSubmit} className="p-8 space-y-6">
-                                {error && (
-                                    <motion.div
-                                        initial={{ opacity: 0, scale: 0.9 }}
-                                        animate={{ opacity: 1, scale: 1 }}
-                                        className="p-4 bg-red-50 text-red-600 text-sm rounded-2xl flex items-center gap-2 border border-red-100"
+                            <div>
+                                <label className="block text-sm font-bold text-theme-gray dark:text-gray-400 mb-2 ml-1">Role Permission</label>
+                                <div className="relative">
+                                    <Shield className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                                    <select
+                                        value={formData.role}
+                                        onChange={(e) => setFormData({ ...formData, role: e.target.value })}
+                                        className="w-full pl-12 pr-4 py-3.5 rounded-2xl border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:border-salm-purple focus:ring-2 focus:ring-salm-purple/20 transition-all appearance-none font-medium cursor-pointer"
                                     >
-                                        <div className="w-1.5 h-1.5 rounded-full bg-red-500"></div>
-                                        {error}
-                                    </motion.div>
-                                )}
-
-                                <div>
-                                    <label className="block text-sm font-bold text-theme-gray dark:text-gray-400 mb-2 ml-1">Username</label>
-                                    <div className="relative">
-                                        <User className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-                                        <input
-                                            type="text"
-                                            value={formData.username}
-                                            onChange={(e) => setFormData({ ...formData, username: e.target.value })}
-                                            disabled={!!editingUser}
-                                            className="w-full pl-12 pr-4 py-3.5 rounded-2xl border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:border-salm-purple focus:ring-2 focus:ring-salm-purple/20 disabled:opacity-60 transition-all font-medium"
-                                            placeholder="Enter username"
-                                            required
-                                        />
-                                    </div>
+                                        <option value="STAFF">Staff Access</option>
+                                        <option value="ADMIN">Administrator</option>
+                                    </select>
                                 </div>
+                            </div>
 
-                                <div>
-                                    <label className="block text-sm font-bold text-theme-gray dark:text-gray-400 mb-2 ml-1">Role Permission</label>
-                                    <div className="relative">
-                                        <Shield className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-                                        <select
-                                            value={formData.role}
-                                            onChange={(e) => setFormData({ ...formData, role: e.target.value })}
-                                            className="w-full pl-12 pr-4 py-3.5 rounded-2xl border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:border-salm-purple focus:ring-2 focus:ring-salm-purple/20 transition-all appearance-none font-medium cursor-pointer"
-                                        >
-                                            <option value="STAFF">Staff Access</option>
-                                            <option value="ADMIN">Administrator</option>
-                                        </select>
-                                    </div>
+                            <div>
+                                <label className="block text-sm font-bold text-theme-gray dark:text-gray-400 mb-2 ml-1">
+                                    {editingUser ? 'New Password (Optional)' : 'Password'}
+                                </label>
+                                <div className="relative">
+                                    <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                                    <input
+                                        type="password"
+                                        value={formData.password}
+                                        onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                                        className="w-full pl-12 pr-4 py-3.5 rounded-2xl border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:border-salm-purple focus:ring-2 focus:ring-salm-purple/20 transition-all font-medium"
+                                        placeholder={editingUser ? "••••••••" : "Create password"}
+                                    />
                                 </div>
+                            </div>
 
-                                <div>
-                                    <label className="block text-sm font-bold text-theme-gray dark:text-gray-400 mb-2 ml-1">
-                                        {editingUser ? 'New Password (Optional)' : 'Password'}
-                                    </label>
-                                    <div className="relative">
-                                        <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-                                        <input
-                                            type="password"
-                                            value={formData.password}
-                                            onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                                            className="w-full pl-12 pr-4 py-3.5 rounded-2xl border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:border-salm-purple focus:ring-2 focus:ring-salm-purple/20 transition-all font-medium"
-                                            placeholder={editingUser ? "••••••••" : "Create password"}
-                                        />
-                                    </div>
-                                </div>
-
-                                <div className="flex items-center gap-3 pt-6">
-                                    <button
-                                        type="button"
-                                        onClick={() => setShowModal(false)}
-                                        className="flex-1 py-3.5 rounded-2xl text-theme-gray dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 font-bold transition-colors"
-                                    >
-                                        Cancel
-                                    </button>
-                                    <button
-                                        type="submit"
-                                        className="flex-1 bg-salm-gradient text-white py-3.5 rounded-2xl font-bold shadow-lg shadow-salm-purple/20 hover:opacity-90 hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center justify-center gap-2"
-                                    >
-                                        <Save className="w-5 h-5" />
-                                        Save Changes
-                                    </button>
-                                </div>
-                            </form>
-                        </motion.div>
-                    </motion.div>
-                )}
-            </AnimatePresence>
+                            <div className="flex items-center gap-3 pt-6">
+                                <button
+                                    type="button"
+                                    onClick={() => setShowModal(false)}
+                                    className="flex-1 py-3.5 rounded-2xl text-theme-gray dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 font-bold transition-colors"
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    type="submit"
+                                    className="flex-1 bg-salm-gradient text-white py-3.5 rounded-2xl font-bold shadow-lg shadow-salm-purple/20 hover:opacity-90 hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center justify-center gap-2"
+                                >
+                                    <Save className="w-5 h-5" />
+                                    Save Changes
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };

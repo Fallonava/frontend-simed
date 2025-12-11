@@ -277,7 +277,7 @@ const AdminDashboard = () => {
                                         {/* Poliklinik Distribution */}
                                         <div className="card-soft p-6 flex flex-col">
                                             <h3 className="text-lg font-bold text-theme-text mb-4">Patients by Poliklinik</h3>
-                                            <div className="flex-1 min-h-[300px]">
+                                            <div className="w-full h-[300px]">
                                                 <ResponsiveContainer width="100%" height="100%">
                                                     <PieChart>
                                                         <Pie
@@ -302,7 +302,7 @@ const AdminDashboard = () => {
                                         {/* Queue Status */}
                                         <div className="card-soft p-6 flex flex-col">
                                             <h3 className="text-lg font-bold text-theme-text mb-4">Queue Status Overview</h3>
-                                            <div className="flex-1 min-h-[300px]">
+                                            <div className="w-full h-[300px]">
                                                 <ResponsiveContainer width="100%" height="100%">
                                                     <PieChart>
                                                         <Pie
@@ -335,7 +335,7 @@ const AdminDashboard = () => {
                                                 <span className="flex items-center gap-1 text-xs text-theme-gray"><span className="w-2 h-2 rounded-full bg-theme-purple"></span> Patients</span>
                                             </div>
                                         </div>
-                                        <div className="flex-1 min-h-[250px]">
+                                        <div className="w-full h-[300px]">
                                             <ResponsiveContainer width="100%" height="100%">
                                                 <BarChart data={analytics.barChartData} barSize={40}>
                                                     <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--theme-border)" />

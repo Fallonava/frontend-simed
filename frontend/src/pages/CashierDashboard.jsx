@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { FiDollarSign, FiClock, FiCheckCircle, FiPrinter, FiUser, FiFileText, FiCreditCard } from 'react-icons/fi';
+import { DollarSign, Clock, CheckCircle, Printer, User, FileText, CreditCard } from 'lucide-react';
 import axios from 'axios';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
@@ -109,7 +109,7 @@ const CashierDashboard = () => {
                 <div className={`${selectedItem ? 'hidden lg:flex' : 'flex'} w-full lg:w-1/3 bg-white rounded-3xl shadow-xl shadow-slate-200/50 flex-col overflow-hidden border border-slate-100 transition-all`}>
                     <div className="p-4 border-b border-slate-100 bg-slate-50/50 backdrop-blur-sm">
                         <h2 className="font-semibold text-slate-700 flex items-center gap-2">
-                            {activeTab === 'unbilled' ? <FiClock /> : <FiDollarSign />}
+                            {activeTab === 'unbilled' ? <Clock /> : <DollarSign />}
                             {activeTab === 'unbilled' ? 'Ready for Billing' : 'Pending Payment'}
                         </h2>
                     </div>
@@ -117,7 +117,7 @@ const CashierDashboard = () => {
                         {loading && <div className="text-center p-4 text-slate-400">Loading...</div>}
                         {!loading && items.length === 0 && (
                             <div className="text-center p-8 text-slate-400 flex flex-col items-center">
-                                <FiCheckCircle className="text-4xl mb-2 opacity-50" />
+                                <CheckCircle className="text-4xl mb-2 opacity-50" />
                                 <p>No items found</p>
                             </div>
                         )}
@@ -140,7 +140,7 @@ const CashierDashboard = () => {
                                         </span>
                                     </div>
                                     <div className="text-sm text-slate-500 flex items-center gap-1">
-                                        <FiUser className="w-3 h-3" />
+                                        <User className="w-3 h-3" />
                                         {activeTab === 'unbilled' ? item.doctor?.name : item.invoice_no}
                                     </div>
                                 </motion.div>
@@ -168,7 +168,7 @@ const CashierDashboard = () => {
                                             {activeTab === 'unbilled' ? selectedItem.patient?.name : `Invoice Details`}
                                         </h2>
                                         <p className="text-slate-500 flex items-center gap-2 mt-1 text-sm md:text-base">
-                                            <FiFileText />
+                                            <FileText />
                                             {activeTab === 'unbilled' ? `Visit Date: ${new Date(selectedItem.visit_date).toLocaleDateString()}` : selectedItem.invoice_no}
                                         </p>
                                     </div>
@@ -256,7 +256,7 @@ const CashierDashboard = () => {
                                                 className="h-16 md:h-20 bg-green-500 hover:bg-green-600 text-white rounded-2xl font-bold text-lg shadow-lg shadow-green-200 flex flex-col items-center justify-center gap-1 transition-all active:scale-95"
                                             >
                                                 <div className="flex items-center gap-2">
-                                                    <FiDollarSign className="text-xl md:text-2xl" />
+                                                    <DollarSign className="text-xl md:text-2xl" />
                                                     PAY CASH
                                                 </div>
                                             </button>
@@ -266,7 +266,7 @@ const CashierDashboard = () => {
                                                 className="h-16 md:h-20 bg-blue-500 hover:bg-blue-600 text-white rounded-2xl font-bold text-lg shadow-lg shadow-blue-200 flex flex-col items-center justify-center gap-1 transition-all active:scale-95"
                                             >
                                                 <div className="flex items-center gap-2">
-                                                    <FiCreditCard className="text-xl md:text-2xl" />
+                                                    <CreditCard className="text-xl md:text-2xl" />
                                                     PAY QRIS
                                                 </div>
                                             </button>
@@ -277,7 +277,7 @@ const CashierDashboard = () => {
                         </div>
                     ) : (
                         <div className="flex-1 flex flex-col items-center justify-center text-slate-300 p-8 text-center">
-                            <FiFileText className="text-6xl mb-4" />
+                            <FileText className="text-6xl mb-4" />
                             <p className="text-lg">Select an item to view details</p>
                         </div>
                     )}
