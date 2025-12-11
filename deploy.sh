@@ -30,7 +30,7 @@ echo -e "\n[3/4] Installing fresh application (Backend & Frontend)..."
 $SSH_CMD "git clone $REPO_URL ~/simed && \
 cd ~/simed/backend && \
 npm install && \
-echo 'DATABASE_URL=\"postgresql://postgres:postgres@localhost:5432/simed?schema=public\"' > .env && \
+echo "DATABASE_URL=postgresql://postgres:postgres@localhost:5432/simed?schema=public" > .env && \
 npx prisma generate && \
 npx prisma db push && \
 npx prisma db seed && \
