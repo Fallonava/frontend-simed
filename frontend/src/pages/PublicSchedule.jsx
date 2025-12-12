@@ -238,7 +238,7 @@ const PublicSchedule = () => {
                 <div className="flex items-center gap-4">
                     <FallonavaLogo className="w-10 h-10 rounded-xl shadow-lg shadow-salm-purple/20" />
                     <div>
-                        <h1 className="text-xl font-bold tracking-tight">Fallonava Medical Center</h1>
+                        <h1 className="text-xl font-bold tracking-tight">Fallonava Project</h1>
                         <p className="text-xs text-gray-500 font-medium uppercase tracking-wider">Doctor Schedule Overview</p>
                     </div>
                 </div>
