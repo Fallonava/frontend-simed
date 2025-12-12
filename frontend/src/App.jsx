@@ -21,6 +21,7 @@ import PatientList from './pages/PatientList'; // New
 import PatientDetail from './pages/PatientDetail'; // New
 import PharmacyDashboard from './pages/PharmacyDashboard'; // New
 import CashierDashboard from './pages/CashierDashboard'; // New
+import PublicSchedule from './pages/PublicSchedule'; // New
 
 function AnimatedRoutes() {
   const location = useLocation();
@@ -35,6 +36,7 @@ function AnimatedRoutes() {
         <Route path="/kiosk" element={<PageWrapper><Kiosk /></PageWrapper>} />
         <Route path="/counter" element={<PageWrapper><Counter /></PageWrapper>} />
         <Route path="/queue-status/:ticketId" element={<PageWrapper><QueueStatus /></PageWrapper>} />
+        <Route path="/public/schedule" element={<PageWrapper><PublicSchedule /></PageWrapper>} />
 
         {/* Protected Routes */}
         <Route element={<ProtectedRoute allowedRoles={['ADMIN', 'STAFF']} />}>

@@ -141,6 +141,13 @@ const AdminDashboard = () => {
                         <User className={`w-5 h-5 transition-transform duration-300 group-hover:scale-110 ${activeTab === 'users' ? 'text-white' : 'text-gray-400 group-hover:text-salm-purple'}`} />
                         <span className="relative z-10">User Management</span>
                     </button>
+                    <button
+                        onClick={() => window.open('/public/schedule', '_blank')}
+                        className={`w-full flex items-center gap-4 px-4 py-3.5 rounded-2xl text-left font-medium group relative overflow-hidden transition-all duration-300 ease-out hover:scale-[1.02] active:scale-[0.95] text-theme-gray dark:text-gray-400 hover:bg-white dark:hover:bg-gray-700/50 hover:shadow-lg hover:shadow-purple-500/5`}
+                    >
+                        <Monitor className="w-5 h-5 text-gray-400 group-hover:text-salm-purple transition-colors" />
+                        <span className="relative z-10">Public Display</span>
+                    </button>
                 </nav>
 
                 <div className="mt-auto pt-6 border-t border-gray-50 dark:border-gray-700 space-y-2">
