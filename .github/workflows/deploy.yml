@@ -2,15 +2,12 @@ name: Deploy to Production
 
 on:
   push:
-    branches: [ "dev" ] # Deploy from dev branch as requested/implied workflow
+    branches: [ "dev" ]
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v3
-
     - name: Deploy via SSH
       uses: appleboy/ssh-action@master
       with:
@@ -18,4 +15,8 @@ jobs:
         username: ${{ secrets.EC2_USER }}
         key: ${{ secrets.EC2_SSH_KEY }}
         script: |
-          bash ~/simed/scripts/deploy_prod.sh
+          # Beri izin eksekusi dulu (jaga-jaga)
+          chmod +x /var/www/simed-app/deploy.sh
+
+          # Jalankan scriptnya
+          bash /var/www/simed-app/deploy.sh
