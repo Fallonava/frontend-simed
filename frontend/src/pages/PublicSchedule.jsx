@@ -48,57 +48,59 @@ const CalendarWidget = ({ currentDate, selectedDate, setSelectedDate, changeMont
 
     return (
         <div
-            className="w-full lg:w-[360px] shrink-0 flex flex-col gap-4 lg:gap-6 h-auto transition-all duration-500 will-change-[width,height]"
-            onMouseEnter={() => setIsExpanded(true)} // Keep open while hovering
-            onClick={() => setIsExpanded(true)} // Open on click
+            className="w-full lg:w-[365px] shrink-0 flex flex-col gap-4 h-auto transition-all duration-500 will-change-transform"
+            onMouseEnter={() => setIsExpanded(true)}
+            onClick={() => setIsExpanded(true)}
         >
-            <div className="bg-white/60 dark:bg-gray-800/60 backdrop-blur-xl rounded-[24px] md:rounded-[32px] p-3 md:p-5 shadow-xl shadow-gray-200/50 dark:shadow-black/20 border border-white/50 dark:border-gray-700 flex flex-col overflow-hidden transition-all duration-500">
+            <div className="bg-white/60 dark:bg-gray-800/60 backdrop-blur-2xl rounded-[32px] md:rounded-[40px] p-4 md:p-6 shadow-2xl shadow-gray-200/50 dark:shadow-black/20 border border-white/60 dark:border-gray-700 flex flex-col overflow-hidden transition-all duration-500">
 
                 {/* Header / Toggle */}
                 <div
-                    className="flex items-center justify-between cursor-pointer group"
+                    className="flex items-center justify-between cursor-pointer group select-none"
                     onClick={(e) => {
                         e.stopPropagation();
                         setIsExpanded(!isExpanded);
                     }}
                 >
-                    <div className="flex items-center gap-2">
-                        <Calendar className="w-5 h-5 text-salm-blue" />
-                        <h2 className="text-base md:text-xl font-bold text-gray-800 dark:text-white">
+                    <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-full bg-salm-blue/10 flex items-center justify-center text-salm-blue">
+                            <Calendar className="w-4 h-4" />
+                        </div>
+                        <h2 className="text-lg md:text-xl font-bold text-gray-800 dark:text-white tracking-tight">
                             Calendar
                         </h2>
                     </div>
-                    <button className="w-8 h-8 rounded-full bg-white dark:bg-gray-700 shadow-sm border border-gray-100 dark:border-gray-600 flex items-center justify-center text-gray-500 ml-auto group-hover:bg-salm-blue group-hover:text-white transition-all">
+                    <button className="w-8 h-8 rounded-full bg-white dark:bg-gray-700 shadow-sm border border-gray-100 dark:border-gray-600 flex items-center justify-center text-gray-500 ml-auto group-hover:scale-110 group-active:scale-95 transition-all duration-300">
                         {isExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
                     </button>
                 </div>
 
                 {/* Collapsible Content */}
-                <AnimatePresence>
+                <AnimatePresence initial={false}>
                     {isExpanded && (
                         <motion.div
-                            initial={{ height: 0, opacity: 0 }}
-                            animate={{ height: "auto", opacity: 1 }}
-                            exit={{ height: 0, opacity: 0 }}
-                            transition={{ duration: 0.5, ease: [0.04, 0.62, 0.23, 0.98] }} // Smooth Apple-like spring/ease
+                            initial={{ height: 0, opacity: 0, marginTop: 0 }}
+                            animate={{ height: "auto", opacity: 1, marginTop: 16 }}
+                            exit={{ height: 0, opacity: 0, marginTop: 0 }}
+                            transition={{ type: "spring", stiffness: 400, damping: 30, mass: 0.8 }}
                             className="overflow-hidden"
                         >
-                            <div className="pt-4 md:pt-6">
+                            <div>
                                 {/* Month Selector */}
-                                <div className="flex items-center justify-between mb-3 md:mb-5 shrink-0">
-                                    <h2 className="text-sm md:text-lg font-bold text-gray-700 dark:text-gray-300">
+                                <div className="flex items-center justify-between mb-4 md:mb-5 shrink-0">
+                                    <h2 className="text-base md:text-lg font-bold text-gray-700 dark:text-gray-300 ml-1">
                                         {currentDate.toLocaleString('default', { month: 'long', year: 'numeric' })}
                                     </h2>
-                                    <div className="flex gap-1 md:gap-2">
+                                    <div className="flex gap-1">
                                         <button
                                             onClick={(e) => { e.stopPropagation(); changeMonth(-1); }}
-                                            className="p-1 md:p-1.5 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition-colors"
+                                            className="w-8 h-8 flex items-center justify-center hover:bg-white dark:hover:bg-gray-700 rounded-full transition-all shadow-sm active:scale-90"
                                         >
                                             <ChevronLeft className="w-4 h-4" />
                                         </button>
                                         <button
                                             onClick={(e) => { e.stopPropagation(); changeMonth(1); }}
-                                            className="p-1 md:p-1.5 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition-colors"
+                                            className="w-8 h-8 flex items-center justify-center hover:bg-white dark:hover:bg-gray-700 rounded-full transition-all shadow-sm active:scale-90"
                                         >
                                             <ChevronRight className="w-4 h-4" />
                                         </button>
@@ -106,14 +108,14 @@ const CalendarWidget = ({ currentDate, selectedDate, setSelectedDate, changeMont
                                 </div>
 
                                 {/* Weekday Header */}
-                                <div className="grid grid-cols-7 mb-1 text-center shrink-0">
+                                <div className="grid grid-cols-7 mb-2 text-center shrink-0">
                                     {['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'].map(d => (
                                         <div key={d} className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">{d}</div>
                                     ))}
                                 </div>
 
                                 {/* Calendar Grid */}
-                                <div className="grid grid-cols-7 gap-1 flex-1">
+                                <div className="grid grid-cols-7 gap-1.5 flex-1">
                                     {renderCalendarGrid()}
                                 </div>
                             </div>
@@ -259,18 +261,18 @@ const PublicSchedule = () => {
                     layoutId={`day-${day}`}
                     onClick={() => setSelectedDate(date)}
                     className={`
-                        w-full aspect-square rounded-lg md:rounded-xl flex flex-col items-center justify-center cursor-pointer relative transition-all duration-300 border
+                        w-full aspect-square rounded-full flex flex-col items-center justify-center cursor-pointer relative transition-all duration-300 border
                         ${isSelected
-                            ? 'bg-salm-blue text-white shadow-md shadow-salm-blue/30 border-blue-500 z-10 scale-105'
+                            ? 'bg-salm-blue text-white shadow-xl shadow-salm-blue/30 border-blue-500 z-10 scale-105 ring-2 ring-white dark:ring-gray-800'
                             : isToday
-                                ? 'bg-salm-blue/5 text-salm-blue border-salm-blue/30 font-bold'
-                                : 'bg-transparent hover:bg-white/50 border-transparent text-gray-700 dark:text-gray-300'}
+                                ? 'bg-salm-blue/10 text-salm-blue border-salm-blue/30 font-bold'
+                                : 'bg-transparent hover:bg-gray-100 dark:hover:bg-white/10 border-transparent text-gray-700 dark:text-gray-300'}
                     `}
                 >
-                    <span className="text-xs md:text-sm">{day}</span>
-                    <div className="flex gap-0.5 mt-0.5 md:mt-1 h-1">
+                    <span className="text-[11px] md:text-sm font-medium">{day}</span>
+                    <div className="flex gap-0.5 mt-0.5 h-1">
                         {[...Array(Math.min(3, Math.ceil(doctorCount / 3)))].map((_, i) => (
-                            <div key={i} className={`w-0.5 h-0.5 md:w-1 md:h-1 rounded-full ${isSelected ? 'bg-white/70' : 'bg-salm-purple/50'}`}></div>
+                            <div key={i} className={`w-1 h-1 rounded-full ${isSelected ? 'bg-white/80' : 'bg-salm-purple/50'}`}></div>
                         ))}
                     </div>
                 </motion.div>
