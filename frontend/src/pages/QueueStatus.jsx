@@ -50,7 +50,7 @@ const QueueStatus = () => {
                     <div className="w-8 h-8 bg-salm-gradient rounded-lg flex items-center justify-center shadow-lg shadow-salm-purple/20">
                         <Activity className="text-white w-5 h-5" />
                     </div>
-                    <h1 className="text-lg font-bold text-gray-800">SiMed Queue</h1>
+                    <h1 className="text-lg font-bold text-gray-800">Fallonava Queue</h1>
                 </div>
                 <p className="text-center text-xs text-gray-500 uppercase tracking-wider font-semibold">Realtime Status</p>
             </div>

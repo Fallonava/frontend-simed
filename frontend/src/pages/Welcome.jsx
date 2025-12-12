@@ -49,7 +49,7 @@ const Welcome = () => {
                     <div className="w-8 h-8 bg-gradient-to-tr from-salm-pink to-salm-purple rounded-full flex items-center justify-center shadow-lg shadow-salm-pink/20">
                         <Activity className="w-4 h-4 text-white" />
                     </div>
-                    <span className="text-xl font-semibold tracking-tight text-theme-text">SiMed.</span>
+                    <span className="text-xl font-semibold tracking-tight text-theme-text">Fallonava.</span>
                 </div>
                 <button
                     onClick={() => navigate('/login')}
