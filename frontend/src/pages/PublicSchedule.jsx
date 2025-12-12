@@ -261,7 +261,7 @@ const PublicSchedule = () => {
                     layoutId={`day-${day}`}
                     onClick={() => setSelectedDate(date)}
                     className={`
-                        w-full aspect-square rounded-full flex flex-col items-center justify-center cursor-pointer relative transition-all duration-300 border
+                        w-full aspect-square rounded-2xl flex flex-col items-center justify-center cursor-pointer relative transition-all duration-300 border
                         ${isSelected
                             ? 'bg-salm-blue text-white shadow-xl shadow-salm-blue/30 border-blue-500 z-10 scale-105 ring-2 ring-white dark:ring-gray-800'
                             : isToday
@@ -288,64 +288,80 @@ const PublicSchedule = () => {
     };
 
     const renderRosterView = () => (
-        <div className="w-full h-full flex flex-col bg-white/60 dark:bg-gray-800/60 backdrop-blur-xl rounded-[32px] shadow-2xl border border-white/50 dark:border-gray-700 overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-500">
-            {/* Toolbar - Responsive */}
-            <div className="px-4 py-4 lg:px-8 lg:py-6 border-b border-gray-100 dark:border-gray-700 bg-white/40 dark:bg-black/20 shrink-0 flex flex-col md:flex-row items-center justify-between gap-4">
+        <div className="w-full h-full flex flex-col bg-white/60 dark:bg-gray-900/60 backdrop-blur-3xl rounded-[40px] shadow-[0_20px_40px_-12px_rgba(0,0,0,0.1)] border border-white/50 dark:border-gray-700/50 overflow-hidden animate-in fade-in slide-in-from-bottom-6 duration-700 ring-1 ring-white/20">
+            {/* Toolbar */}
+            <div className="px-6 py-5 md:px-8 md:py-6 border-b border-gray-200/30 dark:border-white/5 bg-white/40 dark:bg-black/20 shrink-0 flex flex-col md:flex-row items-center justify-between gap-4 z-20 relative backdrop-blur-md">
                 <div className="text-center md:text-left">
-                    <h2 className="text-lg md:text-2xl font-bold text-gray-900 dark:text-white flex items-center justify-center md:justify-start gap-2">
-                        <Grid className="w-5 h-5 md:w-6 md:h-6 text-salm-blue" />
+                    <h2 className="text-xl md:text-2xl font-bold text-gray-900 dark:text-white flex items-center justify-center md:justify-start gap-4 tracking-tight">
+                        <div className="p-2.5 bg-gradient-to-tr from-salm-blue to-salm-light-blue rounded-2xl text-white shadow-lg shadow-salm-blue/30 ring-1 ring-white/20">
+                            <Grid className="w-5 h-5 md:w-6 md:h-6" />
+                        </div>
                         Weekly Master Roster
                     </h2>
-                    <p className="text-xs md:text-sm text-gray-500 font-medium hidden md:block">Complete schedule for all specialists</p>
+                    <p className="text-xs md:text-sm text-gray-500 font-medium hidden md:block mt-1.5 ml-1.5 tracking-wide uppercase opacity-70">Complete schedule for all specialists</p>
                 </div>
-                {/* Legend */}
-                <div className="flex gap-3 text-[10px] md:text-xs font-semibold uppercase tracking-wide text-gray-500 bg-white/50 dark:bg-black/20 px-3 py-1.5 md:px-4 md:py-2 rounded-full border border-white/20">
-                    <div className="flex items-center gap-1.5"><div className="w-2 h-2 md:w-2.5 md:h-2.5 rounded-full bg-green-500 shadow-sm shadow-green-200"></div> Practice</div>
-                    <div className="flex items-center gap-1.5"><div className="w-2 h-2 md:w-2.5 md:h-2.5 rounded-full bg-gray-200 dark:bg-gray-600"></div> Off Duty</div>
+
+                {/* Modern Segmented Legend */}
+                <div className="flex gap-1.5 p-1.5 bg-gray-100/80 dark:bg-gray-800/80 backdrop-blur-xl rounded-full border border-white/40 shadow-inner">
+                    <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-white dark:bg-gray-700 shadow-sm border border-gray-200/50 dark:border-gray-600">
+                        <div className="w-2 h-2 rounded-full bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.6)] animate-pulse"></div>
+                        <span className="text-[10px] md:text-xs font-bold uppercase tracking-wider text-gray-800 dark:text-gray-200">Practice</span>
+                    </div>
+                    <div className="flex items-center gap-2 px-4 py-2 rounded-full hover:bg-white/40 transition-colors">
+                        <div className="w-2 h-2 rounded-full bg-gray-300 dark:bg-gray-600"></div>
+                        <span className="text-[10px] md:text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400">Off Duty</span>
+                    </div>
                 </div>
             </div>
 
-            {/* Grid Container with Smooth Scroll */}
-            <div className="flex-1 overflow-auto custom-scrollbar relative bg-white/30 dark:bg-black/10 scroll-smooth">
+            {/* Grid Container */}
+            <div className="flex-1 overflow-auto custom-scrollbar relative bg-white/20 dark:bg-black/10 scroll-smooth">
                 <table className="w-full border-separate border-spacing-0">
-                    <thead className="sticky top-0 z-30">
+                    <thead className="sticky top-0 z-40">
                         <tr>
-                            <th className="sticky left-0 z-40 top-0 bg-gray-50/95 dark:bg-gray-800/95 backdrop-blur-md border-b border-r border-gray-200/50 dark:border-gray-700/50 p-3 md:p-4 min-w-[180px] md:min-w-[240px] text-left shadow-sm">
-                                <span className="text-[10px] md:text-xs font-bold text-gray-400 uppercase tracking-wider">Specialist</span>
+                            <th className="sticky left-0 z-50 top-0 bg-white/95 dark:bg-gray-900/95 backdrop-blur-xl border-b border-gray-200/50 dark:border-gray-700/50 p-4 min-w-[140px] md:min-w-[280px] text-left shadow-[4px_0_24px_rgba(0,0,0,0.03)]">
+                                <span className="text-[10px] md:text-xs font-black text-gray-400 uppercase tracking-[0.2em] ml-2">Specialist</span>
                             </th>
-                            {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map(day => (
-                                <th key={day} className="bg-gray-50/95 dark:bg-gray-800/95 backdrop-blur-md border-b border-gray-200/50 dark:border-gray-700/50 p-3 md:p-4 text-center min-w-[100px] md:min-w-[140px] shadow-sm">
-                                    <span className="text-[10px] md:text-xs font-bold text-gray-800 dark:text-gray-200 uppercase tracking-wider">{day}</span>
+                            {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map((day, i) => (
+                                <th key={day} className={`
+                                    bg-white/90 dark:bg-gray-900/90 backdrop-blur-xl border-b border-gray-200/50 dark:border-gray-700/50 p-4 text-center min-w-[100px] md:min-w-[160px]
+                                    ${i === 6 ? '' : 'border-r border-dashed border-gray-200/30'}
+                                `}>
+                                    <span className="text-[10px] md:text-xs font-black text-gray-800 dark:text-gray-200 uppercase tracking-[0.2em]">{day}</span>
                                 </th>
                             ))}
                         </tr>
                     </thead>
                     <tbody>
                         {rosterData.map((doc, idx) => (
-                            <tr key={doc.id} className="group transition-colors hover:bg-salm-blue/5 duration-200">
+                            <tr key={doc.id} className="group/row hover:bg-white/40 dark:hover:bg-white/5 transition-colors duration-200">
                                 {/* Sticky Name Column */}
-                                <td className="sticky left-0 z-20 bg-white/90 dark:bg-gray-900/90 group-hover:bg-gray-50/95 dark:group-hover:bg-gray-800/95 backdrop-blur-sm border-r border-b border-gray-100 dark:border-gray-700/50 p-3 md:p-4 transition-colors duration-200">
-                                    <div className="flex items-center gap-2 md:gap-4">
-                                        <div className="w-8 h-8 md:w-10 md:h-10 rounded-full bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-700 dark:to-gray-800 text-gray-600 dark:text-gray-300 flex items-center justify-center font-bold text-xs md:text-sm shrink-0 shadow-inner">
+                                <td className="sticky left-0 z-30 bg-white/90 dark:bg-gray-900/90 group-hover/row:bg-white/95 dark:group-hover/row:bg-gray-800/95 backdrop-blur-xl border-b border-gray-100/50 dark:border-gray-700/30 p-3 md:p-5 transition-colors duration-300 shadow-[4px_0_20px_-4px_rgba(0,0,0,0.02)]">
+                                    <div className="flex items-center gap-3 md:gap-5 ml-1">
+                                        <div className="hidden sm:flex w-10 h-10 md:w-12 md:h-12 rounded-[18px] bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-800 dark:to-gray-900 text-gray-500 dark:text-gray-400 items-center justify-center font-bold text-sm md:text-base shrink-0 shadow-[inset_0_1px_4px_rgba(0,0,0,0.05)] border border-gray-100 dark:border-gray-700 group-hover/row:scale-105 group-hover/row:text-salm-blue group-hover/row:border-salm-blue/20 transition-all duration-300">
                                             {doc.name.charAt(0)}
                                         </div>
-                                        <div>
-                                            <div className="font-bold text-gray-900 dark:text-white text-xs md:text-sm leading-tight max-w-[120px] md:max-w-none truncate">{doc.name}</div>
-                                            <div className="text-[9px] md:text-[11px] text-salm-purple font-bold uppercase tracking-wide mt-0.5 max-w-[120px] md:max-w-none truncate">{doc.specialization || 'General'}</div>
+                                        <div className="flex-1 min-w-0">
+                                            <div className="font-bold text-gray-900 dark:text-white text-xs md:text-sm leading-tight truncate uppercase tracking-widest mb-1">{doc.poliklinik?.name || doc.specialist || 'General Practice'}</div>
+                                            <div className="text-[11px] md:text-sm text-gray-500 font-medium truncate tracking-tight group-hover/row:text-salm-blue transition-colors">{doc.name}</div>
                                         </div>
                                     </div>
                                 </td>
 
                                 {/* Schedule Cells */}
                                 {[1, 2, 3, 4, 5, 6, 7].map(dayNum => (
-                                    <td key={dayNum} className="border-b border-gray-100 dark:border-gray-700/50 p-2 md:p-3 text-center transition-colors group-hover:bg-white/40 dark:group-hover:bg-white/5 relative duration-200">
+                                    <td key={dayNum} className="border-b border-r border-gray-50/50 dark:border-gray-800/20 p-2 md:p-3 text-center relative group/cell transition-colors duration-300">
                                         {doc.weekly[dayNum] ? (
-                                            <div className="inline-flex flex-col items-center justify-center w-full h-full py-1.5 md:py-2 bg-green-50/50 dark:bg-green-900/10 rounded-xl border border-green-100/50 dark:border-green-800/20 group-hover:scale-95 group-hover:border-green-300 transition-all duration-300 ease-out">
-                                                <span className="text-[10px] md:text-xs font-bold text-green-700 dark:text-green-400 whitespace-nowrap px-2">{doc.weekly[dayNum]}</span>
-                                            </div>
+                                            <motion.div
+                                                whileHover={{ scale: 1.05, y: -2 }}
+                                                className="inline-flex flex-col items-center justify-center w-full py-2.5 md:py-3.5 px-2 bg-white dark:bg-gray-800 rounded-xl shadow-[0_2px_8px_rgba(0,0,0,0.04)] dark:shadow-none ring-1 ring-black/5 dark:ring-white/10 group-hover/cell:ring-salm-blue/30 group-hover/cell:shadow-[0_8px_16px_rgba(59,130,246,0.1)] transition-all duration-300 cursor-default"
+                                            >
+                                                <span className="text-[10px] md:text-xs font-bold text-gray-700 dark:text-gray-300 whitespace-nowrap tracking-tight">{doc.weekly[dayNum]}</span>
+                                                <div className="hidden md:block w-1.5 h-1.5 rounded-full bg-green-500 mt-1.5 opacity-0 group-hover/cell:opacity-100 transition-opacity duration-300 shadow-[0_0_8px_rgba(34,197,94,0.6)]"></div>
+                                            </motion.div>
                                         ) : (
-                                            <div className="flex items-center justify-center opacity-10 group-hover:opacity-30 transition-opacity duration-300">
-                                                <div className="w-1 h-1 md:w-1.5 md:h-1.5 rounded-full bg-gray-400"></div>
+                                            <div className="flex items-center justify-center">
+                                                <div className="w-1 h-1 md:w-1.5 md:h-1.5 rounded-full bg-gray-100 dark:bg-gray-800 group-hover/row:bg-gray-200 dark:group-hover/row:bg-gray-700 transition-colors duration-300"></div>
                                             </div>
                                         )}
                                     </td>
@@ -444,49 +460,54 @@ const PublicSchedule = () => {
                                             {dailySchedule.map((doctor, idx) => (
                                                 <motion.div
                                                     key={`${doctor.id}-${idx}`}
-                                                    initial={{ opacity: 0, scale: 0.9 }}
-                                                    animate={{ opacity: 1, scale: 1 }}
-                                                    exit={{ opacity: 0, scale: 0.9 }}
-                                                    transition={{ duration: 0.3, delay: idx * 0.05 }}
+                                                    initial={{ opacity: 0, scale: 0.95, y: 10 }}
+                                                    animate={{ opacity: 1, scale: 1, y: 0 }}
+                                                    exit={{ opacity: 0, scale: 0.95, y: 10 }}
+                                                    transition={{ type: "spring", stiffness: 300, damping: 30, delay: idx * 0.05 }}
                                                     className={`
-                                                        border p-4 md:p-6 rounded-2xl md:rounded-3xl transition-all group relative overflow-hidden
+                                                        p-5 md:p-6 rounded-[28px] md:rounded-[32px] transition-all group relative overflow-hidden
                                                         ${doctor.onLeave
-                                                            ? 'bg-red-50/50 dark:bg-red-900/10 border-red-100 dark:border-red-900/30'
-                                                            : 'bg-white dark:bg-gray-900 border-gray-100 dark:border-gray-700 hover:shadow-xl hover:-translate-y-1'
+                                                            ? 'bg-red-50/60 dark:bg-red-900/10 border border-red-100/50 dark:border-red-900/30'
+                                                            : 'bg-white/80 dark:bg-gray-800/80 backdrop-blur-md shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:shadow-[0_20px_40px_rgb(0,0,0,0.08)] ring-1 ring-black/5 border border-white/60 dark:border-gray-700/50 shadow-[inset_0_1px_0_rgba(255,255,255,0.6)]'
                                                         }
                                                     `}
                                                 >
                                                     {!doctor.onLeave && (
-                                                        <div className="absolute top-0 right-0 w-20 h-20 bg-gradient-to-br from-salm-blue/5 to-salm-purple/5 rounded-full -mr-10 -mt-10 group-hover:scale-150 transition-transform duration-500"></div>
+                                                        <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-blue-500/5 to-purple-500/5 rounded-full -mr-16 -mt-16 group-hover:scale-125 transition-transform duration-700 ease-out"></div>
                                                     )}
 
                                                     <div className="flex items-start justify-between mb-4 md:mb-5 relative z-10">
-                                                        <div className={`w-12 h-12 md:w-14 md:h-14 rounded-2xl flex items-center justify-center font-bold text-lg md:text-xl shadow-sm transition-colors ${doctor.onLeave ? 'bg-red-100 text-red-500 dark:bg-red-900/20 dark:text-red-400' : 'bg-salm-light-blue/10 text-salm-blue group-hover:bg-salm-blue group-hover:text-white'}`}>
+                                                        <div className={`w-14 h-14 md:w-16 md:h-16 rounded-[20px] flex items-center justify-center font-bold text-xl md:text-2xl shadow-sm transition-transform group-hover:scale-105 duration-300 ${doctor.onLeave ? 'bg-red-100/50 text-red-500' : 'bg-gradient-to-br from-blue-50 to-indigo-50 text-salm-blue shadow-[inset_0_2px_4px_rgba(255,255,255,1)]'}`}>
                                                             {doctor.name.charAt(0)}
                                                         </div>
                                                         {doctor.onLeave ? (
-                                                            <div className="px-2 py-1 md:px-3 md:py-1.5 rounded-full bg-red-100/50 dark:bg-red-900/30 text-red-600 dark:text-red-400 text-[10px] md:text-xs font-bold border border-red-200 dark:border-red-800 shadow-sm flex items-center gap-1">
-                                                                <div className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse"></div> On Leave
+                                                            <div className="px-3 py-1.5 rounded-full bg-red-100/80 text-red-600 text-[10px] md:text-xs font-bold shadow-sm backdrop-blur-sm border border-red-200">
+                                                                On Leave
                                                             </div>
                                                         ) : (
-                                                            <div className="px-2 py-1 md:px-3 md:py-1.5 rounded-full bg-green-50 dark:bg-green-900/30 text-green-700 dark:text-green-400 text-[10px] md:text-xs font-bold border border-green-200 dark:border-green-800 shadow-sm">
+                                                            <div className="px-3 py-1.5 rounded-full bg-green-100/80 text-green-700 text-[10px] md:text-xs font-bold shadow-sm backdrop-blur-sm border border-green-200/50 flex items-center gap-1.5">
+                                                                <span className="w-1.5 h-1.5 rounded-full bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.6)] animate-pulse"></span>
                                                                 Available
                                                             </div>
                                                         )}
                                                     </div>
 
                                                     <div className="relative z-10">
-                                                        <h3 className={`font-bold text-base md:text-lg truncate mb-1 ${doctor.onLeave ? 'text-gray-500 dark:text-gray-400' : 'text-gray-900 dark:text-white'}`}>{doctor.name}</h3>
-                                                        <p className="text-salm-purple text-xs md:text-sm font-bold mb-4 md:mb-5 tracking-tight">{doctor.specialization || 'General Practitioner'}</p>
+                                                        <div className="mb-1">
+                                                            <p className="text-[10px] md:text-xs font-bold uppercase tracking-[0.15em] text-salm-purple/80 mb-1">{doctor.poliklinik?.name || doctor.specialist || 'General Practice'}</p>
+                                                            <h3 className={`font-bold text-lg md:text-xl tracking-tight leading-tight ${doctor.onLeave ? 'text-gray-500' : 'text-gray-900 dark:text-white bg-clip-text text-transparent bg-gradient-to-br from-gray-900 to-gray-600 dark:from-white dark:to-gray-400'}`}>
+                                                                {doctor.name}
+                                                            </h3>
+                                                        </div>
 
-                                                        <div className={`space-y-2 md:space-y-3 p-3 rounded-xl ${doctor.onLeave ? 'bg-red-50 dark:bg-red-900/10 opacity-75' : 'bg-gray-50 dark:bg-gray-800/50'}`}>
-                                                            <div className={`flex items-center gap-3 text-xs md:text-sm font-medium ${doctor.onLeave ? 'text-red-400' : 'text-gray-600 dark:text-gray-300'}`}>
-                                                                <Clock className={`w-3.5 h-3.5 md:w-4 md:h-4 ${doctor.onLeave ? 'text-red-300' : 'text-salm-blue'}`} />
-                                                                <span className={doctor.onLeave ? 'line-through' : ''}>{doctor.time}</span>
+                                                        <div className={`space-y-2 mt-4 p-3.5 rounded-2xl ${doctor.onLeave ? 'bg-red-50/50' : 'bg-gray-50/80 dark:bg-gray-800/50 border border-gray-100/50 dark:border-gray-700'}`}>
+                                                            <div className={`flex items-center gap-3 text-sm font-medium ${doctor.onLeave ? 'text-red-400' : 'text-gray-600 dark:text-gray-300'}`}>
+                                                                <Clock className={`w-4 h-4 ${doctor.onLeave ? 'text-red-300' : 'text-blue-500/80'}`} />
+                                                                <span className={`tracking-tight ${doctor.onLeave ? 'line-through decoration-red-300' : ''}`}>{doctor.time}</span>
                                                             </div>
-                                                            <div className={`flex items-center gap-3 text-xs md:text-sm font-medium ${doctor.onLeave ? 'text-red-400' : 'text-gray-600 dark:text-gray-300'}`}>
-                                                                <MapPin className={`w-3.5 h-3.5 md:w-4 md:h-4 ${doctor.onLeave ? 'text-red-300' : 'text-salm-pink'}`} />
-                                                                <span>{doctor.poli_name || 'Main Clinic'}</span>
+                                                            <div className={`flex items-center gap-3 text-sm font-medium ${doctor.onLeave ? 'text-red-400' : 'text-gray-600 dark:text-gray-300'}`}>
+                                                                <MapPin className={`w-4 h-4 ${doctor.onLeave ? 'text-red-300' : 'text-pink-500/80'}`} />
+                                                                <span className="tracking-tight">{doctor.poliklinik?.name || 'Main Clinic'}</span>
                                                             </div>
                                                         </div>
                                                     </div>
