@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ChevronLeft, ChevronRight, Search, Plus, MoreHorizontal, Clock, Calendar as CalendarIcon, X, Check, Trash2, User, Briefcase, Coffee } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Search, Plus, MoreHorizontal, Clock, Calendar as CalendarIcon, X, Check, Trash2, User, Briefcase, Coffee, ChevronDown } from 'lucide-react';
 import axios from 'axios';
 import toast from 'react-hot-toast';
 
@@ -12,6 +12,13 @@ const DoctorLeaveCalendar = () => {
     const [selectedDoctor, setSelectedDoctor] = useState(null);
     const [allLeaves, setAllLeaves] = useState([]); // Store ALL leaves
     const [filterByDate, setFilterByDate] = useState(true); // Toggle for strict filtering
+
+    // Mini Calendar Toggle (Default Collapsed)
+    const [isMiniCalendarOpen, setIsMiniCalendarOpen] = useState(false);
+
+    // Modal State
+    const [isModalOpen, setIsModalOpen] = useState(false);
+    const [modalData, setModalData] = useState({ date: null, existingLeave: null, reason: '' });
 
     // Helper for date comparison (ignore time)
     const isSameDay = (d1, d2) => {
@@ -29,11 +36,6 @@ const DoctorLeaveCalendar = () => {
             result = result.filter(doc => doc.name.toLowerCase().includes(searchQuery.toLowerCase()));
         }
 
-        // Filter by Day Schedule (only in Day View) -> REMOVED in favor of Leave Logic if needed, or keep?
-        // User request: "only display doctors on leave on the selected date"
-        // This implies overriding the schedule filter or combining it?
-        // Let's implement the "On Leave" filter primarily.
-
         if (filterByDate) {
             result = result.filter(doc => {
                 // Check if doctor has a leave on 'currentDate'
@@ -45,12 +47,6 @@ const DoctorLeaveCalendar = () => {
         return result;
     }, [doctors, view, currentDate, searchQuery, allLeaves, filterByDate]);
 
-    // Modal State
-    const [isModalOpen, setIsModalOpen] = useState(false);
-    const [modalData, setModalData] = useState({ date: null, existingLeave: null, reason: '' });
-
-    // Mini Calendar Toggle
-    const [isMiniCalendarOpen, setIsMiniCalendarOpen] = useState(true);
 
     // --- Effects ---
     useEffect(() => {
@@ -58,21 +54,18 @@ const DoctorLeaveCalendar = () => {
         fetchAllLeaves();
     }, []);
 
-    // Auto-select first doctor logic - Adjusted to handle empty lists smoothly
+    // Auto-select first doctor logic
     useEffect(() => {
         if (filteredDoctors.length > 0) {
-            // If currently selected doctor is NOT in the filtered list, switch.
-            // If selected doctor IS in the list, keep them.
             if (!selectedDoctor || !filteredDoctors.find(d => d.id === selectedDoctor.id)) {
                 setSelectedDoctor(filteredDoctors[0]);
             }
         } else {
-            // No doctors match filter
             setSelectedDoctor(null);
         }
     }, [filteredDoctors, selectedDoctor]);
 
-    // Leaves for selected doctor (Derived from allLeaves)
+    // Leaves for selected doctor
     const leaves = React.useMemo(() => {
         if (!selectedDoctor) return [];
         return allLeaves.filter(l => l.doctor_id === selectedDoctor.id);
@@ -91,7 +84,6 @@ const DoctorLeaveCalendar = () => {
 
     const fetchAllLeaves = async () => {
         try {
-            // Get ALL leaves (no doctor_id param)
             const res = await axios.get(`${import.meta.env.VITE_API_URL || 'http://localhost:3000/api'}/doctor-leaves`);
             setAllLeaves(res.data);
         } catch (error) {
@@ -99,10 +91,6 @@ const DoctorLeaveCalendar = () => {
             toast.error('Gagal memuat data cuti');
         }
     };
-
-    // Keep fetchLeaves for single doctor update compatibility? 
-    // Better to re-fetch ALL to keep sync if we edit.
-    // Or just manually update local state. Re-fetching all is safer.
 
     const handleSaveLeave = async () => {
         if (!selectedDoctor || !modalData.date) return;
@@ -166,8 +154,6 @@ const DoctorLeaveCalendar = () => {
         setCurrentDate(newDate);
     };
 
-
-
     const handleDateClick = (day) => {
         if (!selectedDoctor) {
             toast.error('Pilih dokter terlebih dahulu');
@@ -191,7 +177,7 @@ const DoctorLeaveCalendar = () => {
         const firstDay = getFirstDayOfMonth(currentDate);
         const days = [];
 
-        // Empty slots for previous month
+        // Empty slots
         for (let i = 0; i < firstDay; i++) {
             days.push(<div key={`empty-${i}`} className="bg-gray-50/30 dark:bg-gray-800/30 border border-gray-100 dark:border-gray-700 min-h-[120px]"></div>);
         }
@@ -200,7 +186,6 @@ const DoctorLeaveCalendar = () => {
         for (let day = 1; day <= daysInMonth; day++) {
             const currentDayDate = new Date(currentDate.getFullYear(), currentDate.getMonth(), day);
             const isToday = isSameDay(new Date(), currentDayDate);
-
             const dayLeaves = leaves.filter(l => isSameDay(new Date(l.date), currentDayDate));
 
             days.push(
@@ -249,7 +234,6 @@ const DoctorLeaveCalendar = () => {
         const startOfWeek = getStartOfWeek(currentDate);
         const days = [];
 
-        // Helper to get schedule for a specific day using DB convention (1-7, Sun=7)
         const getScheduleForDay = (date) => {
             if (!selectedDoctor?.schedules) return null;
             const dayIndex = date.getDay(); // 0-6
@@ -275,7 +259,6 @@ const DoctorLeaveCalendar = () => {
                         ${isToday ? 'bg-salm-light-blue/5' : ''}
                     `}
                 >
-                    {/* Date Header */}
                     <div className="text-center mb-6 z-10">
                         <div className={`text-xs font-bold uppercase tracking-wider mb-2 ${isToday ? 'text-salm-blue' : 'text-gray-400'}`}>
                             {dayDate.toLocaleString('default', { weekday: 'short' })}
@@ -290,10 +273,7 @@ const DoctorLeaveCalendar = () => {
                         </div>
                     </div>
 
-                    {/* Content Container */}
                     <div className="flex-1 flex flex-col gap-3 relative">
-
-                        {/* 1. Schedule Card (Base Layer) */}
                         <div className={`
                             p-3 rounded-xl border flex flex-col gap-1 transition-all
                             ${isWorkingDay
@@ -318,7 +298,6 @@ const DoctorLeaveCalendar = () => {
                             </div>
                         </div>
 
-                        {/* 2. Leave Overlay (Top Layer) */}
                         {dayLeaves.map((leave, idx) => (
                             <div
                                 key={idx}
@@ -339,7 +318,6 @@ const DoctorLeaveCalendar = () => {
                             </div>
                         ))}
 
-                        {/* Hover Add Button (Only if no leave) */}
                         {dayLeaves.length === 0 && (
                             <div className="absolute inset-x-0 bottom-0 top-auto flex justify-center py-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
                                 <div className="bg-salm-gradient text-white p-1.5 rounded-full shadow-lg transform translate-y-2 group-hover:translate-y-0 transition-transform">
@@ -417,7 +395,10 @@ const DoctorLeaveCalendar = () => {
             days.push(
                 <div
                     key={`mini-${day}`}
-                    onClick={() => setCurrentDate(dayDate)}
+                    onClick={(e) => {
+                        e.stopPropagation();
+                        setCurrentDate(dayDate);
+                    }}
                     className={`
                         w-full aspect-square flex items-center justify-center rounded-full cursor-pointer text-xs font-medium transition-all
                         ${isSelected
@@ -468,23 +449,34 @@ const DoctorLeaveCalendar = () => {
                 </div>
 
                 {/* Mini Calendar Widget (Collapsible) */}
-                <div className="bg-white dark:bg-gray-800 rounded-3xl p-4 lg:p-6 shadow-sm border border-gray-100 dark:border-gray-700 shrink-0 transition-all duration-300">
-                    <div className="flex items-center justify-between cursor-pointer group" onClick={() => setIsMiniCalendarOpen(!isMiniCalendarOpen)}>
-                        <h3 className="font-bold text-gray-800 dark:text-white group-hover:text-salm-purple transition-colors flex items-center gap-2 select-none">
-                            {currentDate.toLocaleString('default', { month: 'long', year: 'numeric' })}
-                            <span className={`text-xs bg-gray-100 dark:bg-gray-700 px-2 py-0.5 rounded-full text-gray-500 transition-transform duration-300 ${isMiniCalendarOpen ? 'rotate-180' : ''}`}>
-                                ▼
-                            </span>
-                        </h3>
+                <div className={`bg-white dark:bg-gray-800 rounded-3xl shadow-sm border border-gray-100 dark:border-gray-700 shrink-0 transition-all duration-300 overflow-hidden ${isMiniCalendarOpen ? 'p-6' : 'p-4'}`}>
+                    <div
+                        className="flex items-center justify-between cursor-pointer group"
+                        onClick={() => setIsMiniCalendarOpen(!isMiniCalendarOpen)}
+                    >
+                        <div className="flex items-center gap-3">
+                            <div className={`
+                                w-8 h-8 rounded-full flex items-center justify-center transition-all duration-300
+                                ${isMiniCalendarOpen
+                                    ? 'bg-salm-light-blue/20 text-salm-blue rotate-180'
+                                    : 'bg-gray-100 dark:bg-gray-700 text-gray-400 group-hover:bg-salm-light-blue/20 group-hover:text-salm-blue'}
+                            `}>
+                                <ChevronDown className="w-4 h-4" />
+                            </div>
+                            <h3 className="font-bold text-gray-800 dark:text-white group-hover:text-salm-purple transition-colors select-none">
+                                {currentDate.toLocaleString('default', { month: 'long', year: 'numeric' })}
+                            </h3>
+                        </div>
+
                         {isMiniCalendarOpen && (
-                            <div className="flex gap-1" onClick={(e) => e.stopPropagation()}>
-                                <button onClick={() => changeMiniCalendarMonth(-1)} className="p-1 hover:bg-gray-100 rounded-full"><ChevronLeft className="w-4 h-4 text-gray-500" /></button>
-                                <button onClick={() => changeMiniCalendarMonth(1)} className="p-1 hover:bg-gray-100 rounded-full"><ChevronRight className="w-4 h-4 text-gray-500" /></button>
+                            <div className="flex gap-1 animate-in fade-in slide-in-from-right-4 duration-300" onClick={(e) => e.stopPropagation()}>
+                                <button onClick={() => changeMiniCalendarMonth(-1)} className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition-colors"><ChevronLeft className="w-4 h-4 text-gray-500" /></button>
+                                <button onClick={() => changeMiniCalendarMonth(1)} className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition-colors"><ChevronRight className="w-4 h-4 text-gray-500" /></button>
                             </div>
                         )}
                     </div>
 
-                    <div className={`grid grid-cols-7 text-center text-xs gap-y-3 overflow-hidden transition-all duration-300 ease-in-out ${isMiniCalendarOpen ? 'mt-4 max-h-[300px] opacity-100' : 'max-h-0 opacity-0'}`}>
+                    <div className={`grid grid-cols-7 text-center text-xs gap-y-3 overflow-hidden transition-all duration-500 ease-in-out ${isMiniCalendarOpen ? 'mt-6 max-h-[300px] opacity-100' : 'max-h-0 opacity-0'}`}>
                         {['Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa', 'Su'].map(d => <span key={d} className="text-gray-400 font-medium">{d}</span>)}
                         {renderMiniCalendar()}
                     </div>
