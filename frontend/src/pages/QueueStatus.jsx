@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import axios from 'axios';
 import { Activity, Clock, User, Calendar } from 'lucide-react';
+import FallonavaLogo from '../components/FallonavaLogo';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
 
@@ -47,9 +48,8 @@ const QueueStatus = () => {
             {/* Header */}
             <div className="bg-white p-6 shadow-sm border-b border-gray-100 sticky top-0 z-10">
                 <div className="flex items-center gap-3 justify-center mb-2">
-                    <div className="w-8 h-8 bg-salm-gradient rounded-lg flex items-center justify-center shadow-lg shadow-salm-purple/20">
-                        <Activity className="text-white w-5 h-5" />
-                    </div>
+                    {/* Logo with Rich Styling */}
+                    <FallonavaLogo className="w-10 h-10 rounded-xl shadow-lg shadow-salm-purple/20 hover:scale-105 transition-transform duration-300" />
                     <h1 className="text-lg font-bold text-gray-800">Fallonava Queue</h1>
                 </div>
                 <p className="text-center text-xs text-gray-500 uppercase tracking-wider font-semibold">Realtime Status</p>

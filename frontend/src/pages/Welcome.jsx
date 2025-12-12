@@ -4,6 +4,7 @@ import { ArrowRight, Activity, Monitor, Shield, Zap } from 'lucide-react';
 import { motion } from 'framer-motion';
 import ThemeToggle from '../components/ThemeToggle';
 import useThemeStore from '../store/useThemeStore';
+import FallonavaLogo from '../components/FallonavaLogo';
 
 const Welcome = () => {
     const navigate = useNavigate();
@@ -46,9 +47,8 @@ const Welcome = () => {
             {/* Navbar */}
             <nav className="relative z-10 w-full max-w-[1200px] mx-auto p-6 flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                    <div className="w-8 h-8 bg-gradient-to-tr from-salm-pink to-salm-purple rounded-full flex items-center justify-center shadow-lg shadow-salm-pink/20">
-                        <Activity className="w-4 h-4 text-white" />
-                    </div>
+                    {/* Logo with Rich Styling */}
+                    <FallonavaLogo className="w-10 h-10 rounded-xl shadow-lg shadow-salm-purple/20 hover:scale-105 transition-transform duration-300" />
                     <span className="text-xl font-semibold tracking-tight text-theme-text">Fallonava.</span>
                 </div>
                 <button
