@@ -237,7 +237,7 @@ const AdminDashboard = () => {
                                 </div>
 
                                 {/* Analytics Section */}
-                                <div className="grid grid-cols-1 xl:grid-cols-3 gap-8 mb-10">
+                                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 lg:gap-8 mb-10">
                                     {/* Stats Cards */}
                                     <div className="space-y-6">
                                         <div className="card-soft p-6 flex items-center justify-between group hover:border-theme-purple/30">
