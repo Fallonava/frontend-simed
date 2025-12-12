@@ -6,7 +6,12 @@ const JWT_SECRET = process.env.JWT_SECRET || 'supersecretkey';
 
 exports.login = async (req, res) => {
     const { prisma } = req;
-    const { username, password } = req.body;
+    console.log('Login Request Body:', req.body); // DEBUG
+    const { username, password } = req.body || {};
+
+    if (!username || !password) {
+        return res.status(400).json({ error: 'Username and password are required' });
+    }
 
     try {
         const user = await prisma.user.findUnique({

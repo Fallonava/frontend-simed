@@ -25,8 +25,26 @@ const useAuthStore = create((set) => ({
             });
             return true;
         } catch (error) {
+            const status = error.response?.status;
+            const statusText = error.response?.statusText;
+            const apiMessage = error.response?.data?.error; // Assuming backend sends { error: "..." }
+
+            let finalMessage = 'Login failed';
+
+            if (status) {
+                finalMessage = `Login failed (${status} ${statusText}): ${apiMessage || 'No details'}`;
+            } else if (error.request) {
+                // The request was made but no response was received
+                finalMessage = `Network Error: No response received via ${error.message}`;
+            } else {
+                // Something happened in setting up the request
+                finalMessage = `Request Error: ${error.message}`;
+            }
+
+            console.error("Login Error Detail:", error);
+
             set({
-                error: error.response?.data?.error || 'Login failed',
+                error: finalMessage,
                 isLoading: false
             });
             return false;
