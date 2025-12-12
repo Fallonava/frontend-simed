@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# SIMED Production Deployment Script
+# Fallonava Production Deployment Script
 # This script is called by GitHub Actions
 
 echo "Deploying to Production..."
@@ -27,7 +27,7 @@ cd backend
 npm install
 npx prisma generate
 npx prisma db push # Update schema without reset
-pm2 restart simed-backend
+pm2 restart fallonava-backend
 
 # Frontend Setup
 echo "Updating Frontend..."

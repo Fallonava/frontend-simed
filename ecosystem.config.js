@@ -1,6 +1,6 @@
 module.exports = {
     apps: [{
-        name: 'simed-backend',
+        name: 'fallonava-backend',
         script: 'src/app.js',
         cwd: 'backend',
         instances: 1,

@@ -73,8 +73,8 @@ const AdminDashboard = () => {
             {/* Mobile Header */}
             <div className="lg:hidden fixed top-0 left-0 right-0 h-16 bg-white dark:bg-gray-800 border-b border-gray-100 dark:border-gray-700 z-30 flex items-center px-4 justify-between shadow-sm">
                 <div className="flex items-center gap-3">
-                    <img src={appIcon} alt="SiMed Logo" className="w-8 h-8 rounded-lg shadow-lg shadow-salm-purple/20" />
-                    <span className="text-lg font-bold text-theme-text">SiMed.</span>
+                    <img src={appIcon} alt="Fallonava Logo" className="w-8 h-8 rounded-lg shadow-lg shadow-salm-purple/20" />
+                    <span className="text-lg font-bold text-theme-text">Fallonava.</span>
                 </div>
                 <button
                     onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
@@ -101,8 +101,8 @@ const AdminDashboard = () => {
                 ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
             `}>
                 <div className="flex items-center gap-3 mb-12 px-2">
-                    <img src={appIcon} alt="SiMed Logo" className="w-10 h-10 rounded-xl shadow-lg shadow-salm-purple/20" />
-                    <span className="text-xl font-bold text-theme-text tracking-tight">SiMed.</span>
+                    <img src={appIcon} alt="Fallonava Logo" className="w-10 h-10 rounded-xl shadow-lg shadow-salm-purple/20" />
+                    <span className="text-xl font-bold text-theme-text tracking-tight">Fallonava.</span>
                 </div>
 
                 <nav className="space-y-2 flex-1">

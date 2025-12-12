@@ -65,7 +65,7 @@ const TicketModal = ({ ticket, onClose }) => {
                         {/* Thermal Print Header */}
                         <div className="text-center p-6 pb-4 border-b-2 border-dashed border-gray-100 print:p-2 print:pb-2 print:border-black">
                             <div className="hidden print:block mb-2 text-center">
-                                <h2 className="text-xl font-bold uppercase leading-none">RS SiMed</h2>
+                                <h2 className="text-xl font-bold uppercase leading-none">RS Fallonava</h2>
                                 <p className="text-[10px] mt-1">Sistem Antrian Terpadu</p>
                             </div>
 

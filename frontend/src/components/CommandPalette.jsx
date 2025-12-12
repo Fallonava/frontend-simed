@@ -150,8 +150,8 @@ const CommandPalette = () => {
                                         }}
                                         onMouseEnter={() => setSelectedIndex(index)}
                                         className={`px-4 py-3 flex items-center justify-between cursor-pointer transition-colors ${index === selectedIndex
-                                                ? 'bg-theme-purple/10 dark:bg-theme-purple/20'
-                                                : 'hover:bg-gray-50 dark:hover:bg-gray-700/50'
+                                            ? 'bg-theme-purple/10 dark:bg-theme-purple/20'
+                                            : 'hover:bg-gray-50 dark:hover:bg-gray-700/50'
                                             }`}
                                     >
                                         <div className="flex items-center gap-3">
@@ -180,7 +180,7 @@ const CommandPalette = () => {
                             </div>
                             <div className="flex items-center gap-1">
                                 <Activity className="w-3 h-3" />
-                                <span>SiMed Pro</span>
+                                <span>Fallonava Pro</span>
                             </div>
                         </div>
                     </motion.div>
