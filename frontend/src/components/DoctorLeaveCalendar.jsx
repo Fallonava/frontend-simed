@@ -49,6 +49,9 @@ const DoctorLeaveCalendar = () => {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [modalData, setModalData] = useState({ date: null, existingLeave: null, reason: '' });
 
+    // Mini Calendar Toggle
+    const [isMiniCalendarOpen, setIsMiniCalendarOpen] = useState(true);
+
     // --- Effects ---
     useEffect(() => {
         fetchDoctors();
@@ -433,13 +436,13 @@ const DoctorLeaveCalendar = () => {
     };
 
     return (
-        <div className="w-full h-full flex flex-col lg:flex-row gap-8 relative z-10 pb-6 text-gray-800 dark:text-gray-200 font-sans">
+        <div className="w-full h-[calc(100vh-140px)] flex flex-col lg:flex-row gap-6 relative z-10 pb-2 text-gray-800 dark:text-gray-200 font-sans">
 
             {/* --- Left Sidebar --- */}
-            <div className="w-full lg:w-[320px] lg:h-full flex flex-col gap-4 lg:gap-6 shrink-0 transition-all">
+            <div className="w-full lg:w-[320px] h-full flex flex-col gap-4 shrink-0 transition-all overflow-hidden">
 
                 {/* Search / Filter Header */}
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-3 shrink-0">
                     <div className="relative flex-1">
                         <Search className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
                         <input
@@ -450,7 +453,7 @@ const DoctorLeaveCalendar = () => {
                             className="w-full pl-9 pr-4 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-sm focus:outline-none focus:border-salm-purple transition-colors text-gray-700 dark:text-gray-200 placeholder-gray-400"
                         />
                     </div>
-                    <div className="flex items-center gap-2 mt-3 px-1">
+                    <div className="flex items-center gap-2 px-1 shrink-0">
                         <input
                             type="checkbox"
                             checked={filterByDate}
@@ -459,34 +462,42 @@ const DoctorLeaveCalendar = () => {
                             id="filterByDate"
                         />
                         <label htmlFor="filterByDate" className="text-xs text-gray-500 font-medium cursor-pointer select-none">
-                            Absent only
+                            Absent
                         </label>
                     </div>
                 </div>
 
-                {/* Mini Calendar Widget */}
-                <div className="bg-white dark:bg-gray-800 rounded-3xl p-6 shadow-sm border border-gray-100 dark:border-gray-700">
-                    <div className="flex items-center justify-between mb-4">
-                        <h3 className="font-bold text-gray-800 dark:text-white">{currentDate.toLocaleString('default', { month: 'long', year: 'numeric' })}</h3>
-                        <div className="flex gap-1">
-                            <button onClick={() => changeMiniCalendarMonth(-1)} className="p-1 hover:bg-gray-100 rounded-full"><ChevronLeft className="w-4 h-4 text-gray-500" /></button>
-                            <button onClick={() => changeMiniCalendarMonth(1)} className="p-1 hover:bg-gray-100 rounded-full"><ChevronRight className="w-4 h-4 text-gray-500" /></button>
-                        </div>
+                {/* Mini Calendar Widget (Collapsible) */}
+                <div className="bg-white dark:bg-gray-800 rounded-3xl p-4 lg:p-6 shadow-sm border border-gray-100 dark:border-gray-700 shrink-0 transition-all duration-300">
+                    <div className="flex items-center justify-between cursor-pointer group" onClick={() => setIsMiniCalendarOpen(!isMiniCalendarOpen)}>
+                        <h3 className="font-bold text-gray-800 dark:text-white group-hover:text-salm-purple transition-colors flex items-center gap-2 select-none">
+                            {currentDate.toLocaleString('default', { month: 'long', year: 'numeric' })}
+                            <span className={`text-xs bg-gray-100 dark:bg-gray-700 px-2 py-0.5 rounded-full text-gray-500 transition-transform duration-300 ${isMiniCalendarOpen ? 'rotate-180' : ''}`}>
+                                ▼
+                            </span>
+                        </h3>
+                        {isMiniCalendarOpen && (
+                            <div className="flex gap-1" onClick={(e) => e.stopPropagation()}>
+                                <button onClick={() => changeMiniCalendarMonth(-1)} className="p-1 hover:bg-gray-100 rounded-full"><ChevronLeft className="w-4 h-4 text-gray-500" /></button>
+                                <button onClick={() => changeMiniCalendarMonth(1)} className="p-1 hover:bg-gray-100 rounded-full"><ChevronRight className="w-4 h-4 text-gray-500" /></button>
+                            </div>
+                        )}
                     </div>
 
-                    <div className="grid grid-cols-7 text-center text-xs gap-y-3">
+                    <div className={`grid grid-cols-7 text-center text-xs gap-y-3 overflow-hidden transition-all duration-300 ease-in-out ${isMiniCalendarOpen ? 'mt-4 max-h-[300px] opacity-100' : 'max-h-0 opacity-0'}`}>
                         {['Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa', 'Su'].map(d => <span key={d} className="text-gray-400 font-medium">{d}</span>)}
                         {renderMiniCalendar()}
                     </div>
                 </div>
 
                 {/* Doctor List */}
-                <div className="flex-1 bg-white dark:bg-gray-800 rounded-2xl lg:rounded-3xl p-4 lg:p-6 shadow-sm border border-gray-100 dark:border-gray-700 flex flex-col overflow-hidden">
-                    <div className="flex items-center justify-between mb-4">
-                        <h3 className="font-bold text-gray-800 dark:text-white">Doctor List</h3>
-                        <button className="text-gray-400 hover:text-gray-600"><MoreHorizontal className="w-4 h-4" /></button>
+                <div className="flex-1 bg-white dark:bg-gray-800 rounded-2xl lg:rounded-3xl p-4 shadow-sm border border-gray-100 dark:border-gray-700 flex flex-col min-h-0">
+                    <div className="flex items-center justify-between mb-2 shrink-0">
+                        <h3 className="font-bold text-gray-800 dark:text-white text-sm">Doctor List</h3>
+                        <span className="text-xs text-gray-400 font-medium">{filteredDoctors.length} found</span>
+                        <button className="text-gray-400 hover:text-gray-600 ml-auto"><MoreHorizontal className="w-4 h-4" /></button>
                     </div>
-                    <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar space-y-3">
+                    <div className="flex-1 overflow-y-auto pr-1 custom-scrollbar space-y-2">
                         {filteredDoctors.length === 0 ? (
                             <div className="text-center text-gray-400 py-8 text-sm">
                                 No doctors scheduled for this day
@@ -502,14 +513,14 @@ const DoctorLeaveCalendar = () => {
                                         : 'bg-white dark:bg-gray-800 border-transparent hover:bg-gray-50 dark:hover:bg-gray-700 hover:border-gray-100 dark:hover:border-gray-600'}
                                 `}
                             >
-                                <div className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold ${selectedDoctor?.id === doc.id ? 'bg-salm-light-blue/30 text-salm-blue' : 'bg-gray-100 text-gray-500'}`}>
+                                <div className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold shrink-0 ${selectedDoctor?.id === doc.id ? 'bg-salm-light-blue/30 text-salm-blue' : 'bg-gray-100 text-gray-500'}`}>
                                     {doc.name.charAt(0)}
                                 </div>
                                 <div className="flex-1 min-w-0">
                                     <h4 className={`text-sm font-bold truncate ${selectedDoctor?.id === doc.id ? 'text-salm-purple' : 'text-gray-800 dark:text-gray-200'}`}>{doc.name}</h4>
                                     <p className="text-xs text-gray-500 dark:text-gray-400 truncate">{doc.specialization || 'Specialist'}</p>
                                 </div>
-                                {selectedDoctor?.id === doc.id && <div className="w-2 h-2 rounded-full bg-salm-blue"></div>}
+                                {selectedDoctor?.id === doc.id && <div className="w-2 h-2 rounded-full bg-salm-blue shrink-0"></div>}
                             </div>
                         ))}
                     </div>
