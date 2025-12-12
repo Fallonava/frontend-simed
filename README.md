@@ -1,6 +1,6 @@
-# SIMED (Sistem Informasi Manajemen Rumah Sakit)
+# Fallonava (Sistem Informasi Manajemen Rumah Sakit)
 
-SIMED is a comprehensive Hospital Management System designed to streamline healthcare operations. It features a modern, responsive frontend and a robust backend API for managing patients, doctors, queues, and administrative tasks.
+Fallonava is a comprehensive Hospital Management System designed to streamline healthcare operations. It features a modern, responsive frontend and a robust backend API for managing patients, doctors, queues, and administrative tasks.
 
 ![Status](https://img.shields.io/badge/status-active-success.svg)
 ![License](https://img.shields.io/badge/license-Private-blue.svg)
@@ -109,4 +109,4 @@ bash ~/simed/scripts/deploy_prod.sh
 4. Open a Pull Request.
 
 ---
-© 2025 SIMED Development Team. All Rights Reserved.
+© 2025 Fallonava Development Team. All Rights Reserved.
