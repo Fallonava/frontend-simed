@@ -12,8 +12,17 @@ const PublicSchedule = () => {
     const [doctors, setDoctors] = useState([]);
     const [leaves, setLeaves] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [showQrOverlay, setShowQrOverlay] = useState(true);
 
     const publicUrl = window.location.href;
+
+    // Auto-close QR overlay after 10 seconds
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            setShowQrOverlay(false);
+        }, 10000);
+        return () => clearTimeout(timer);
+    }, []);
 
     useEffect(() => {
         const fetchData = async () => {
@@ -151,53 +160,65 @@ const PublicSchedule = () => {
     };
 
     const renderRosterView = () => (
-        <div className="w-full h-full flex flex-col bg-white/60 dark:bg-gray-800/60 backdrop-blur-xl rounded-[32px] shadow-xl border border-white/50 dark:border-gray-700 overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-500">
-            <div className="p-6 border-b border-gray-100 dark:border-gray-700 bg-white/40 dark:bg-black/20 shrink-0">
-                <div className="flex items-center justify-between">
-                    <div>
-                        <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Full Weekly Roster</h2>
-                        <p className="text-gray-500">Regular schedule for all specialists</p>
-                    </div>
-                    {/* Legend */}
-                    <div className="flex gap-4 text-xs font-medium">
-                        <div className="flex items-center gap-2"><div className="w-3 h-3 rounded-full bg-green-100 border border-green-200"></div> Practice</div>
-                        <div className="flex items-center gap-2"><div className="w-3 h-3 rounded-full bg-gray-50 border border-gray-200"></div> Off</div>
-                    </div>
+        <div className="w-full h-full flex flex-col bg-white/60 dark:bg-gray-800/60 backdrop-blur-xl rounded-[32px] shadow-2xl border border-white/50 dark:border-gray-700 overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-500">
+            {/* Toolbar / header */}
+            <div className="px-8 py-6 border-b border-gray-100 dark:border-gray-700 bg-white/40 dark:bg-black/20 shrink-0 flex items-center justify-between">
+                <div>
+                    <h2 className="text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                        <Grid className="w-6 h-6 text-salm-blue" />
+                        Weekly Master Roster
+                    </h2>
+                    <p className="text-gray-500 font-medium">Complete schedule for all specialists</p>
+                </div>
+                {/* Legend */}
+                <div className="flex gap-6 text-xs font-semibold uppercase tracking-wide text-gray-500 bg-white/50 dark:bg-black/20 px-4 py-2 rounded-full border border-white/20">
+                    <div className="flex items-center gap-2"><div className="w-2.5 h-2.5 rounded-full bg-green-500 shadow-sm shadow-green-200"></div> Practice</div>
+                    <div className="flex items-center gap-2"><div className="w-2.5 h-2.5 rounded-full bg-gray-200 dark:bg-gray-600"></div> Off Duty</div>
                 </div>
             </div>
 
-            <div className="flex-1 overflow-auto custom-scrollbar p-6">
-                <table className="w-full border-collapse">
-                    <thead>
+            {/* Grid Container */}
+            <div className="flex-1 overflow-auto custom-scrollbar relative bg-white/30 dark:bg-black/10">
+                <table className="w-full border-separate border-spacing-0">
+                    <thead className="sticky top-0 z-30">
                         <tr>
-                            <th className="text-left p-4 sticky top-0 bg-gray-50/90 dark:bg-gray-800/90 backdrop-blur-md z-10 rounded-l-xl text-xs font-bold text-gray-400 uppercase tracking-wider">Doctor</th>
+                            <th className="sticky left-0 z-40 top-0 bg-gray-50/95 dark:bg-gray-800/95 backdrop-blur-md border-b border-r border-gray-200/50 dark:border-gray-700/50 p-4 min-w-[240px] text-left shadow-sm">
+                                <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">Specialist</span>
+                            </th>
                             {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map(day => (
-                                <th key={day} className="p-4 sticky top-0 bg-gray-50/90 dark:bg-gray-800/90 backdrop-blur-md z-10 text-center text-xs font-bold text-gray-400 uppercase tracking-wider last:rounded-r-xl">{day}</th>
+                                <th key={day} className="bg-gray-50/95 dark:bg-gray-800/95 backdrop-blur-md border-b border-gray-200/50 dark:border-gray-700/50 p-4 text-center min-w-[140px] shadow-sm">
+                                    <span className="text-xs font-bold text-gray-800 dark:text-gray-200 uppercase tracking-wider">{day}</span>
+                                </th>
                             ))}
                         </tr>
                     </thead>
-                    <tbody className="space-y-2">
+                    <tbody>
                         {rosterData.map((doc, idx) => (
-                            <tr key={doc.id} className="group border-b border-gray-100/50 dark:border-gray-700/50 hover:bg-white/50 dark:hover:bg-white/5 transition-colors">
-                                <td className="p-4">
-                                    <div className="flex items-center gap-3">
-                                        <div className="w-10 h-10 rounded-full bg-salm-light-blue/20 text-salm-blue flex items-center justify-center font-bold text-sm shrink-0">
+                            <tr key={doc.id} className="group transition-colors hover:bg-salm-blue/5">
+                                {/* Sticky Name Column */}
+                                <td className="sticky left-0 z-20 bg-white/90 dark:bg-gray-900/90 group-hover:bg-gray-50/95 dark:group-hover:bg-gray-800/95 backdrop-blur-sm border-r border-b border-gray-100 dark:border-gray-700/50 p-4 transition-colors">
+                                    <div className="flex items-center gap-4">
+                                        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-700 dark:to-gray-800 text-gray-600 dark:text-gray-300 flex items-center justify-center font-bold text-sm shrink-0 shadow-inner">
                                             {doc.name.charAt(0)}
                                         </div>
                                         <div>
-                                            <div className="font-bold text-gray-900 dark:text-gray-100 text-sm">{doc.name}</div>
-                                            <div className="text-xs text-salm-purple font-medium">{doc.specialization || 'General'}</div>
+                                            <div className="font-bold text-gray-900 dark:text-white text-sm leading-tight">{doc.name}</div>
+                                            <div className="text-[11px] text-salm-purple font-bold uppercase tracking-wide mt-0.5">{doc.specialization || 'General'}</div>
                                         </div>
                                     </div>
                                 </td>
+
+                                {/* Schedule Cells */}
                                 {[1, 2, 3, 4, 5, 6, 7].map(dayNum => (
-                                    <td key={dayNum} className="p-2 text-center">
+                                    <td key={dayNum} className="border-b border-gray-100 dark:border-gray-700/50 p-3 text-center transition-colors group-hover:bg-white/40 dark:group-hover:bg-white/5 relative">
                                         {doc.weekly[dayNum] ? (
-                                            <div className="inline-block px-3 py-1.5 rounded-lg bg-green-50 dark:bg-green-900/20 border border-green-100 dark:border-green-800/30 text-green-700 dark:text-green-400 text-xs font-bold shadow-sm">
-                                                {doc.weekly[dayNum]}
+                                            <div className="inline-flex flex-col items-center justify-center w-full h-full py-2 bg-green-50/50 dark:bg-green-900/10 rounded-xl border border-green-100/50 dark:border-green-800/20 group-hover:border-green-200 transition-colors">
+                                                <span className="text-xs font-bold text-green-700 dark:text-green-400">{doc.weekly[dayNum]}</span>
                                             </div>
                                         ) : (
-                                            <div className="w-2 h-2 mx-auto rounded-full bg-gray-100 dark:bg-gray-700/50"></div>
+                                            <div className="flex items-center justify-center opacity-20">
+                                                <div className="w-1.5 h-1.5 rounded-full bg-gray-400"></div>
+                                            </div>
                                         )}
                                     </td>
                                 ))}
@@ -357,15 +378,37 @@ const PublicSchedule = () => {
                 {view === 'roster' && renderRosterView()}
 
                 {/* QR Code Overlay - Always visible in bottom left */}
-                <div className="absolute bottom-8 left-8 hidden lg:flex items-center gap-4 bg-white/90 dark:bg-gray-800/90 backdrop-blur-md p-4 rounded-3xl shadow-2xl border border-white/20 dark:border-gray-700 z-50 animate-in slide-in-from-bottom-10 fade-in duration-700 delay-500">
-                    <div className="bg-white p-2 rounded-xl shrink-0">
-                        <QRCodeCanvas value={publicUrl} size={64} />
-                    </div>
-                    <div>
-                        <h3 className="font-bold text-sm leading-tight text-gray-900 dark:text-white">Scan for<br />Mobile Access</h3>
-                        <p className="text-[10px] text-gray-500 dark:text-gray-400 mt-1">Check schedule anytime</p>
-                    </div>
-                </div>
+                {/* QR Code Overlay - Auto-hide after 10s */}
+                <AnimatePresence>
+                    {showQrOverlay ? (
+                        <motion.div
+                            initial={{ opacity: 0, y: 20, scale: 0.9 }}
+                            animate={{ opacity: 1, y: 0, scale: 1 }}
+                            exit={{ opacity: 0, y: 20, scale: 0.9 }}
+                            className="absolute bottom-8 left-8 hidden lg:flex items-center gap-4 bg-white/90 dark:bg-gray-800/90 backdrop-blur-md p-4 rounded-3xl shadow-2xl border border-white/20 dark:border-gray-700 z-50 cursor-pointer hover:bg-white dark:hover:bg-gray-800 transition-colors"
+                            onClick={() => setShowQrOverlay(false)}
+                        >
+                            <div className="bg-white p-2 rounded-xl shrink-0">
+                                <QRCodeCanvas value={publicUrl} size={64} />
+                            </div>
+                            <div>
+                                <h3 className="font-bold text-sm leading-tight text-gray-900 dark:text-white">Scan for<br />Mobile Access</h3>
+                                <p className="text-[10px] text-gray-500 dark:text-gray-400 mt-1">Tap to dismiss</p>
+                            </div>
+                        </motion.div>
+                    ) : (
+                        <motion.button
+                            initial={{ opacity: 0, scale: 0 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            whileHover={{ scale: 1.1 }}
+                            whileTap={{ scale: 0.9 }}
+                            onClick={() => setShowQrOverlay(true)}
+                            className="absolute bottom-8 left-8 hidden lg:flex items-center justify-center w-12 h-12 bg-white dark:bg-gray-800 rounded-full shadow-lg border border-gray-200 dark:border-gray-700 z-40 text-gray-900 dark:text-white"
+                        >
+                            <div className="w-6 h-6"><Grid className="w-full h-full" /></div>
+                        </motion.button>
+                    )}
+                </AnimatePresence>
 
             </main>
         </div>
