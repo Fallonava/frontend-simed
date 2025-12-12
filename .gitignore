@@ -53,3 +53,8 @@ debug_*.sh
 # Agent Files
 .agent/
 .gemini/
+
+# Specific Env Files
+backend/.env
+frontend/.env*
+

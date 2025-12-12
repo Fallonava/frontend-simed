@@ -9,7 +9,17 @@ echo "Deploying to Production..."
 cd ~/simed || exit
 
 # Pull latest changes
+echo "Backing up environment variables..."
+cp backend/.env backend/.env.backup 2>/dev/null || true
+cp frontend/.env frontend/.env.backup 2>/dev/null || true
+cp frontend/.env.production frontend/.env.production.backup 2>/dev/null || true
+
 git pull origin dev
+
+echo "Restoring environment variables..."
+cp backend/.env.backup backend/.env 2>/dev/null || true
+cp frontend/.env.backup frontend/.env 2>/dev/null || true
+cp frontend/.env.production.backup frontend/.env.production 2>/dev/null || true
 
 # Backend Setup
 echo "Updating Backend..."
