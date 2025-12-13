@@ -13,7 +13,6 @@ const Kiosk = React.lazy(() => import('./pages/Kiosk'));
 const Counter = React.lazy(() => import('./pages/Counter'));
 const MasterData = React.lazy(() => import('./pages/MasterData'));
 const Login = React.lazy(() => import('./pages/Login'));
-const StaffCounter = React.lazy(() => import('./pages/StaffCounter'));
 const MainMenu = React.lazy(() => import('./pages/MainMenu'));
 const DoctorLeaveCalendar = React.lazy(() => import('./components/DoctorLeaveCalendar')); // Accessed via route
 const Welcome = React.lazy(() => import('./pages/Welcome'));
@@ -56,7 +55,7 @@ function AnimatedRoutes() {
 
           {/* Staff Routes */}
           <Route element={<ProtectedRoute allowedRoles={['STAFF', 'ADMIN']} />}>
-            <Route path="/admin/counter" element={<PageWrapper><StaffCounter /></PageWrapper>} />
+            <Route path="/admin/counter" element={<PageWrapper><Registration /></PageWrapper>} /> {/* Redirecting old route to Registration just in case, or we can just remove it. Let's redirect for safety or just use Registration */}
             <Route path="/registration" element={<PageWrapper><Registration /></PageWrapper>} />
             <Route path="/doctor/dashboard" element={<PageWrapper><DoctorDashboard /></PageWrapper>} />
 

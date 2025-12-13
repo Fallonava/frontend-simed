@@ -1,12 +1,16 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Search, Plus, User, FileText, Printer, CheckCircle, MapPin, Phone, CreditCard, Stethoscope, Activity, ChevronRight, X, ArrowRight, RefreshCcw } from 'lucide-react';
+import { Search, Plus, User, FileText, Printer, CheckCircle, MapPin, Phone, CreditCard, Stethoscope, Activity, ChevronRight, X, ArrowRight, RefreshCcw, Mic, Bell, Users, LogOut, Volume2, ChevronUp, ChevronDown, Settings } from 'lucide-react';
 import toast, { Toaster } from 'react-hot-toast';
 import { useNavigate } from 'react-router-dom';
 import { QRCodeCanvas } from 'qrcode.react';
+import { io } from 'socket.io-client';
 import api from '../utils/axiosConfig';
 import PageWrapper from '../components/PageWrapper';
 import defaultAvatar from '../assets/doctor_avatar.png';
+
+const SOCKET_URL = import.meta.env.VITE_SOCKET_URL || 'http://localhost:3000';
+const CHIME_URL = '/airport-chime.mp3';
 
 const Registration = () => {
     const navigate = useNavigate(); // Added hook
@@ -35,6 +39,184 @@ const Registration = () => {
         phone: ''
     });
 
+    // --- COUNTER LOGIC STATE ---
+    const [isCounterOpen, setIsCounterOpen] = useState(false); // UI State for Sheet
+    const [isCounterInitialized, setIsCounterInitialized] = useState(false);
+    const [counterConfig, setCounterConfig] = useState({
+        counterName: '',
+        poliId: 'all',
+        voiceName: ''
+    });
+
+    // Counter Data
+    const [availableVoices, setAvailableVoices] = useState([]);
+    const [counters, setCounters] = useState([]);
+    const [waitingList, setWaitingList] = useState([]);
+    const [skippedList, setSkippedList] = useState([]);
+    const [currentTicket, setCurrentTicket] = useState(null);
+    const [counterLoading, setCounterLoading] = useState(false);
+    const [showSkippedModal, setShowSkippedModal] = useState(false);
+
+    const chimeRef = useRef(new Audio(CHIME_URL));
+    const socketRef = useRef(null);
+
+    // --- COUNTER HELPER FUNCTIONS ---
+    const fetchCounters = async () => { try { const res = await api.get('/counters'); setCounters(res.data); } catch (error) { } };
+
+    const fetchWaitingList = React.useCallback(async () => {
+        if (!counterConfig.poliId) return;
+        try {
+            const res = await api.get('/queues/waiting', { params: { poli_id: counterConfig.poliId } });
+            setWaitingList(res.data);
+        } catch (error) { }
+    }, [counterConfig.poliId]);
+
+    const fetchSkippedList = React.useCallback(async () => {
+        if (!counterConfig.poliId) return;
+        try {
+            const res = await api.get('/queues/skipped', { params: { poli_id: counterConfig.poliId } });
+            setSkippedList(res.data);
+        } catch (error) { }
+    }, [counterConfig.poliId]);
+
+    const formatQueueForSpeech = (code) => {
+        if (!code) return '';
+        const cleanCode = code.replace(/-/g, '');
+        const match = cleanCode.match(/([a-zA-Z]+)(\d+)/);
+        if (match) {
+            const letters = match[1].split('').join('. ');
+            const number = parseInt(match[2], 10);
+            return `${letters}. ${number}`;
+        }
+        return code;
+    };
+
+    const playChime = () => {
+        return new Promise((resolve) => {
+            chimeRef.current.currentTime = 0;
+            chimeRef.current.play()
+                .then(() => setTimeout(resolve, 1500))
+                .catch(() => resolve());
+        });
+    };
+
+    const speak = async (text) => {
+        if (!('speechSynthesis' in window)) return;
+        window.speechSynthesis.cancel();
+        if (text.length > 20) await playChime();
+
+        const utterance = new SpeechSynthesisUtterance(text);
+        const voices = window.speechSynthesis.getVoices();
+        const selectedVoice = voices.find(v => v.name === counterConfig.voiceName);
+        if (selectedVoice) utterance.voice = selectedVoice;
+
+        utterance.lang = 'id-ID';
+        utterance.rate = 0.85;
+        utterance.pitch = 1.1;
+        window.speechSynthesis.speak(utterance);
+    };
+
+    // --- COUNTER ACTIONS ---
+    const handleInitCounter = (e) => {
+        e.preventDefault();
+        localStorage.setItem('staffCounterConfig', JSON.stringify(counterConfig));
+        setIsCounterInitialized(true);
+        toast.success(`Counter initialized: ${counterConfig.counterName}`);
+
+        // Socket Join
+        if (socketRef.current) {
+            socketRef.current.emit('join_counter', {
+                counterName: counterConfig.counterName,
+                poliId: counterConfig.poliId
+            });
+        }
+        fetchWaitingList();
+        fetchSkippedList();
+    };
+
+    const handleCallNext = async () => {
+        setCounterLoading(true);
+        try {
+            const res = await api.post('/queues/call', {
+                counter_name: counterConfig.counterName,
+                poli_id: counterConfig.poliId
+            });
+            const ticket = res.data.ticket;
+            const poliName = res.data.poliklinik.name;
+            setCurrentTicket({ ...ticket, poli_name: poliName });
+
+            const speechCode = formatQueueForSpeech(ticket.queue_code);
+            const counterSpeech = counterConfig.counterName.match(/^loket/i) ? counterConfig.counterName : `Loket ${counterConfig.counterName}`;
+            const announcement = `Nomor Antrian, ${speechCode}. Silakan menuju, ${counterSpeech}.`;
+
+            speak(announcement);
+            toast.success(`Calling ${ticket.queue_code}`);
+        } catch (error) {
+            if (error.response?.status === 404) toast('Antrian habis', { icon: 'ℹ️' });
+            else toast.error('Gagal memanggil');
+        } finally {
+            setCounterLoading(false);
+        }
+    };
+
+    const handleRecall = () => {
+        if (!currentTicket) return;
+        const speechCode = formatQueueForSpeech(currentTicket.queue_code);
+        const counterSpeech = counterConfig.counterName.match(/^loket/i) ? counterConfig.counterName : `Loket ${counterConfig.counterName}`;
+        const announcement = `Panggilan Ulang. Nomor Antrian, ${speechCode}. Silakan menuju, ${counterSpeech}.`;
+        speak(announcement);
+        toast.success(`Recalling ${currentTicket.queue_code}`);
+    };
+
+    const handleFinishTicket = async () => {
+        if (!currentTicket) return;
+        try {
+            await api.post('/queues/complete', { ticket_id: currentTicket.id });
+            setCurrentTicket(null);
+            toast.success('Selesai');
+            fetchWaitingList();
+        } catch (error) { toast.error('Error'); }
+    };
+
+    const handleSkipTicket = async () => {
+        if (!currentTicket) return;
+        try {
+            await api.post('/queues/skip', { ticket_id: currentTicket.id });
+            setCurrentTicket(null);
+            toast.success('Dilewati');
+            fetchWaitingList(); fetchSkippedList();
+        } catch (error) { toast.error('Error'); }
+    };
+
+    const handleRecallSkipped = async (ticket) => {
+        if (currentTicket) { toast.error('Selesaikan pasien saat ini dulu'); return; }
+        try {
+            const res = await api.post('/queues/recall-skipped', {
+                ticket_id: ticket.id, counter_name: counterConfig.counterName
+            });
+            const updatedTicket = res.data;
+            const poliName = ticket.daily_quota.doctor.poliklinik.name;
+            setCurrentTicket({ ...updatedTicket, poli_name: poliName });
+            setShowSkippedModal(false);
+
+            // Auto expand the counter if hidden
+            if (!isCounterOpen) setIsCounterOpen(true);
+
+            const speechCode = formatQueueForSpeech(updatedTicket.queue_code);
+            const counterSpeech = counterConfig.counterName.match(/^loket/i) ? counterConfig.counterName : `Loket ${counterConfig.counterName}`;
+            const announcement = `Panggilan Ulang. Nomor Antrian, ${speechCode}. Silakan menuju, ${counterSpeech}.`;
+            speak(announcement);
+        } catch (error) { toast.error('Gagal recall'); }
+    };
+
+    const handleLogoutCounter = () => {
+        localStorage.removeItem('staffCounterConfig');
+        setIsCounterInitialized(false);
+        setCurrentTicket(null);
+        setCounterConfig(prev => ({ ...prev, counterName: '', poliId: 'all' }));
+        window.speechSynthesis.cancel();
+    };
+
     useEffect(() => {
         const fetchMasterData = async () => {
             try {
@@ -50,7 +232,61 @@ const Registration = () => {
             }
         };
         fetchMasterData();
+
+        // --- COUNTER INITIALIZATION ---
+        fetchCounters();
+
+        socketRef.current = io(SOCKET_URL);
+
+        // Load Voices
+        const loadVoices = () => {
+            const voices = window.speechSynthesis.getVoices();
+            if (voices.length > 0) {
+                setAvailableVoices(voices);
+                if (!counterConfig.voiceName) {
+                    const recommended = voices.find(v =>
+                        (v.name.includes('Gadis') || v.name.includes('Google Bahasa Indonesia'))
+                        && v.lang.includes('id')
+                    );
+                    if (recommended) setCounterConfig(prev => ({ ...prev, voiceName: recommended.name }));
+                }
+            }
+        };
+        loadVoices();
+        window.speechSynthesis.onvoiceschanged = loadVoices;
+
+        // Load Config
+        const savedConfig = localStorage.getItem('staffCounterConfig');
+        if (savedConfig) {
+            const parsed = JSON.parse(savedConfig);
+            setCounterConfig(parsed);
+            setIsCounterInitialized(true);
+        }
+
+        return () => {
+            if (socketRef.current) socketRef.current.disconnect();
+            window.speechSynthesis.cancel();
+        };
     }, []);
+
+    // --- COUNTER EFFECTS ---
+    useEffect(() => {
+        if (isCounterInitialized && socketRef.current) {
+            socketRef.current.emit('join_counter', {
+                counterName: counterConfig.counterName,
+                poliId: counterConfig.poliId
+            });
+            fetchWaitingList();
+            fetchSkippedList();
+        }
+    }, [isCounterInitialized, counterConfig.poliId, fetchWaitingList, fetchSkippedList]);
+
+    useEffect(() => {
+        if (!socketRef.current) return;
+        const handleUpdate = () => { fetchWaitingList(); fetchSkippedList(); };
+        socketRef.current.on('queue_update', handleUpdate);
+        return () => { socketRef.current.off('queue_update', handleUpdate); };
+    }, [fetchWaitingList, fetchSkippedList]);
 
     const handleSearch = async (e) => {
         if (e) e.preventDefault();
@@ -165,8 +401,11 @@ const Registration = () => {
                             <button onClick={() => navigate('/menu')} className="flex-1 bg-gray-100 dark:bg-gray-800 hover:bg-white dark:hover:bg-gray-700 hover:shadow-md transition-all rounded-xl px-4 py-2.5 text-[11px] font-bold text-gray-500 dark:text-gray-400 border border-transparent hover:border-gray-200 dark:hover:border-gray-600 flex items-center justify-center gap-2 group">
                                 <span className="group-hover:-translate-x-0.5 transition-transform">←</span> Menu
                             </button>
-                            <button onClick={() => navigate('/admin/counter')} className="flex-1 bg-blue-50 dark:bg-blue-900/20 hover:bg-blue-100 dark:hover:bg-blue-900/30 hover:shadow-md transition-all rounded-xl px-4 py-2.5 text-[11px] font-bold text-blue-600 dark:text-blue-400 border border-transparent hover:border-blue-200 dark:hover:border-blue-800 flex items-center justify-center gap-2 group">
-                                Counter <ArrowRight size={12} className="group-hover:translate-x-0.5 transition-transform" />
+                            <button
+                                onClick={() => setIsCounterOpen(!isCounterOpen)}
+                                className={`flex-1 transition-all rounded-xl px-4 py-2.5 text-[11px] font-bold border border-transparent flex items-center justify-center gap-2 group ${isCounterOpen ? 'bg-salm-blue text-white shadow-lg shadow-salm-blue/30' : 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/30'}`}
+                            >
+                                {isCounterOpen ? 'Close Counter' : 'Open Counter'} <div className={`w-2 h-2 rounded-full ${isCounterInitialized ? 'bg-green-400 animate-pulse' : 'bg-gray-300'}`}></div>
                             </button>
                         </div>
 
@@ -757,12 +996,303 @@ const Registration = () => {
                     body * { visibility: hidden; }
                     /* Only show the ticket or card when printing */
                     ${ticketData ? '.fixed, .fixed * { visibility: visible; } .print\\:hidden { display: none !important; }' : ''}
-                    
                     ${showCardModal ? '.fixed, .fixed * { visibility: visible; } .print\\:hidden { display: none !important; }' : ''}
                 }
             `}</style>
+            {/* COUNTER PANEL DRAWER */}
+            <AnimatePresence>
+                {isCounterOpen && (
+                    <motion.div
+                        initial={{ y: "100%", opacity: 0 }}
+                        animate={{ y: 0, opacity: 1 }}
+                        exit={{ y: "100%", opacity: 0 }}
+                        transition={{ type: "spring", damping: 30, stiffness: 300 }}
+                        className="fixed bottom-0 right-0 md:right-6 md:bottom-24 w-full md:w-[420px] bg-white/95 dark:bg-gray-900/95 backdrop-blur-3xl md:rounded-[32px] shadow-2xl border border-white/20 dark:border-gray-700/50 overflow-hidden z-[90] flex flex-col max-h-[80vh] ring-1 ring-black/5 dark:ring-white/10"
+                    >
+                        {/* Header */}
+                        <div className="p-4 border-b border-gray-100 dark:border-gray-800 flex justify-between items-center bg-gray-50/80 dark:bg-black/40 cursor-pointer select-none" onClick={() => setIsCounterOpen(false)}>
+                            <div className="flex items-center gap-3">
+                                <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-salm-blue to-salm-light-blue flex items-center justify-center text-white shadow-lg shadow-salm-blue/30 ring-2 ring-white dark:ring-gray-700">
+                                    <Bell size={20} className={counterLoading ? 'animate-bounce' : ''} />
+                                </div>
+                                <div>
+                                    <h3 className="font-bold text-gray-900 dark:text-white leading-tight">Staff Counter</h3>
+                                    <p className="text-[10px] uppercase font-bold text-gray-400 tracking-wider flex items-center gap-1">
+                                        {isCounterInitialized ? (
+                                            <>
+                                                <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse"></span>
+                                                {counterConfig.counterName}
+                                            </>
+                                        ) : 'Setup Required'}
+                                    </p>
+                                </div>
+                            </div>
+                            <button onClick={(e) => { e.stopPropagation(); setIsCounterOpen(false); }} className="p-2 hover:bg-gray-200 dark:hover:bg-gray-700/50 rounded-full transition-colors text-gray-400">
+                                <ChevronDown size={20} />
+                            </button>
+                        </div>
+
+                        {/* Content Area */}
+                        <div className="flex-1 overflow-y-auto p-0 relative custom-scrollbar">
+                            {!isCounterInitialized ? (
+                                // SETUP FORM
+                                <div className="p-6 space-y-6">
+                                    <div className="text-center mb-6">
+                                        <div className="w-16 h-16 bg-blue-50 dark:bg-blue-900/20 rounded-full flex items-center justify-center mx-auto mb-3 text-salm-blue">
+                                            <Settings size={32} />
+                                        </div>
+                                        <h4 className="font-bold text-gray-900 dark:text-white">Configure Counter</h4>
+                                        <p className="text-xs text-gray-500 mt-1">Select your booth and voice settings</p>
+                                    </div>
+
+                                    <div className="space-y-4">
+                                        <div>
+                                            <label className="text-xs font-bold text-gray-500 uppercase tracking-wider ml-1 mb-1.5 block">Voice Assistant</label>
+                                            <div className="flex gap-2">
+                                                <select
+                                                    className="flex-1 bg-gray-50 dark:bg-gray-800 border-0 rounded-xl px-4 py-3 text-sm font-medium focus:ring-2 focus:ring-salm-blue/50"
+                                                    value={counterConfig.voiceName}
+                                                    onChange={(e) => {
+                                                        setCounterConfig({ ...counterConfig, voiceName: e.target.value });
+                                                        // Auto-test on change
+                                                        const utt = new SpeechSynthesisUtterance("Tes suara antrian.");
+                                                        const v = availableVoices.find(val => val.name === e.target.value);
+                                                        if (v) utt.voice = v;
+                                                        utt.lang = 'id-ID'; utt.pitch = 1.1;
+                                                        window.speechSynthesis.cancel();
+                                                        window.speechSynthesis.speak(utt);
+                                                    }}
+                                                >
+                                                    <option value="">-- Auto Select (Indonesian) --</option>
+                                                    {availableVoices.filter(v => v.lang.includes('id')).map(v => (
+                                                        <option key={v.name} value={v.name}>
+                                                            {v.name.includes('Google') ? '🌟 ' : ''}🇮🇩 {v.name}
+                                                        </option>
+                                                    ))}
+                                                    <optgroup label="Other Voices">
+                                                        {availableVoices.filter(v => !v.lang.includes('id')).map(v => (
+                                                            <option key={v.name} value={v.name}>{v.name}</option>
+                                                        ))}
+                                                    </optgroup>
+                                                </select>
+                                                <button
+                                                    onClick={() => {
+                                                        const text = "Nomor antrian, A 1. Silakan menuju loket 1.";
+                                                        speak(text);
+                                                    }}
+                                                    className="bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 p-3 rounded-xl hover:bg-blue-200 transition-colors"
+                                                    title="Test Voice"
+                                                >
+                                                    <Volume2 size={20} />
+                                                </button>
+                                            </div>
+                                        </div>
+                                        <div>
+                                            <label className="text-xs font-bold text-gray-500 uppercase tracking-wider ml-1 mb-1.5 block">Counter Number</label>
+                                            <select
+                                                className="w-full bg-gray-50 dark:bg-gray-800 border-0 rounded-xl px-4 py-3 text-sm font-medium focus:ring-2 focus:ring-salm-blue/50"
+                                                value={counterConfig.counterName}
+                                                onChange={(e) => setCounterConfig({ ...counterConfig, counterName: e.target.value })}
+                                            >
+                                                <option value="">-- Select Counter --</option>
+                                                {counters.map((c) => <option key={c.id} value={c.name}>{c.name}</option>)}
+                                            </select>
+                                        </div>
+                                        <div>
+                                            <label className="text-xs font-bold text-gray-500 uppercase tracking-wider ml-1 mb-1.5 block">Filter Specialty</label>
+                                            <select
+                                                className="w-full bg-gray-50 dark:bg-gray-800 border-0 rounded-xl px-4 py-3 text-sm font-medium focus:ring-2 focus:ring-salm-blue/50"
+                                                value={counterConfig.poliId}
+                                                onChange={(e) => setCounterConfig({ ...counterConfig, poliId: e.target.value })}
+                                            >
+                                                <option value="all">All Specialties</option>
+                                                {clinics.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
+                                            </select>
+                                        </div>
+                                    </div>
+
+                                    <button
+                                        onClick={handleInitCounter}
+                                        disabled={!counterConfig.counterName}
+                                        className="w-full bg-salm-blue hover:bg-blue-600 text-white py-3.5 rounded-xl font-bold shadow-lg shadow-blue-500/20 active:scale-95 transition-all mt-4 disabled:opacity-50 disabled:cursor-not-allowed"
+                                    >
+                                        Initialize Counter
+                                    </button>
+                                </div>
+                            ) : (
+                                // ACTIVE COUNTER UI
+                                <div className="flex flex-col h-full">
+                                    {/* Status Bar */}
+                                    <div className="px-6 py-3 bg-blue-50/50 dark:bg-blue-900/10 flex justify-between items-center border-b border-gray-100 dark:border-gray-800/50">
+                                        <div className="flex items-center gap-2 text-xs font-bold text-gray-600 dark:text-gray-300">
+                                            <Users size={14} className="text-salm-blue" />
+                                            Waiting: <span className="text-gray-900 dark:text-white">{waitingList.length}</span>
+                                        </div>
+                                        <button onClick={() => setShowSkippedModal(true)} className="flex items-center gap-2 text-xs font-bold text-orange-500 hover:text-orange-600 px-2 py-1 hover:bg-orange-50 rounded-lg transition-colors">
+                                            <LogOut size={14} /> Skipped: {skippedList.length}
+                                        </button>
+                                    </div>
+
+                                    {/* WAITING LIST & CURRENT TICKET */}
+                                    <div className="flex-1 overflow-y-auto custom-scrollbar flex flex-col">
+                                        {/* Current Ticket Area (Compact) */}
+                                        <div className="p-6 text-center space-y-2 relative overflow-hidden shrink-0">
+                                            {/* Decorative BG */}
+                                            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-48 h-48 bg-blue-100/50 dark:bg-blue-900/20 rounded-full blur-3xl -z-10"></div>
+
+                                            <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-gray-400">Current Ticket</p>
+                                            {currentTicket ? (
+                                                <motion.div
+                                                    initial={{ scale: 0.8, opacity: 0 }}
+                                                    animate={{ scale: 1, opacity: 1 }}
+                                                    key={currentTicket.queue_code}
+                                                    className="relative z-10"
+                                                >
+                                                    <div className="text-6xl font-black text-gray-900 dark:text-white tracking-tighter mb-2 font-mono">
+                                                        {currentTicket.queue_code}
+                                                    </div>
+                                                    <div className="inline-block px-4 py-1.5 rounded-full bg-white/50 dark:bg-gray-800/50 backdrop-blur-sm border border-gray-200 dark:border-gray-700 text-xs font-bold text-gray-600 dark:text-gray-300">
+                                                        {currentTicket.poli_name}
+                                                    </div>
+                                                </motion.div>
+                                            ) : (
+                                                <div className="text-gray-300 dark:text-gray-600 py-4">
+                                                    <Bell size={48} className="mx-auto mb-2 opacity-50" />
+                                                    <span className="text-sm font-bold">Ready to Call</span>
+                                                </div>
+                                            )}
+                                        </div>
+
+                                        {/* Waiting List Section */}
+                                        <div className="px-6 pb-6 flex-1">
+                                            <div className="sticky top-0 bg-white/95 dark:bg-gray-900/95 backdrop-blur-sm z-10 py-2 border-b border-gray-100 dark:border-gray-800 mb-2">
+                                                <div className="text-[10px] font-bold text-gray-400 uppercase tracking-widest flex items-center gap-2">
+                                                    <span>Queue List</span>
+                                                    <div className="h-px flex-1 bg-gray-100 dark:bg-gray-800"></div>
+                                                </div>
+                                            </div>
+
+                                            <div className="space-y-2 pb-4">
+                                                {waitingList.length === 0 ? (
+                                                    <div className="text-center py-8 text-gray-400 text-xs italic bg-gray-50 dark:bg-gray-800/30 rounded-xl border border-dashed border-gray-200 dark:border-gray-700">
+                                                        No patient in queue
+                                                    </div>
+                                                ) : (
+                                                    waitingList.map((queue, idx) => (
+                                                        <div key={queue.id} className="flex justify-between items-center p-3 rounded-xl bg-gray-50/80 dark:bg-gray-800/50 border border-gray-100 dark:border-gray-700/50 hover:bg-blue-50 dark:hover:bg-blue-900/10 transition-colors">
+                                                            <div className="flex items-center gap-3">
+                                                                <div className={`w-6 h-6 rounded-full text-[10px] font-bold flex items-center justify-center ${idx === 0 ? 'bg-green-100 text-green-600 ring-2 ring-green-500/20' : 'bg-gray-200 dark:bg-gray-700 text-gray-500'}`}>
+                                                                    {idx + 1}
+                                                                </div>
+                                                                <div>
+                                                                    <div className="font-bold text-sm text-gray-800 dark:text-white leading-none mb-1">{queue.queue_code}</div>
+                                                                    <div className="text-[10px] text-gray-500 leading-none">{queue.daily_quota.doctor.poliklinik.name}</div>
+                                                                </div>
+                                                            </div>
+                                                            {idx === 0 && (
+                                                                <span className="text-[9px] font-bold bg-green-100 text-green-600 px-2 py-0.5 rounded-full uppercase tracking-wider">Next</span>
+                                                            )}
+                                                        </div>
+                                                    ))
+                                                )}
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* Controls */}
+                                    <div className="p-6 bg-gray-50/80 dark:bg-black/20 backdrop-blur-md border-t border-gray-100 dark:border-gray-800 space-y-3 shrink-0">
+
+                                        {/* Call Next (Primary) */}
+                                        <button
+                                            onClick={handleCallNext}
+                                            disabled={counterLoading || currentTicket}
+                                            className="w-full py-4 bg-gray-900 dark:bg-white text-white dark:text-black rounded-2xl font-black text-lg shadow-xl shadow-gray-900/10 dark:shadow-none hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-3"
+                                        >
+                                            {counterLoading ? <Activity className="animate-spin" /> : <Bell size={24} />}
+                                            {counterLoading ? 'Calling...' : 'Call Next Patient'}
+                                        </button>
+
+                                        {/* Secondary Actions */}
+                                        <div className="grid grid-cols-3 gap-3">
+                                            <button
+                                                onClick={handleRecall}
+                                                disabled={!currentTicket}
+                                                className="py-3 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl font-bold text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 transition disabled:opacity-50 flex flex-col items-center justify-center gap-1"
+                                            >
+                                                <Mic size={16} /> Recall
+                                            </button>
+                                            <button
+                                                onClick={handleSkipTicket}
+                                                disabled={!currentTicket}
+                                                className="py-3 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl font-bold text-sm text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition disabled:opacity-50 flex flex-col items-center justify-center gap-1"
+                                            >
+                                                <LogOut size={16} /> Skip
+                                            </button>
+                                            <button
+                                                onClick={handleFinishTicket}
+                                                disabled={!currentTicket}
+                                                className="py-3 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl font-bold text-sm text-green-600 hover:bg-green-50 dark:hover:bg-green-900/20 transition disabled:opacity-50 flex flex-col items-center justify-center gap-1"
+                                            >
+                                                <CheckCircle size={16} /> Finish
+                                            </button>
+                                        </div>
+
+                                        <div className="pt-2 flex justify-between items-center text-[10px] text-gray-400 font-bold uppercase tracking-wider">
+                                            <span className="flex items-center gap-1"><Volume2 size={10} /> {counterConfig.voiceName.slice(0, 12)}...</span>
+                                            <button
+                                                onClick={handleLogoutCounter}
+                                                className="group relative pl-3 pr-4 py-1.5 rounded-full bg-red-50 dark:bg-red-900/10 text-red-500 dark:text-red-400 text-[10px] font-bold uppercase tracking-widest hover:bg-red-500 hover:text-white dark:hover:bg-red-500 transition-all duration-300 shadow-sm hover:shadow-red-500/25 hover:-translate-y-0.5 active:translate-y-0 active:scale-95 flex items-center gap-2 overflow-hidden"
+                                            >
+                                                <div className="w-1.5 h-1.5 rounded-full bg-red-500 group-hover:bg-white transition-colors animate-pulse"></div>
+                                                <span className="relative z-10">Disconnect</span>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
+
+            {/* SKIPPED LIST MODAL (REUSED FOR REGISTRATION CONTEXT) */}
+            <AnimatePresence>
+                {showSkippedModal && (
+                    <div className="fixed inset-0 bg-gray-900/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
+                        <motion.div
+                            initial={{ scale: 0.9, opacity: 0 }}
+                            animate={{ scale: 1, opacity: 1 }}
+                            exit={{ scale: 0.9, opacity: 0 }}
+                            className="bg-white dark:bg-gray-800 w-full max-w-md rounded-[32px] overflow-hidden shadow-2xl border border-white/20"
+                        >
+                            <div className="p-6 border-b border-gray-100 dark:border-gray-700 flex justify-between items-center">
+                                <h3 className="font-bold text-xl text-gray-900 dark:text-white">Skipped Patients</h3>
+                                <button onClick={() => setShowSkippedModal(false)} className="bg-gray-100 dark:bg-gray-700 p-2 rounded-full text-gray-500"><X size={18} /></button>
+                            </div>
+                            <div className="p-4 max-h-[60vh] overflow-y-auto space-y-3">
+                                {skippedList.length === 0 ? (
+                                    <div className="text-center py-8 text-gray-400 text-sm">No skipped patients</div>
+                                ) : (
+                                    skippedList.map((queue) => (
+                                        <div key={queue.id} className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700/50 rounded-2xl border border-gray-100 dark:border-gray-600">
+                                            <div>
+                                                <div className="font-black text-lg text-gray-800 dark:text-white">{queue.queue_code}</div>
+                                                <div className="text-xs text-gray-500">{queue.daily_quota.doctor.poliklinik.name}</div>
+                                            </div>
+                                            <button onClick={() => handleRecallSkipped(queue)} className="px-4 py-2 bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-300 rounded-xl font-bold text-xs hover:bg-blue-200 transition">
+                                                Recall
+                                            </button>
+                                        </div>
+                                    ))
+                                )}
+                            </div>
+                        </motion.div>
+                    </div>
+                )}
+            </AnimatePresence>
         </PageWrapper>
     );
 };
 
 export default Registration;
+
