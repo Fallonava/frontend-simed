@@ -388,7 +388,7 @@ const PublicSchedule = () => {
                                             {doc.name.charAt(0)}
                                         </div>
                                         <div className="flex-1 min-w-0">
-                                            <div className="font-bold text-gray-900 dark:text-white text-[10px] md:text-sm leading-tight truncate uppercase tracking-widest mb-0.5 md:mb-1">{doc.poliklinik?.name || doc.specialist || 'General Practice'}</div>
+                                            <div className="font-bold text-gray-900 dark:text-white text-[10px] md:text-sm leading-tight truncate uppercase tracking-widest mb-0.5 md:mb-1">{(doc.poliklinik?.name || doc.specialist || 'General Practice').replace(/^(?:Poli|POLI)\s+/i, '')}</div>
                                             <div className="text-[10px] md:text-sm text-gray-500 font-medium truncate tracking-tight group-hover/row:text-salm-blue transition-colors line-clamp-1">{doc.name}</div>
                                         </div>
                                     </div>
@@ -539,7 +539,7 @@ const PublicSchedule = () => {
 
                                                     <div className="relative z-10">
                                                         <div className="mb-1">
-                                                            <p className="text-[10px] md:text-xs font-bold uppercase tracking-[0.15em] text-salm-purple/80 mb-1">{doctor.poliklinik?.name || doctor.specialist || 'General Practice'}</p>
+                                                            <p className="text-[10px] md:text-xs font-bold uppercase tracking-[0.15em] text-salm-purple/80 mb-1">{(doctor.poliklinik?.name || doctor.specialist || 'General Practice').replace(/^(?:Poli|POLI)\s+/i, '')}</p>
                                                             <h3 className={`font-bold text-lg md:text-xl tracking-tight leading-tight ${doctor.onLeave ? 'text-gray-500' : 'text-gray-900 dark:text-white bg-clip-text text-transparent bg-gradient-to-br from-gray-900 to-gray-600 dark:from-white dark:to-gray-400'}`}>
                                                                 {doctor.name}
                                                             </h3>
