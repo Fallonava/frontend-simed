@@ -22,14 +22,7 @@ const MainMenu = () => {
             roles: ['ADMIN'],
             color: 'bg-salm-blue'
         },
-        {
-            title: 'Counter Staff',
-            description: 'Manage patient queue calls',
-            icon: <Users size={40} />,
-            path: '/admin/counter',
-            roles: ['ADMIN', 'STAFF'],
-            color: 'bg-salm-light-blue'
-        },
+
         {
             title: 'Master Data',
             description: 'Manage doctors and poliklinik',

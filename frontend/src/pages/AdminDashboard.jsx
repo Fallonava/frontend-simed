@@ -207,10 +207,7 @@ const AdminDashboard = () => {
                         <Database className="w-5 h-5 transition-transform duration-300 group-hover:scale-110 text-gray-400 group-hover:text-salm-purple" />
                         <span className="relative z-10 font-medium">Master Data</span>
                     </Link>
-                    <Link to="/admin/counter" className="flex items-center gap-4 px-4 py-3 rounded-2xl text-theme-gray dark:text-gray-400 group relative overflow-hidden transition-all duration-300 ease-out hover:scale-[1.02] active:scale-[0.95] hover:bg-white dark:hover:bg-gray-700/50 hover:shadow-lg hover:shadow-purple-500/5">
-                        <Monitor className="w-5 h-5 transition-transform duration-300 group-hover:scale-110 text-gray-400 group-hover:text-salm-purple" />
-                        <span className="relative z-10 font-medium">Counter Staff</span>
-                    </Link>
+
                 </div>
             </aside>
 
