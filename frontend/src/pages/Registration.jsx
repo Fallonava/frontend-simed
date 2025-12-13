@@ -39,6 +39,29 @@ const Registration = () => {
         phone: ''
     });
 
+    // Recent Patients State
+    const [recentPatients, setRecentPatients] = useState([]);
+    const [recentFilter, setRecentFilter] = useState('all'); // 'all' | 'today'
+
+    // Fetch Recent Patients
+    const fetchRecentPatients = async () => {
+        try {
+            const res = await api.get('/patients?limit=5&sort=updatedAt:desc'); // Assuming API supports this, or just default get
+            // If API doesn't support sort/limit params as generic, we might just get the default list.
+            // Based on PatientList.jsx: api.get(`/patients?page=${page}&q=${searchTerm}`)
+            // We'll just fetch page 1 and slice it client side if needed.
+            if (res.data && res.data.data) {
+                setRecentPatients(res.data.data.slice(0, 5));
+            }
+        } catch (error) {
+            console.error("Failed to fetch recent patients", error);
+        }
+    };
+
+    useEffect(() => {
+        fetchRecentPatients();
+    }, []);
+
     // --- COUNTER LOGIC STATE ---
     const [isCounterOpen, setIsCounterOpen] = useState(false); // UI State for Sheet
     const [isCounterInitialized, setIsCounterInitialized] = useState(false);
@@ -429,6 +452,10 @@ const Registration = () => {
                         </button>
                     </div>
 
+                    <button onClick={() => setShowNewPatientModal(true)} className="w-full bg-black dark:bg-white text-white dark:text-black py-4 rounded-xl font-bold text-sm shadow-lg shadow-gray-900/10 hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center justify-center gap-2">
+                        <Plus size={18} /> Register New Patient
+                    </button>
+
                     <div className="flex-1 overflow-y-auto space-y-4">
                         {searchResults.length > 0 ? (
                             <div className="space-y-3 p-2 animate-in fade-in slide-in-from-bottom-4 duration-500">
@@ -543,18 +570,72 @@ const Registration = () => {
                                 })}
                             </div>
                         ) : (
-                            <div className="bg-white/40 dark:bg-gray-800/40 border-2 border-dashed border-gray-300/50 dark:border-gray-700/50 rounded-[24px] p-6 text-center flex flex-col items-center justify-center gap-4 min-h-[300px] hover:bg-white/60 dark:hover:bg-gray-800/60 transition-colors group">
-                                <div className="w-16 h-16 bg-gray-200 dark:bg-gray-700 rounded-full flex items-center justify-center text-gray-400 group-hover:scale-110 transition-transform duration-300">
-                                    <User size={28} />
+                            searchTerm ? (
+                                <div className="bg-white/40 dark:bg-gray-800/40 border-2 border-dashed border-gray-300/50 dark:border-gray-700/50 rounded-[24px] p-6 text-center flex flex-col items-center justify-center gap-4 min-h-[300px] hover:bg-white/60 dark:hover:bg-gray-800/60 transition-colors group">
+                                    <div className="w-16 h-16 bg-gray-200 dark:bg-gray-700 rounded-full flex items-center justify-center text-gray-400 group-hover:scale-110 transition-transform duration-300">
+                                        <User size={28} />
+                                    </div>
+                                    <div>
+                                        <h3 className="text-sm font-bold text-gray-600 dark:text-gray-300">Patient Not Found</h3>
+                                        <p className="text-xs text-gray-400 mt-1 max-w-[150px] mx-auto">"{searchTerm}" did not match any records.</p>
+                                    </div>
+                                    <button onClick={() => setShowNewPatientModal(true)} className="mt-2 bg-black dark:bg-white text-white dark:text-black px-5 py-2.5 rounded-xl font-bold text-xs shadow-lg shadow-gray-900/10 hover:scale-105 active:scale-95 transition-all">
+                                        + New Patient
+                                    </button>
                                 </div>
-                                <div>
-                                    <h3 className="text-sm font-bold text-gray-600 dark:text-gray-300">Patient Not Found</h3>
-                                    <p className="text-xs text-gray-400 mt-1 max-w-[150px] mx-auto">Use the search bar or register a new patient</p>
+                            ) : (
+                                <div className="space-y-4 animate-in fade-in slide-in-from-bottom-2">
+                                    {/* Header & Filter */}
+                                    <div className="flex justify-between items-center px-1">
+                                        <h3 className="text-xs font-bold text-gray-400 uppercase tracking-widest flex items-center gap-2">
+                                            <Activity size={14} className="text-blue-500" /> Recent Patients
+                                        </h3>
+                                        <div className="flex bg-gray-100 dark:bg-gray-800 rounded-lg p-1 gap-1">
+                                            {['all', 'today'].map(filter => (
+                                                <button
+                                                    key={filter}
+                                                    onClick={() => setRecentFilter(filter)}
+                                                    className={`px-3 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider transition-all ${recentFilter === filter ? 'bg-white dark:bg-gray-700 shadow-sm text-gray-900 dark:text-white' : 'text-gray-400 hover:text-gray-600'}`}
+                                                >
+                                                    {filter}
+                                                </button>
+                                            ))}
+                                        </div>
+                                    </div>
+
+                                    {/* List */}
+                                    <div className="space-y-3">
+                                        {recentPatients.length === 0 ? (
+                                            <div className="text-center py-10 text-gray-400 text-xs italic border-2 border-dashed border-gray-100 dark:border-gray-800 rounded-2xl">
+                                                No recently viewed patients
+                                            </div>
+                                        ) : (
+                                            recentPatients
+                                                .filter(p => recentFilter === 'today' ? new Date(p.updatedAt).toDateString() === new Date().toDateString() : true)
+                                                .slice(0, 5)
+                                                .map(patient => (
+                                                    <div
+                                                        key={patient.id}
+                                                        onClick={() => { setPatientFound(patient); setSearchResults([patient]); }}
+                                                        className="group bg-white/60 dark:bg-gray-800/60 backdrop-blur-md p-4 rounded-[20px] border border-white/20 shadow-sm hover:bg-white dark:hover:bg-gray-800 hover:shadow-lg hover:scale-[1.02] active:scale-[0.98] cursor-pointer transition-all duration-300 flex items-center gap-4"
+                                                    >
+                                                        <div className="w-10 h-10 rounded-xl bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 flex items-center justify-center font-bold text-sm shadow-sm group-hover:scale-110 transition-transform">
+                                                            {patient.name.charAt(0)}
+                                                        </div>
+                                                        <div className="flex-1 min-w-0">
+                                                            <h4 className="font-bold text-gray-900 dark:text-white text-sm truncate">{patient.name}</h4>
+                                                            <div className="flex items-center gap-2 text-[10px] text-gray-500 mt-0.5">
+                                                                <span className="font-mono bg-gray-100 dark:bg-gray-700 px-1.5 py-0.5 rounded">RM: {patient.no_rm}</span>
+                                                                <span className="truncate max-w-[120px]">{patient.address}</span>
+                                                            </div>
+                                                        </div>
+                                                        <ChevronRight size={16} className="text-gray-300 group-hover:text-blue-500 transition-colors" />
+                                                    </div>
+                                                ))
+                                        )}
+                                    </div>
                                 </div>
-                                <button onClick={() => setShowNewPatientModal(true)} className="mt-2 bg-black dark:bg-white text-white dark:text-black px-5 py-2.5 rounded-xl font-bold text-xs shadow-lg shadow-gray-900/10 hover:scale-105 active:scale-95 transition-all">
-                                    + New Patient
-                                </button>
-                            </div>
+                            )
                         )}
                     </div>
                 </div>
