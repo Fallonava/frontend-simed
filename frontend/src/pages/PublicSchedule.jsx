@@ -17,6 +17,43 @@ const getDateKey = (date) => `${date.getFullYear()}-${date.getMonth()}-${date.ge
 const getDaysInMonth = (date) => new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate();
 const getFirstDayOfMonth = (date) => new Date(date.getFullYear(), date.getMonth(), 1).getDay();
 
+const getSpecialistIcon = (specialist) => {
+    if (!specialist) return 'stethoscope';
+    const s = specialist.toLowerCase();
+
+    // User Requested Mappings
+    if (s.includes('saraf') || s.includes('neurologi')) return 'neurology';
+    if (s.includes('orthopaedi') || s.includes('tulang')) return 'orthopedics';
+    if (s.includes('bedah mulut')) return 'dentistry';
+    if (s.includes('urologi')) return 'urology';
+
+    // New User Requests
+    if (s.includes('wicara') || s.includes('bicara')) return 'record_voice_over';
+    if (s.includes('fisioterapi') || s.includes('fisio')) return 'physical_therapy';
+    if (s.includes('penyakit dalam') || s.includes('internist')) return 'gastroenterology';
+    if (s.includes('bedah umum') || s.includes('surgery')) return 'medical_services';
+
+    // General Mappings
+    if (s.includes('anak')) return 'child_care';
+    if (s.includes('dalam')) return 'gastroenterology';
+    if (s.includes('bedah')) return 'medical_services';
+    if (s.includes('gigi')) return 'dentistry';
+    if (s.includes('mata')) return 'eye_tracking';
+    if (s.includes('tht')) return 'hearing';
+    if (s.includes('jantung') || s.includes('kardio')) return 'cardiology';
+    if (s.includes('paru')) return 'pulmonology';
+    if (s.includes('kandungan') || s.includes('obgyn')) return 'pregnant_woman';
+    if (s.includes('jiwa') || s.includes('psiko')) return 'psychology';
+    if (s.includes('kulit') || s.includes('kelamin')) return 'dermatology';
+    if (s.includes('rehab')) return 'physical_therapy';
+    if (s.includes('gizi')) return 'nutrition';
+    if (s.includes('radiologi')) return 'radiology';
+    if (s.includes('laboratorium')) return 'biotech';
+    if (s.includes('umum')) return 'stethoscope';
+
+    return 'stethoscope'; // Fallback
+};
+
 // --- Memoized Sub-Components ---
 
 const CalendarWidget = memo(({ currentDate, selectedDate, setSelectedDate, changeMonth, doctorCounts }) => {
@@ -308,7 +345,48 @@ const PublicSchedule = () => {
             // Check if on leave using Map
             const leaveKey = `${doc.id}-${selectedDateKey}`;
             const onLeave = leavesMap.has(leaveKey);
-            return { ...doc, time: schedule?.time || 'On Call', onLeave };
+
+            // Check if practice finished
+            let isFinished = false;
+            if (schedule?.time && !onLeave) {
+                try {
+                    // Robust parser: Handles "08:00 - 12:00", "08.00 - 12.00", "08:00-12:00"
+                    // Extract all numbers from the string
+                    const timeMatches = schedule.time.match(/(\d{1,2})[:.](\d{2})/g);
+
+                    if (timeMatches && timeMatches.length >= 2) {
+                        // The last match is usually the end time
+                        const endTimeStr = timeMatches[timeMatches.length - 1];
+                        const [endHour, endMinute] = endTimeStr.split(/[:.]/).map(Number);
+
+                        const now = new Date();
+                        const practiceEnd = new Date(selectedDate);
+                        practiceEnd.setHours(endHour, endMinute, 0, 0);
+
+                        const isToday = isSameDay(now, selectedDate);
+
+                        // Clear time component for accurate date comparison without mutating 'now'
+                        const todayMidnight = new Date(now);
+                        todayMidnight.setHours(0, 0, 0, 0);
+                        const selectedMidnight = new Date(selectedDate);
+                        selectedMidnight.setHours(0, 0, 0, 0);
+
+                        const isPastDate = selectedMidnight < todayMidnight;
+
+                        if (isPastDate) {
+                            isFinished = true;
+                        } else if (isToday) {
+                            if (now > practiceEnd) {
+                                isFinished = true;
+                            }
+                        }
+                    }
+                } catch (e) {
+                    console.error("Error parsing time", schedule.time, e);
+                }
+            }
+
+            return { ...doc, time: schedule?.time || 'On Call', onLeave, isFinished };
         });
     }, [doctors, leavesMap, selectedDate]);
 
@@ -385,7 +463,9 @@ const PublicSchedule = () => {
                                 <td className="sticky left-0 z-30 bg-white/90 dark:bg-gray-900/90 group-hover/row:bg-white/95 dark:group-hover/row:bg-gray-800/95 backdrop-blur-xl border-b border-gray-100/50 dark:border-gray-700/30 p-2 md:p-5 transition-colors duration-300 shadow-[4px_0_20px_-4px_rgba(0,0,0,0.02)]">
                                     <div className="flex items-center gap-2 md:gap-5 ml-1">
                                         <div className="hidden sm:flex w-10 h-10 md:w-12 md:h-12 rounded-[18px] bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-800 dark:to-gray-900 text-gray-500 dark:text-gray-400 items-center justify-center font-bold text-sm md:text-base shrink-0 shadow-[inset_0_1px_4px_rgba(0,0,0,0.05)] border border-gray-100 dark:border-gray-700 group-hover/row:scale-105 group-hover/row:text-salm-blue group-hover/row:border-salm-blue/20 transition-all duration-300">
-                                            {doc.name.charAt(0)}
+                                            <span className="material-symbols-rounded text-2xl md:text-3xl">
+                                                {getSpecialistIcon(doc.poliklinik?.name || doc.specialist)}
+                                            </span>
                                         </div>
                                         <div className="flex-1 min-w-0">
                                             <div className="font-bold text-gray-900 dark:text-white text-[10px] md:text-sm leading-tight truncate uppercase tracking-widest mb-0.5 md:mb-1">{(doc.poliklinik?.name || doc.specialist || 'General Practice').replace(/^(?:Poli|POLI)\s+/i, '')}</div>
@@ -522,12 +602,19 @@ const PublicSchedule = () => {
                                                     )}
 
                                                     <div className="flex items-start justify-between mb-4 md:mb-5 relative z-10">
-                                                        <div className={`w-14 h-14 md:w-16 md:h-16 rounded-[20px] flex items-center justify-center font-bold text-xl md:text-2xl shadow-sm transition-transform group-hover:scale-105 duration-300 ${doctor.onLeave ? 'bg-red-100/50 text-red-500' : 'bg-gradient-to-br from-blue-50 to-indigo-50 text-salm-blue shadow-[inset_0_2px_4px_rgba(255,255,255,1)]'}`}>
-                                                            {doctor.name.charAt(0)}
+                                                        <div className={`w-14 h-14 md:w-16 md:h-16 rounded-[20px] flex items-center justify-center font-bold text-xl md:text-2xl shadow-sm transition-transform group-hover:scale-105 duration-300 ${doctor.onLeave ? 'bg-red-100/50 text-red-500' : doctor.isFinished ? 'bg-gray-100 text-gray-400 grayscale' : 'bg-gradient-to-br from-blue-50 to-indigo-50 text-salm-blue shadow-[inset_0_2px_4px_rgba(255,255,255,1)]'}`}>
+                                                            <span className="material-symbols-rounded text-3xl md:text-4xl">
+                                                                {getSpecialistIcon(doctor.poliklinik?.name || doctor.specialist)}
+                                                            </span>
                                                         </div>
                                                         {doctor.onLeave ? (
                                                             <div className="px-3 py-1.5 rounded-full bg-red-100/80 text-red-600 text-[10px] md:text-xs font-bold shadow-sm backdrop-blur-sm border border-red-200">
                                                                 On Leave
+                                                            </div>
+                                                        ) : doctor.isFinished ? (
+                                                            <div className="px-3 py-1.5 rounded-full bg-gray-100 text-gray-500 text-[10px] md:text-xs font-bold shadow-sm backdrop-blur-sm border border-gray-200 flex items-center gap-1.5">
+                                                                <span className="w-1.5 h-1.5 rounded-full bg-gray-400"></span>
+                                                                Finished
                                                             </div>
                                                         ) : (
                                                             <div className="px-3 py-1.5 rounded-full bg-green-100/80 text-green-700 text-[10px] md:text-xs font-bold shadow-sm backdrop-blur-sm border border-green-200/50 flex items-center gap-1.5">
@@ -540,18 +627,18 @@ const PublicSchedule = () => {
                                                     <div className="relative z-10">
                                                         <div className="mb-1">
                                                             <p className="text-[10px] md:text-xs font-bold uppercase tracking-[0.15em] text-salm-purple/80 mb-1">{(doctor.poliklinik?.name || doctor.specialist || 'General Practice').replace(/^(?:Poli|POLI)\s+/i, '')}</p>
-                                                            <h3 className={`font-bold text-lg md:text-xl tracking-tight leading-tight ${doctor.onLeave ? 'text-gray-500' : 'text-gray-900 dark:text-white bg-clip-text text-transparent bg-gradient-to-br from-gray-900 to-gray-600 dark:from-white dark:to-gray-400'}`}>
+                                                            <h3 className={`font-bold text-lg md:text-xl tracking-tight leading-tight ${doctor.onLeave || doctor.isFinished ? 'text-gray-500' : 'text-gray-900 dark:text-white bg-clip-text text-transparent bg-gradient-to-br from-gray-900 to-gray-600 dark:from-white dark:to-gray-400'}`}>
                                                                 {doctor.name}
                                                             </h3>
                                                         </div>
 
-                                                        <div className={`space-y-2 mt-4 p-3.5 rounded-2xl ${doctor.onLeave ? 'bg-red-50/50' : 'bg-gray-50/80 dark:bg-gray-800/50 border border-gray-100/50 dark:border-gray-700'}`}>
-                                                            <div className={`flex items-center gap-3 text-sm font-medium ${doctor.onLeave ? 'text-red-400' : 'text-gray-600 dark:text-gray-300'}`}>
-                                                                <Clock className={`w-4 h-4 ${doctor.onLeave ? 'text-red-300' : 'text-blue-500/80'}`} />
-                                                                <span className={`tracking-tight ${doctor.onLeave ? 'line-through decoration-red-300' : ''}`}>{doctor.time}</span>
+                                                        <div className={`space-y-2 mt-4 p-3.5 rounded-2xl ${doctor.onLeave ? 'bg-red-50/50' : doctor.isFinished ? 'bg-gray-100/50 dark:bg-gray-800/30 border border-gray-200/50 dark:border-gray-700' : 'bg-gray-50/80 dark:bg-gray-800/50 border border-gray-100/50 dark:border-gray-700'}`}>
+                                                            <div className={`flex items-center gap-3 text-sm font-medium ${doctor.onLeave || doctor.isFinished ? 'text-gray-400' : 'text-gray-600 dark:text-gray-300'}`}>
+                                                                <Clock className={`w-4 h-4 ${doctor.onLeave ? 'text-red-300' : doctor.isFinished ? 'text-gray-400' : 'text-blue-500/80'}`} />
+                                                                <span className={`tracking-tight ${doctor.onLeave || doctor.isFinished ? 'line-through decoration-gray-300' : ''}`}>{doctor.time}</span>
                                                             </div>
-                                                            <div className={`flex items-center gap-3 text-sm font-medium ${doctor.onLeave ? 'text-red-400' : 'text-gray-600 dark:text-gray-300'}`}>
-                                                                <MapPin className={`w-4 h-4 ${doctor.onLeave ? 'text-red-300' : 'text-pink-500/80'}`} />
+                                                            <div className={`flex items-center gap-3 text-sm font-medium ${doctor.onLeave || doctor.isFinished ? 'text-gray-400' : 'text-gray-600 dark:text-gray-300'}`}>
+                                                                <MapPin className={`w-4 h-4 ${doctor.onLeave ? 'text-red-300' : doctor.isFinished ? 'text-gray-400' : 'text-pink-500/80'}`} />
                                                                 <span className="tracking-tight">{doctor.poliklinik?.name || 'Main Clinic'}</span>
                                                             </div>
                                                         </div>
