@@ -1,7 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { ChevronLeft, ChevronRight, Search, Plus, MoreHorizontal, Clock, Calendar as CalendarIcon, X, Check, Trash2, User, Briefcase, Coffee, ChevronDown } from 'lucide-react';
 import axios from 'axios';
 import toast from 'react-hot-toast';
+import MonthDayCell from './MonthDayCell';
 
 const DoctorLeaveCalendar = () => {
     // --- State ---
@@ -21,14 +22,19 @@ const DoctorLeaveCalendar = () => {
     const [modalData, setModalData] = useState({ date: null, existingLeave: null, reason: '' });
 
     // Helper for date comparison (ignore time)
-    const isSameDay = (d1, d2) => {
+    const isSameDay = useCallback((d1, d2) => {
         return d1.getDate() === d2.getDate() &&
             d1.getMonth() === d2.getMonth() &&
             d1.getFullYear() === d2.getFullYear();
+    }, []);
+
+    // Date Key Helper for Map
+    const getDateKey = (date) => {
+        return `${date.getFullYear()}-${date.getMonth()}-${date.getDate()}`;
     };
 
     // Derived state for filtered doctors
-    const filteredDoctors = React.useMemo(() => {
+    const filteredDoctors = useMemo(() => {
         let result = doctors;
 
         // Filter by Search
@@ -36,7 +42,9 @@ const DoctorLeaveCalendar = () => {
             result = result.filter(doc => doc.name.toLowerCase().includes(searchQuery.toLowerCase()));
         }
 
-        if (filterByDate) {
+        if (filterByDate && allLeaves.length > 0) {
+            // Optimize this slightly by pre-calculating relevant doctor IDs if the list is huge, 
+            // but for typical hospital size, this is fine.
             result = result.filter(doc => {
                 // Check if doctor has a leave on 'currentDate'
                 const onLeave = allLeaves.some(l => l.doctor_id === doc.id && isSameDay(new Date(l.date), currentDate));
@@ -45,7 +53,7 @@ const DoctorLeaveCalendar = () => {
         }
 
         return result;
-    }, [doctors, view, currentDate, searchQuery, allLeaves, filterByDate]);
+    }, [doctors, view, currentDate, searchQuery, allLeaves, filterByDate, isSameDay]);
 
 
     // --- Effects ---
@@ -66,10 +74,24 @@ const DoctorLeaveCalendar = () => {
     }, [filteredDoctors, selectedDoctor]);
 
     // Leaves for selected doctor
-    const leaves = React.useMemo(() => {
+    const leaves = useMemo(() => {
         if (!selectedDoctor) return [];
         return allLeaves.filter(l => l.doctor_id === selectedDoctor.id);
     }, [selectedDoctor, allLeaves]);
+
+    // OPTIMIZATION: Create a Map for O(1) lookup of leaves by date
+    const leavesMap = useMemo(() => {
+        const map = new Map();
+        leaves.forEach(leave => {
+            const date = new Date(leave.date);
+            const key = getDateKey(date);
+            if (!map.has(key)) {
+                map.set(key, []);
+            }
+            map.get(key).push(leave);
+        });
+        return map;
+    }, [leaves]);
 
     // --- API Calls ---
     const fetchDoctors = async () => {
@@ -154,13 +176,22 @@ const DoctorLeaveCalendar = () => {
         setCurrentDate(newDate);
     };
 
-    const handleDateClick = (day) => {
+    const handleDateClick = useCallback((day) => {
         if (!selectedDoctor) {
             toast.error('Pilih dokter terlebih dahulu');
             return;
         }
 
-        const clickedDate = new Date(currentDate.getFullYear(), currentDate.getMonth(), day);
+        // Handle both simple day number (month view) or full Date object (week/day view)
+        let clickedDate;
+        if (typeof day === 'number') {
+            clickedDate = new Date(currentDate.getFullYear(), currentDate.getMonth(), day);
+        } else {
+            clickedDate = new Date(day);
+        }
+
+        const key = getDateKey(clickedDate);
+        // We can reuse leavesMap here too if we want, or find directly
         const existing = leaves.find(l => isSameDay(new Date(l.date), clickedDate));
 
         setModalData({
@@ -169,7 +200,7 @@ const DoctorLeaveCalendar = () => {
             reason: existing ? existing.reason : ''
         });
         setIsModalOpen(true);
-    };
+    }, [currentDate, selectedDoctor, leaves, isSameDay]); // Re-create if dependencies change
 
     // --- Renderers ---
     const renderMonthView = () => {
@@ -186,45 +217,20 @@ const DoctorLeaveCalendar = () => {
         for (let day = 1; day <= daysInMonth; day++) {
             const currentDayDate = new Date(currentDate.getFullYear(), currentDate.getMonth(), day);
             const isToday = isSameDay(new Date(), currentDayDate);
-            const dayLeaves = leaves.filter(l => isSameDay(new Date(l.date), currentDayDate));
+
+            // OPTIMIZED LOOKUP
+            const dateKey = getDateKey(currentDayDate);
+            const dayLeaves = leavesMap.get(dateKey) || [];
 
             days.push(
-                <div
+                <MonthDayCell
                     key={day}
-                    onClick={() => handleDateClick(day)}
-                    className={`
-                        min-h-[120px] p-3 border relative group transition-all hover:bg-gray-50 dark:hover:bg-gray-700/50 cursor-pointer
-                        ${isToday
-                            ? 'bg-white dark:bg-gray-800 ring-2 ring-salm-blue ring-offset-2 dark:ring-offset-gray-900 border-transparent z-10 shadow-lg shadow-salm-blue/10 rounded-2xl'
-                            : 'bg-white dark:bg-gray-800 border-gray-100 dark:border-gray-700'}
-                    `}
-                >
-                    <div className="flex justify-between items-center mb-2">
-                        <span className={`text-sm font-semibold transition-all ${isToday
-                            ? 'bg-salm-blue text-white w-8 h-8 flex items-center justify-center rounded-full shadow-lg shadow-salm-blue/30 scale-110'
-                            : 'text-gray-700 dark:text-gray-300'
-                            }`}>
-                            {day}
-                        </span>
-                    </div>
-
-                    {/* Leave Blocks */}
-                    <div className="space-y-1">
-                        {dayLeaves.map((leave, idx) => (
-                            <div key={idx} className="bg-salm-light-pink/30 border border-salm-light-pink p-2 rounded-lg shadow-sm">
-                                <div className="text-xs font-bold text-salm-pink truncate">Leave</div>
-                                <div className="text-[10px] text-salm-pink truncate">{leave.reason || 'No specific reason'}</div>
-                            </div>
-                        ))}
-                    </div>
-
-                    {/* Hover Add Indicator */}
-                    {dayLeaves.length === 0 && (
-                        <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 pointer-events-none">
-                            <Plus className="w-6 h-6 text-gray-300" />
-                        </div>
-                    )}
-                </div>
+                    day={day}
+                    currentDate={currentDayDate}
+                    isToday={isToday}
+                    dayLeaves={dayLeaves}
+                    onClick={handleDateClick}
+                />
             );
         }
         return days;
@@ -245,14 +251,17 @@ const DoctorLeaveCalendar = () => {
             const dayDate = new Date(startOfWeek);
             dayDate.setDate(startOfWeek.getDate() + i);
             const isToday = isSameDay(new Date(), dayDate);
-            const dayLeaves = leaves.filter(l => isSameDay(new Date(l.date), dayDate));
+
+            const dateKey = getDateKey(dayDate);
+            const dayLeaves = leavesMap.get(dateKey) || [];
+
             const schedule = getScheduleForDay(dayDate);
             const isWorkingDay = !!schedule;
 
             days.push(
                 <div
                     key={i}
-                    onClick={() => handleDateClick(dayDate.getDate())}
+                    onClick={() => handleDateClick(dayDate)} // Pass full Date object here
                     className={`
                         min-h-[240px] border-r border-gray-100 dark:border-gray-700 p-4 relative group transition-all duration-300 flex flex-col
                         hover:bg-gray-50/80 dark:hover:bg-gray-700/50 cursor-pointer
@@ -339,7 +348,9 @@ const DoctorLeaveCalendar = () => {
 
     const renderDayView = () => {
         const isToday = isSameDay(new Date(), currentDate);
-        const dayLeaves = leaves.filter(l => isSameDay(new Date(l.date), currentDate));
+        // Lookup derived state instead of filter
+        const dateKey = getDateKey(currentDate);
+        const dayLeaves = leavesMap.get(dateKey) || [];
 
         return (
             <div className="h-full p-6">

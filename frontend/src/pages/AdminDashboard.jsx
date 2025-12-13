@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo, memo } from 'react';
 import { Link } from 'react-router-dom';
 import axios from 'axios';
 import useQueueStore from '../store/useQueueStore';
@@ -10,8 +10,66 @@ import UserManagement from '../components/UserManagement';
 import { LayoutGrid, RefreshCw, Activity, Database, Monitor, Download, Calendar as ScheduleCalendarIcon, Search, Bell, User } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 import FallonavaLogo from '../components/FallonavaLogo';
+import PageLoader from '../components/PageLoader';
 
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8', '#82ca9d'];
+
+// --- Sub Components for Performance ---
+const LiveStatusSection = memo(({ doctors, leaves, isConnected }) => {
+    // Helper
+    const isSameDay = (d1, d2) => {
+        return d1.getDate() === d2.getDate() &&
+            d1.getMonth() === d2.getMonth() &&
+            d1.getFullYear() === d2.getFullYear();
+    };
+
+    // Filter doctors for today
+    const availableDoctors = useMemo(() => {
+        const today = new Date().getDay();
+        const dbDay = today === 0 ? 7 : today;
+        return doctors.filter(doctor => doctor.schedules?.some(s => s.day === dbDay));
+    }, [doctors]);
+
+    return (
+        <div className="max-w-[1600px] mx-auto pb-10 fade-in animate-in duration-300">
+            <div>
+                <div className="flex items-center justify-end mb-6">
+                    <div className={`flex items-center gap-2 px-4 py-2 rounded-full text-xs font-bold transition-colors border ${isConnected ? 'bg-green-50 dark:bg-green-900/30 text-green-600 dark:text-green-400 border-green-100 dark:border-green-800' : 'bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400 border-red-100 dark:border-red-800'}`}>
+                        <div className={`w-2 h-2 rounded-full ${isConnected ? 'bg-green-500 animate-pulse' : 'bg-red-500'}`}></div>
+                        {isConnected ? 'System Online' : 'System Offline'}
+                    </div>
+                </div>
+
+                {/* Grid */}
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-6">
+                    {availableDoctors.map((doctor) => {
+                        // Check if On Leave
+                        const todayLeave = leaves.find(l => l.doctor_id === doctor.id && isSameDay(new Date(l.date), new Date()));
+
+                        return (
+                            <DoctorCard
+                                key={doctor.id}
+                                doctor={doctor}
+                                onLeave={!!todayLeave}
+                                leaveReason={todayLeave?.reason || 'Cuti'}
+                            />
+                        );
+                    })}
+                </div>
+
+                {availableDoctors.length === 0 && (
+                    <div className="text-center py-32 card-soft">
+                        <div className="w-24 h-24 bg-theme-bg rounded-full flex items-center justify-center mx-auto mb-6">
+                            <LayoutGrid className="w-10 h-10 text-theme-gray" />
+                        </div>
+                        <h3 className="text-xl font-semibold text-theme-text">No Doctors Available Today</h3>
+                        <p className="text-theme-gray mt-2">There are no doctors scheduled for today.</p>
+                    </div>
+                )}
+            </div>
+        </div>
+    );
+});
 
 const AdminDashboard = () => {
     const { doctors, initialize, generateQuota, isConnected } = useQueueStore();
@@ -60,12 +118,6 @@ const AdminDashboard = () => {
 
     const scrollToSection = (id) => {
         setActiveTab(id);
-    };
-
-    const isSameDay = (d1, d2) => {
-        return d1.getDate() === d2.getDate() &&
-            d1.getMonth() === d2.getMonth() &&
-            d1.getFullYear() === d2.getFullYear();
     };
 
     return (
@@ -368,55 +420,11 @@ const AdminDashboard = () => {
                     )}
 
                     {activeTab === 'live-status' && (
-                        <div className="max-w-[1600px] mx-auto pb-10 fade-in animate-in duration-300">
-                            <div>
-                                <div className="flex items-center justify-end mb-6">
-                                    <div className={`flex items-center gap-2 px-4 py-2 rounded-full text-xs font-bold transition-colors border ${isConnected ? 'bg-green-50 dark:bg-green-900/30 text-green-600 dark:text-green-400 border-green-100 dark:border-green-800' : 'bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400 border-red-100 dark:border-red-800'}`}>
-                                        <div className={`w-2 h-2 rounded-full ${isConnected ? 'bg-green-500 animate-pulse' : 'bg-red-500'}`}></div>
-                                        {isConnected ? 'System Online' : 'System Offline'}
-                                    </div>
-                                </div>
-
-                                {/* Grid */}
-                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-6">
-
-                                    {doctors.filter(doctor => {
-                                        // Get current day (1=Senin ... 6=Sabtu, 0=Minggu -> 7)
-                                        const today = new Date().getDay();
-                                        const dbDay = today === 0 ? 7 : today;
-
-                                        // Check if doctor has schedule for today
-                                        return doctor.schedules?.some(s => s.day === dbDay);
-                                    }).map((doctor) => {
-                                        // Check if On Leave
-                                        const todayLeave = leaves.find(l => l.doctor_id === doctor.id && isSameDay(new Date(l.date), new Date()));
-
-                                        return (
-                                            <DoctorCard
-                                                key={doctor.id}
-                                                doctor={doctor}
-                                                onLeave={!!todayLeave}
-                                                leaveReason={todayLeave?.reason || 'Cuti'}
-                                            />
-                                        );
-                                    })}
-                                </div>
-
-                                {doctors.filter(d => {
-                                    const today = new Date().getDay();
-                                    const dbDay = today === 0 ? 7 : today;
-                                    return d.schedules?.some(s => s.day === dbDay);
-                                }).length === 0 && (
-                                        <div className="text-center py-32 card-soft">
-                                            <div className="w-24 h-24 bg-theme-bg rounded-full flex items-center justify-center mx-auto mb-6">
-                                                <LayoutGrid className="w-10 h-10 text-theme-gray" />
-                                            </div>
-                                            <h3 className="text-xl font-semibold text-theme-text">No Doctors Available Today</h3>
-                                            <p className="text-theme-gray mt-2">There are no doctors scheduled for today.</p>
-                                        </div>
-                                    )}
-                            </div>
-                        </div>
+                        <LiveStatusSection
+                            doctors={doctors}
+                            leaves={leaves}
+                            isConnected={isConnected}
+                        />
                     )}
 
                     {activeTab === 'users' && <UserManagement />}

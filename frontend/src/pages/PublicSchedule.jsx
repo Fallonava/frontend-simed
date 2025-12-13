@@ -1,56 +1,111 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, memo } from 'react';
 import { QRCodeCanvas } from 'qrcode.react';
 import { ChevronLeft, ChevronRight, Calendar, Clock, User, Stethoscope, MapPin, Activity, Grid, List, ChevronDown, ChevronUp } from 'lucide-react';
 import axios from 'axios';
 import FallonavaLogo from '../components/FallonavaLogo';
 import { motion, AnimatePresence } from 'framer-motion';
 
-const CalendarWidget = ({ currentDate, selectedDate, setSelectedDate, changeMonth, renderCalendarGrid }) => {
+// --- Helpers ---
+const isSameDay = (d1, d2) => {
+    return d1.getDate() === d2.getDate() &&
+        d1.getMonth() === d2.getMonth() &&
+        d1.getFullYear() === d2.getFullYear();
+};
+
+const getDateKey = (date) => `${date.getFullYear()}-${date.getMonth()}-${date.getDate()}`;
+
+const getDaysInMonth = (date) => new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate();
+const getFirstDayOfMonth = (date) => new Date(date.getFullYear(), date.getMonth(), 1).getDay();
+
+// --- Memoized Sub-Components ---
+
+const CalendarWidget = memo(({ currentDate, selectedDate, setSelectedDate, changeMonth, doctorCounts }) => {
     const [isExpanded, setIsExpanded] = useState(true);
-    const [interactionTimer, setInteractionTimer] = useState(null);
+    // Use a ref to track interaction to avoid re-rendering effectively
+    const interactionTimeoutRef = React.useRef(null);
 
-    const resetTimer = () => {
-        if (interactionTimer) clearTimeout(interactionTimer);
-        // Only auto-collapse if currently expanded
-        const timer = setTimeout(() => {
-            setIsExpanded(false);
-        }, 5000);
-        setInteractionTimer(timer);
-    };
+    const resetTimer = useCallback(() => {
+        if (interactionTimeoutRef.current) clearTimeout(interactionTimeoutRef.current);
+        if (isExpanded) {
+            interactionTimeoutRef.current = setTimeout(() => {
+                setIsExpanded(false);
+            }, 10000); // 10s auto collapse
+        }
+    }, [isExpanded]);
 
-    const handleInteraction = () => {
-        // If collapsed, expand it. If expanded, just reset timer.
-        if (!isExpanded) setIsExpanded(true);
-        resetTimer();
-    };
-
-    // Initial timer on mount
     useEffect(() => {
         resetTimer();
         return () => {
-            if (interactionTimer) clearTimeout(interactionTimer);
+            if (interactionTimeoutRef.current) clearTimeout(interactionTimeoutRef.current);
         };
-    }, []);
-    // Note: We don't add isExpanded to dependency to avoid loop, 
-    // but the timer closure captures the state at creation time which might be stale in a purely functional way?
-    // Actually, setting state inside timeout is fine.
-    // Better approach: Use a ref for the timer to avoid re-renders on timer ID change, 
-    // and rely on `useEffect` with `isExpanded` dependency if we want to START timer only when expanded.
+    }, [resetTimer]);
 
-    useEffect(() => {
-        if (isExpanded) {
-            const timer = setTimeout(() => {
-                setIsExpanded(false);
-            }, 5000);
-            return () => clearTimeout(timer);
+    const handleExpandData = () => {
+        setIsExpanded(true);
+        resetTimer();
+    };
+
+    const renderCalendarGrid = useMemo(() => {
+        const daysInMonth = getDaysInMonth(currentDate);
+        const firstDay = getFirstDayOfMonth(currentDate);
+        const days = [];
+        const totalSlots = 42; // Fixed grid size for consistency
+
+        for (let i = 0; i < firstDay; i++) {
+            days.push(<div key={`empty-${i}`} className="w-full h-full"></div>);
         }
-    }, [isExpanded, currentDate, selectedDate]); // Reset on state changes too as they count as 'updates'
+
+        for (let day = 1; day <= daysInMonth; day++) {
+            const date = new Date(currentDate.getFullYear(), currentDate.getMonth(), day);
+            const isSelected = isSameDay(date, selectedDate);
+            const isToday = isSameDay(date, new Date());
+
+            // O(1) Lookup
+            const dateKey = getDateKey(date);
+            const count = doctorCounts.get(dateKey) || 0;
+
+            days.push(
+                <motion.div
+                    key={day}
+                    layoutId={`day-${day}`} // Careful with layoutId on many elements
+                    onClick={(e) => {
+                        e.stopPropagation();
+                        setSelectedDate(date);
+                        resetTimer();
+                    }}
+                    className={`
+                        w-full aspect-square rounded-2xl flex flex-col items-center justify-center cursor-pointer relative transition-all duration-300 border
+                        ${isSelected
+                            ? 'bg-salm-blue text-white shadow-xl shadow-salm-blue/30 border-blue-500 z-10 scale-105 ring-2 ring-white dark:ring-gray-800'
+                            : isToday
+                                ? 'bg-salm-blue/10 text-salm-blue border-salm-blue/30 font-bold'
+                                : 'bg-transparent hover:bg-gray-100 dark:hover:bg-white/10 border-transparent text-gray-700 dark:text-gray-300'}
+                    `}
+                >
+                    <span className="text-[11px] md:text-sm font-medium">{day}</span>
+                    <div className="flex gap-0.5 mt-0.5 h-1">
+                        {/* Dot indicators for doctor density */}
+                        {[...Array(Math.min(3, Math.ceil(count / 3)))].map((_, i) => (
+                            <div key={i} className={`w-1 h-1 rounded-full ${isSelected ? 'bg-white/80' : 'bg-salm-purple/50'}`}></div>
+                        ))}
+                    </div>
+                </motion.div>
+            );
+        }
+
+        const filledSlots = firstDay + daysInMonth;
+        for (let i = filledSlots; i < totalSlots; i++) {
+            days.push(<div key={`empty-end-${i}`} className="w-full h-full opacity-0"></div>);
+        }
+
+        return days;
+    }, [currentDate, selectedDate, doctorCounts, setSelectedDate, resetTimer]);
 
     return (
         <div
             className="w-full lg:w-[365px] shrink-0 flex flex-col gap-4 h-auto transition-all duration-500 will-change-transform"
-            onMouseEnter={() => setIsExpanded(true)}
-            onClick={() => setIsExpanded(true)}
+            onMouseEnter={handleExpandData}
+            onClick={handleExpandData}
         >
             <div className="bg-white/60 dark:bg-gray-800/60 backdrop-blur-2xl rounded-[32px] md:rounded-[40px] p-4 md:p-6 shadow-2xl shadow-gray-200/50 dark:shadow-black/20 border border-white/60 dark:border-gray-700 flex flex-col overflow-hidden transition-all duration-500">
 
@@ -116,7 +171,7 @@ const CalendarWidget = ({ currentDate, selectedDate, setSelectedDate, changeMont
 
                                 {/* Calendar Grid */}
                                 <div className="grid grid-cols-7 gap-1.5 flex-1">
-                                    {renderCalendarGrid()}
+                                    {renderCalendarGrid}
                                 </div>
                             </div>
                         </motion.div>
@@ -136,7 +191,7 @@ const CalendarWidget = ({ currentDate, selectedDate, setSelectedDate, changeMont
             </div>
         </div>
     );
-};
+});
 
 
 const PublicSchedule = () => {
@@ -145,7 +200,7 @@ const PublicSchedule = () => {
     const [view, setView] = useState('daily'); // 'daily' | 'roster'
     const [doctors, setDoctors] = useState([]);
     const [leaves, setLeaves] = useState([]);
-    const [loading, setLoading] = useState(true);
+    // const [loading, setLoading] = useState(true); // Unused for now
     const [showQrOverlay, setShowQrOverlay] = useState(true);
 
     const publicUrl = window.location.href;
@@ -167,10 +222,10 @@ const PublicSchedule = () => {
                 ]);
                 setDoctors(docsRes.data);
                 setLeaves(leavesRes.data);
-                setLoading(false);
+                // setLoading(false);
             } catch (error) {
                 console.error("Failed to load data", error);
-                setLoading(false);
+                // setLoading(false);
             }
         };
         fetchData();
@@ -180,26 +235,69 @@ const PublicSchedule = () => {
         return () => clearInterval(interval);
     }, []);
 
-    const isSameDay = (d1, d2) => {
-        return d1.getDate() === d2.getDate() &&
-            d1.getMonth() === d2.getMonth() &&
-            d1.getFullYear() === d2.getFullYear();
-    };
 
-    const getDaysInMonth = (date) => new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate();
-    const getFirstDayOfMonth = (date) => new Date(date.getFullYear(), date.getMonth(), 1).getDay();
+    // --- Optimized Data Computations ---
 
-    const changeMonth = (offset) => {
-        const newDate = new Date(currentDate);
-        newDate.setMonth(newDate.getMonth() + offset);
-        setCurrentDate(newDate);
-    };
+    // 1. Create O(1) Leaves Map
+    const leavesMap = useMemo(() => {
+        const map = new Map();
+        leaves.forEach(leave => {
+            const d = new Date(leave.date);
+            const key = `${leave.doctor_id}-${getDateKey(d)}`; // Key by DoctorID + Date
+            map.set(key, true);
+        });
+        return map;
+    }, [leaves]);
+
+    // 2. Pre-calculate Doctor Counts for the visible month (or simple range)
+    // Actually, since doctors schedules are weekly repeating, we can compute for any day efficienty.
+    // For the calendar grid dots, we need count per day.
+    const doctorCounts = useMemo(() => {
+        const map = new Map();
+        // We only care about the currently displayed month to be super efficient, 
+        // but since we navigate months, maybe just computing for the visible month is best.
+
+        const daysInMonth = getDaysInMonth(currentDate);
+
+        for (let day = 1; day <= daysInMonth; day++) {
+            const date = new Date(currentDate.getFullYear(), currentDate.getMonth(), day);
+            const dateKey = getDateKey(date);
+
+            // Logic to count doctors working this day
+            const dayOfWeek = date.getDay();
+            const dbDay = dayOfWeek === 0 ? 7 : dayOfWeek;
+
+            let count = 0;
+            doctors.forEach(doc => {
+                const hasSchedule = doc.schedules?.some(s => s.day === dbDay);
+                if (hasSchedule) {
+                    // Check leave using Map
+                    const leaveKey = `${doc.id}-${dateKey}`;
+                    if (!leavesMap.has(leaveKey)) {
+                        count++;
+                    }
+                }
+            });
+            map.set(dateKey, count);
+        }
+        return map;
+    }, [doctors, leavesMap, currentDate]);
+
+
+    const changeMonth = useCallback((offset) => {
+        setCurrentDate(prev => {
+            const newDate = new Date(prev);
+            newDate.setMonth(newDate.getMonth() + offset);
+            return newDate;
+        });
+    }, []);
 
     // --- Data Processing for Daily View ---
     const dailySchedule = useMemo(() => {
         if (!doctors.length) return [];
         const dayOfWeek = selectedDate.getDay();
         const dbDay = dayOfWeek === 0 ? 7 : dayOfWeek;
+        const selectedDateKey = getDateKey(selectedDate);
 
         return doctors.filter(doc => {
             // Include doctors if they have a schedule for this day
@@ -207,11 +305,12 @@ const PublicSchedule = () => {
             return hasSchedule;
         }).map(doc => {
             const schedule = doc.schedules.find(s => s.day === dbDay);
-            // Check if on leave
-            const onLeave = leaves.some(l => l.doctor_id === doc.id && isSameDay(new Date(l.date), selectedDate));
+            // Check if on leave using Map
+            const leaveKey = `${doc.id}-${selectedDateKey}`;
+            const onLeave = leavesMap.has(leaveKey);
             return { ...doc, time: schedule?.time || 'On Call', onLeave };
         });
-    }, [doctors, leaves, selectedDate]);
+    }, [doctors, leavesMap, selectedDate]);
 
     // --- Data Processing for Roster View ---
     const rosterData = useMemo(() => {
@@ -223,86 +322,33 @@ const PublicSchedule = () => {
                 weeklySchedule[i] = daySch ? daySch.time : null;
             }
             return { ...doc, weekly: weeklySchedule };
-        }).filter(doc => Object.values(doc.weekly).some(t => t !== null)); // Only show doctors with schedules
+        }).filter(doc => Object.values(doc.weekly).some(t => t !== null));
     }, [doctors]);
 
-    const getDoctorCountForDay = (date) => {
-        const dayOfWeek = date.getDay();
-        const dbDay = dayOfWeek === 0 ? 7 : dayOfWeek;
-        return doctors.filter(doc => {
-            const hasSchedule = doc.schedules?.some(s => s.day === dbDay);
-            if (!hasSchedule) return false;
-            const onLeave = leaves.some(l => l.doctor_id === doc.id && isSameDay(new Date(l.date), date));
-            return !onLeave;
-        }).length;
-    };
 
     // --- Renderers ---
-
-    const renderCalendarGrid = () => {
-        const daysInMonth = getDaysInMonth(currentDate);
-        const firstDay = getFirstDayOfMonth(currentDate);
-        const days = [];
-        const totalSlots = 42;
-
-        for (let i = 0; i < firstDay; i++) {
-            days.push(<div key={`empty-${i}`} className="w-full h-full"></div>);
-        }
-
-        for (let day = 1; day <= daysInMonth; day++) {
-            const date = new Date(currentDate.getFullYear(), currentDate.getMonth(), day);
-            const isSelected = isSameDay(date, selectedDate);
-            const isToday = isSameDay(date, new Date());
-            const doctorCount = getDoctorCountForDay(date);
-
-            days.push(
-                <motion.div
-                    key={day}
-                    layoutId={`day-${day}`}
-                    onClick={() => setSelectedDate(date)}
-                    className={`
-                        w-full aspect-square rounded-2xl flex flex-col items-center justify-center cursor-pointer relative transition-all duration-300 border
-                        ${isSelected
-                            ? 'bg-salm-blue text-white shadow-xl shadow-salm-blue/30 border-blue-500 z-10 scale-105 ring-2 ring-white dark:ring-gray-800'
-                            : isToday
-                                ? 'bg-salm-blue/10 text-salm-blue border-salm-blue/30 font-bold'
-                                : 'bg-transparent hover:bg-gray-100 dark:hover:bg-white/10 border-transparent text-gray-700 dark:text-gray-300'}
-                    `}
-                >
-                    <span className="text-[11px] md:text-sm font-medium">{day}</span>
-                    <div className="flex gap-0.5 mt-0.5 h-1">
-                        {[...Array(Math.min(3, Math.ceil(doctorCount / 3)))].map((_, i) => (
-                            <div key={i} className={`w-1 h-1 rounded-full ${isSelected ? 'bg-white/80' : 'bg-salm-purple/50'}`}></div>
-                        ))}
-                    </div>
-                </motion.div>
-            );
-        }
-
-        const filledSlots = firstDay + daysInMonth;
-        for (let i = filledSlots; i < totalSlots; i++) {
-            days.push(<div key={`empty-end-${i}`} className="w-full h-full opacity-0"></div>);
-        }
-
-        return days;
-    };
-
     const renderRosterView = () => (
-        <div className="w-full h-full flex flex-col bg-white/60 dark:bg-gray-900/60 backdrop-blur-3xl rounded-[40px] shadow-[0_20px_40px_-12px_rgba(0,0,0,0.1)] border border-white/50 dark:border-gray-700/50 overflow-hidden animate-in fade-in slide-in-from-bottom-6 duration-700 ring-1 ring-white/20">
+        <div className="w-full h-full flex flex-col bg-white/60 dark:bg-gray-900/60 backdrop-blur-3xl rounded-[24px] md:rounded-[40px] shadow-[0_20px_40px_-12px_rgba(0,0,0,0.1)] border border-white/50 dark:border-gray-700/50 overflow-hidden animate-in fade-in slide-in-from-bottom-6 duration-700 ring-1 ring-white/20">
             {/* Toolbar */}
-            <div className="px-6 py-5 md:px-8 md:py-6 border-b border-gray-200/30 dark:border-white/5 bg-white/40 dark:bg-black/20 shrink-0 flex flex-col md:flex-row items-center justify-between gap-4 z-20 relative backdrop-blur-md">
-                <div className="text-center md:text-left">
-                    <h2 className="text-xl md:text-2xl font-bold text-gray-900 dark:text-white flex items-center justify-center md:justify-start gap-4 tracking-tight">
-                        <div className="p-2.5 bg-gradient-to-tr from-salm-blue to-salm-light-blue rounded-2xl text-white shadow-lg shadow-salm-blue/30 ring-1 ring-white/20">
-                            <Grid className="w-5 h-5 md:w-6 md:h-6" />
+            <div className="px-4 py-3 md:px-8 md:py-6 border-b border-gray-200/30 dark:border-white/5 bg-white/40 dark:bg-black/20 shrink-0 flex flex-col md:flex-row items-center justify-between gap-3 md:gap-4 z-20 relative backdrop-blur-md">
+                <div className="text-center md:text-left w-full md:w-auto flex flex-row items-center justify-between md:block">
+                    <h2 className="text-lg md:text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-3 md:gap-4 tracking-tight">
+                        <div className="p-2 md:p-2.5 bg-gradient-to-tr from-salm-blue to-salm-light-blue rounded-xl md:rounded-2xl text-white shadow-lg shadow-salm-blue/30 ring-1 ring-white/20">
+                            <Grid className="w-4 h-4 md:w-6 md:h-6" />
                         </div>
-                        Weekly Master Roster
+                        <span className="truncate">Weekly Roster</span>
                     </h2>
-                    <p className="text-xs md:text-sm text-gray-500 font-medium hidden md:block mt-1.5 ml-1.5 tracking-wide uppercase opacity-70">Complete schedule for all specialists</p>
+                    {/* Mobile Only Legend Compact */}
+                    <div className="md:hidden flex items-center gap-2">
+                        <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div>
+                        <span className="text-[10px] font-bold uppercase text-gray-500">Practice</span>
+                    </div>
+
+                    <p className="hidden md:block text-xs md:text-sm text-gray-500 font-medium mt-1.5 ml-1.5 tracking-wide uppercase opacity-70">Complete schedule for all specialists</p>
                 </div>
 
-                {/* Modern Segmented Legend */}
-                <div className="flex gap-1.5 p-1.5 bg-gray-100/80 dark:bg-gray-800/80 backdrop-blur-xl rounded-full border border-white/40 shadow-inner">
+                {/* Desktop Legend */}
+                <div className="hidden md:flex gap-1.5 p-1.5 bg-gray-100/80 dark:bg-gray-800/80 backdrop-blur-xl rounded-full border border-white/40 shadow-inner">
                     <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-white dark:bg-gray-700 shadow-sm border border-gray-200/50 dark:border-gray-600">
                         <div className="w-2 h-2 rounded-full bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.6)] animate-pulse"></div>
                         <span className="text-[10px] md:text-xs font-bold uppercase tracking-wider text-gray-800 dark:text-gray-200">Practice</span>
@@ -319,12 +365,12 @@ const PublicSchedule = () => {
                 <table className="w-full border-separate border-spacing-0">
                     <thead className="sticky top-0 z-40">
                         <tr>
-                            <th className="sticky left-0 z-50 top-0 bg-white/95 dark:bg-gray-900/95 backdrop-blur-xl border-b border-gray-200/50 dark:border-gray-700/50 p-4 min-w-[140px] md:min-w-[280px] text-left shadow-[4px_0_24px_rgba(0,0,0,0.03)]">
-                                <span className="text-[10px] md:text-xs font-black text-gray-400 uppercase tracking-[0.2em] ml-2">Specialist</span>
+                            <th className="sticky left-0 z-50 top-0 bg-white/95 dark:bg-gray-900/95 backdrop-blur-xl border-b border-gray-200/50 dark:border-gray-700/50 p-3 md:p-4 min-w-[120px] md:min-w-[280px] text-left shadow-[4px_0_24px_rgba(0,0,0,0.03)]">
+                                <span className="text-[10px] md:text-xs font-black text-gray-400 uppercase tracking-[0.2em] ml-1 md:ml-2">Specialist</span>
                             </th>
                             {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map((day, i) => (
                                 <th key={day} className={`
-                                    bg-white/90 dark:bg-gray-900/90 backdrop-blur-xl border-b border-gray-200/50 dark:border-gray-700/50 p-4 text-center min-w-[100px] md:min-w-[160px]
+                                    bg-white/90 dark:bg-gray-900/90 backdrop-blur-xl border-b border-gray-200/50 dark:border-gray-700/50 p-2 md:p-4 text-center min-w-[80px] md:min-w-[160px]
                                     ${i === 6 ? '' : 'border-r border-dashed border-gray-200/30'}
                                 `}>
                                     <span className="text-[10px] md:text-xs font-black text-gray-800 dark:text-gray-200 uppercase tracking-[0.2em]">{day}</span>
@@ -336,27 +382,27 @@ const PublicSchedule = () => {
                         {rosterData.map((doc, idx) => (
                             <tr key={doc.id} className="group/row hover:bg-white/40 dark:hover:bg-white/5 transition-colors duration-200">
                                 {/* Sticky Name Column */}
-                                <td className="sticky left-0 z-30 bg-white/90 dark:bg-gray-900/90 group-hover/row:bg-white/95 dark:group-hover/row:bg-gray-800/95 backdrop-blur-xl border-b border-gray-100/50 dark:border-gray-700/30 p-3 md:p-5 transition-colors duration-300 shadow-[4px_0_20px_-4px_rgba(0,0,0,0.02)]">
-                                    <div className="flex items-center gap-3 md:gap-5 ml-1">
+                                <td className="sticky left-0 z-30 bg-white/90 dark:bg-gray-900/90 group-hover/row:bg-white/95 dark:group-hover/row:bg-gray-800/95 backdrop-blur-xl border-b border-gray-100/50 dark:border-gray-700/30 p-2 md:p-5 transition-colors duration-300 shadow-[4px_0_20px_-4px_rgba(0,0,0,0.02)]">
+                                    <div className="flex items-center gap-2 md:gap-5 ml-1">
                                         <div className="hidden sm:flex w-10 h-10 md:w-12 md:h-12 rounded-[18px] bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-800 dark:to-gray-900 text-gray-500 dark:text-gray-400 items-center justify-center font-bold text-sm md:text-base shrink-0 shadow-[inset_0_1px_4px_rgba(0,0,0,0.05)] border border-gray-100 dark:border-gray-700 group-hover/row:scale-105 group-hover/row:text-salm-blue group-hover/row:border-salm-blue/20 transition-all duration-300">
                                             {doc.name.charAt(0)}
                                         </div>
                                         <div className="flex-1 min-w-0">
-                                            <div className="font-bold text-gray-900 dark:text-white text-xs md:text-sm leading-tight truncate uppercase tracking-widest mb-1">{doc.poliklinik?.name || doc.specialist || 'General Practice'}</div>
-                                            <div className="text-[11px] md:text-sm text-gray-500 font-medium truncate tracking-tight group-hover/row:text-salm-blue transition-colors">{doc.name}</div>
+                                            <div className="font-bold text-gray-900 dark:text-white text-[10px] md:text-sm leading-tight truncate uppercase tracking-widest mb-0.5 md:mb-1">{doc.poliklinik?.name || doc.specialist || 'General Practice'}</div>
+                                            <div className="text-[10px] md:text-sm text-gray-500 font-medium truncate tracking-tight group-hover/row:text-salm-blue transition-colors line-clamp-1">{doc.name}</div>
                                         </div>
                                     </div>
                                 </td>
 
                                 {/* Schedule Cells */}
                                 {[1, 2, 3, 4, 5, 6, 7].map(dayNum => (
-                                    <td key={dayNum} className="border-b border-r border-gray-50/50 dark:border-gray-800/20 p-2 md:p-3 text-center relative group/cell transition-colors duration-300">
+                                    <td key={dayNum} className="border-b border-r border-gray-50/50 dark:border-gray-800/20 p-1 md:p-3 text-center relative group/cell transition-colors duration-300">
                                         {doc.weekly[dayNum] ? (
                                             <motion.div
                                                 whileHover={{ scale: 1.05, y: -2 }}
-                                                className="inline-flex flex-col items-center justify-center w-full py-2.5 md:py-3.5 px-2 bg-white dark:bg-gray-800 rounded-xl shadow-[0_2px_8px_rgba(0,0,0,0.04)] dark:shadow-none ring-1 ring-black/5 dark:ring-white/10 group-hover/cell:ring-salm-blue/30 group-hover/cell:shadow-[0_8px_16px_rgba(59,130,246,0.1)] transition-all duration-300 cursor-default"
+                                                className="inline-flex flex-col items-center justify-center w-full py-2 md:py-3.5 px-1 md:px-2 bg-white dark:bg-gray-800 rounded-lg md:rounded-xl shadow-[0_2px_8px_rgba(0,0,0,0.04)] dark:shadow-none ring-1 ring-black/5 dark:ring-white/10 group-hover/cell:ring-salm-blue/30 group-hover/cell:shadow-[0_8px_16px_rgba(59,130,246,0.1)] transition-all duration-300 cursor-default"
                                             >
-                                                <span className="text-[10px] md:text-xs font-bold text-gray-700 dark:text-gray-300 whitespace-nowrap tracking-tight">{doc.weekly[dayNum]}</span>
+                                                <span className="text-[9px] md:text-xs font-bold text-gray-700 dark:text-gray-300 whitespace-nowrap tracking-tight">{doc.weekly[dayNum]}</span>
                                                 <div className="hidden md:block w-1.5 h-1.5 rounded-full bg-green-500 mt-1.5 opacity-0 group-hover/cell:opacity-100 transition-opacity duration-300 shadow-[0_0_8px_rgba(34,197,94,0.6)]"></div>
                                             </motion.div>
                                         ) : (
@@ -426,8 +472,7 @@ const PublicSchedule = () => {
                             selectedDate={selectedDate}
                             setSelectedDate={setSelectedDate}
                             changeMonth={changeMonth}
-                            renderCalendarGrid={renderCalendarGrid}
-                            getDoctorCountForDay={getDoctorCountForDay}
+                            doctorCounts={doctorCounts}
                         />
 
                         {/* Right: Schedule List */}
