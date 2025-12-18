@@ -28,6 +28,8 @@ const ChronologyGenerator = React.lazy(() => import('./pages/ChronologyGenerator
 const NurseDashboard = React.lazy(() => import('./pages/NurseDashboard')); // New
 const LabDashboard = React.lazy(() => import('./pages/LabDashboard'));
 const RadiologyDashboard = React.lazy(() => import('./pages/RadiologyDashboard')); // New
+const AdmissionDashboard = React.lazy(() => import('./pages/AdmissionDashboard')); // Inpatient Module
+const BedHeadUnit = React.lazy(() => import('./pages/BedHeadUnit')); // Tablet Mode
 
 function AnimatedRoutes() {
   const location = useLocation();
@@ -43,7 +45,11 @@ function AnimatedRoutes() {
           <Route path="/kiosk" element={<PageWrapper><Kiosk /></PageWrapper>} />
           <Route path="/counter" element={<PageWrapper><Counter /></PageWrapper>} />
           <Route path="/queue-status/:ticketId" element={<PageWrapper><QueueStatus /></PageWrapper>} />
+          <Route path="/queue-status/:ticketId" element={<PageWrapper><QueueStatus /></PageWrapper>} />
           <Route path="/public/schedule" element={<PageWrapper><PublicSchedule /></PageWrapper>} />
+
+          {/* Bed Head Unit (Tablet Mode - Standalone) */}
+          <Route path="/bed-panel/:bedId" element={<BedHeadUnit />} />
 
           {/* Protected Routes */}
           <Route element={<ProtectedRoute allowedRoles={['ADMIN', 'STAFF']} />}>
@@ -84,6 +90,9 @@ function AnimatedRoutes() {
             {/* Lab & Radiology (Separated) */}
             <Route path="/lab" element={<PageWrapper><LabDashboard /></PageWrapper>} />
             <Route path="/radiology" element={<PageWrapper><RadiologyDashboard /></PageWrapper>} />
+
+            {/* Inpatient / Admission */}
+            <Route path="/admission" element={<PageWrapper><AdmissionDashboard /></PageWrapper>} />
           </Route>
         </Routes>
       </Suspense>

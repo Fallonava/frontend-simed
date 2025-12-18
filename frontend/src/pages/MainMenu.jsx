@@ -1,7 +1,7 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import useAuthStore from '../store/useAuthStore';
-import { LayoutDashboard, Users, Database, Calendar, Activity, FileText, Pill, Receipt, Monitor, ClipboardPlus, Microscope, Sparkles, LogOut } from 'lucide-react';
+import { LayoutDashboard, Users, Database, Calendar, Activity, FileText, Pill, Receipt, Monitor, ClipboardPlus, Microscope, Sparkles, LogOut, Bed } from 'lucide-react';
 import ThemeToggle from '../components/ThemeToggle';
 
 const MainMenu = () => {
@@ -103,6 +103,14 @@ const MainMenu = () => {
             path: '/radiology',
             roles: ['ADMIN', 'STAFF'],
             color: 'bg-gradient-to-br from-indigo-500 to-cyan-600'
+        },
+        {
+            title: 'Rawat Inap',
+            description: 'Hospitality & Admission',
+            icon: <Bed size={40} />,
+            path: '/admission',
+            roles: ['ADMIN', 'STAFF'],
+            color: 'bg-gradient-to-br from-orange-400 to-pink-500' // Distinct Hospitality Color
         },
         {
             title: 'Kiosk Antrian',

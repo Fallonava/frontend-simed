@@ -166,6 +166,24 @@ app.post('/api/triage/:queueId/submit', authMiddleware, triageController.submitT
 // BPJS Routes (Bridging/Mock)
 const bpjsController = require('./controllers/bpjsController');
 app.post('/api/bpjs/check-participant', authMiddleware, bpjsController.checkParticipant);
+app.post('/api/bpjs/sep/insert', authMiddleware, bpjsController.createSEP);
+
+// BPJS Antrean Online (Mock endpoints for Mobile JKN)
+const antreanController = require('./controllers/antreanController');
+app.get('/api/antrean/status/:kodepoli/:tanggal', antreanController.getStatusAntrean);
+app.get('/api/antrean/sisa', antreanController.getSisaAntrean);
+app.post('/api/antrean/ambil', antreanController.ambilAntrean);
+
+// Inpatient / Admission Routes
+const admissionController = require('./controllers/admissionController');
+app.get('/api/admission/rooms', authMiddleware, admissionController.getRooms);
+app.post('/api/admission/checkin', authMiddleware, admissionController.checkIn);
+app.post('/api/admission/checkout', authMiddleware, admissionController.checkOut);
+app.put('/api/admission/bed-status', authMiddleware, admissionController.updateBedStatus);
+
+// Bed Head Unit Routes (Tablet)
+app.get('/api/bed-panel/:bedId', admissionController.getBedPanel); // Public/Kiosk for demo
+app.post('/api/bed-panel/request', admissionController.requestService);
 
 // Pharmacy Routes
 const medicineController = require('./controllers/medicineController');

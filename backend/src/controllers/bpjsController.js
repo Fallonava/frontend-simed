@@ -15,3 +15,13 @@ exports.checkParticipant = async (req, res) => {
         res.status(500).json({ error: 'Failed to check participation status' });
     }
 };
+
+exports.createSEP = async (req, res) => {
+    try {
+        const result = await bpjsService.insertSEP(req.body);
+        res.json(result);
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ error: 'Failed to create SEP' });
+    }
+};

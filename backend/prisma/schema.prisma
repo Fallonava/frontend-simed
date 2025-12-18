@@ -97,6 +97,10 @@ model Patient {
   medical_records MedicalRecord[]
   prescriptions Prescription[]
   transactions Transaction[]
+  
+  // Inpatient Relations
+  current_bed Bed?
+  admissions  Admission[]
 }
 
 model Sequence {
@@ -262,4 +266,49 @@ model TransactionItem {
   description     String   // "Jasa Dokter", "Paracetamol", "Biaya Daftar"
   amount          Float
   quantity        Int      @default(1)
+}
+
+
+
+// === RAWAT INAP (KOSPITALITY) MODELS ===
+
+model Room {
+  id          Int      @id @default(autoincrement())
+  name        String   // e.g. "Mawar 01"
+  type        String   // VIP, KELAS_1, KELAS_2, KELAS_3, ICU
+  price       Decimal  @db.Decimal(10, 2)
+  gender      String?  // L/P/CAMPUR
+  beds        Bed[]
+  created_at  DateTime @default(now())
+  updated_at  DateTime @updatedAt
+}
+
+model Bed {
+  id          Int      @id @default(autoincrement())
+  room_id     Int
+  room        Room     @relation(fields: [room_id], references: [id])
+  code        String   // A, B, C, D
+  status      String   // AVAILABLE, OCCUPIED, CLEANING, MTC
+  current_patient_id Int?  @unique // One patient per bed
+  current_patient    Patient? @relation(fields: [current_patient_id], references: [id])
+  admissions  Admission[]
+  service_request String? // NURSE, DOCTOR, CLEANING, FOOD
+  created_at  DateTime @default(now())
+  updated_at  DateTime @updatedAt
+}
+
+model Admission {
+  id              Int      @id @default(autoincrement())
+  patient_id      Int
+  patient         Patient  @relation(fields: [patient_id], references: [id])
+  bed_id          Int
+  bed             Bed      @relation(fields: [bed_id], references: [id])
+  check_in        DateTime @default(now())
+  check_out       DateTime?
+  status          String   // ACTIVE, DISCHARGED
+  diagnosa_masuk  String?
+  notes           String?  @db.Text
+  
+  created_at      DateTime @default(now())
+  updated_at      DateTime @updatedAt
 }

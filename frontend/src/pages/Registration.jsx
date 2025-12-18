@@ -44,7 +44,12 @@ const Registration = () => {
 
     // BPJS Simulation State
     const [bpjsChecking, setBpjsChecking] = useState(false);
-    const [bpjsStatus, setBpjsStatus] = useState(null); // { status: 'AKTIF', kelas: '1', ... }
+    const [bpjsStatus, setBpjsStatus] = useState(null);
+    const [paymentType, setPaymentType] = useState('UMUM'); // 'UMUM' | 'BPJS'
+    const [showSEPModal, setShowSEPModal] = useState(false);
+    const [sepData, setSepData] = useState(null);
+    const [sepInput, setSepInput] = useState({ rujukan: '', diagnosa: '' });
+    const [sepLoading, setSepLoading] = useState(false);
 
     // Recent Patients State
     const [recentPatients, setRecentPatients] = useState([]);
@@ -695,9 +700,25 @@ const Registration = () => {
                                 <h2 className="text-3xl font-extrabold tracking-tight text-gray-900 dark:text-white">Service Selection</h2>
                                 <p className="text-gray-500 font-medium mt-1">Choose clinic and doctor</p>
                             </div>
-                            <div className="text-right">
+                            <div className="text-right flex flex-col items-end">
                                 <div className="text-4xl font-light text-gray-900 dark:text-white tracking-tight">{new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}</div>
-                                <div className="text-gray-400 font-medium text-sm mt-1">{new Date().toLocaleDateString('id-ID', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</div>
+                                <div className="text-gray-400 font-medium text-sm mt-1 mb-4">{new Date().toLocaleDateString('id-ID', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</div>
+
+                                {/* PAYMENT TOGGLE */}
+                                <div className="bg-gray-100 dark:bg-gray-800 p-1 rounded-xl flex gap-1">
+                                    <button
+                                        onClick={() => setPaymentType('UMUM')}
+                                        className={`px-4 py-2 rounded-lg text-xs font-bold transition-all ${paymentType === 'UMUM' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+                                    >
+                                        PASIEN UMUM
+                                    </button>
+                                    <button
+                                        onClick={() => setPaymentType('BPJS')}
+                                        className={`px-4 py-2 rounded-lg text-xs font-bold transition-all ${paymentType === 'BPJS' ? 'bg-green-500 text-white shadow-lg shadow-green-500/30' : 'text-gray-500 hover:text-gray-700'}`}
+                                    >
+                                        BPJS KESEHATAN
+                                    </button>
+                                </div>
                             </div>
                         </div>
 
@@ -861,49 +882,7 @@ const Registration = () => {
                             )}
                         </section>
 
-                        <hr className="border-gray-200 dark:border-gray-800 border-dashed opacity-50" />
 
-                        {/* Step 3: Payment */}
-                        <section className="relative">
-                            <h3 className="text-xs font-bold uppercase tracking-widest text-gray-400 mb-6 flex items-center gap-2"><span className="w-6 h-6 rounded-full bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 flex items-center justify-center text-[10px] font-bold">3</span> PAYMENT</h3>
-                            <div className="flex gap-5">
-                                {[
-                                    { id: 'TUNAI', label: 'TUNAI', icon: <CreditCard size={20} />, style: 'from-emerald-400 to-emerald-600 shadow-emerald-500/40' },
-                                    { id: 'BPJS', label: 'BPJS', icon: <CheckCircle size={20} />, style: 'from-green-500 to-green-700 shadow-green-600/40' },
-                                    { id: 'ASURANSI', label: 'ASURANSI', icon: <Activity size={20} />, style: 'from-blue-500 to-indigo-600 shadow-indigo-500/40' }
-                                ].map((method, idx) => (
-                                    <motion.button
-                                        key={method.id}
-                                        initial={{ opacity: 0, x: -20 }}
-                                        animate={{ opacity: 1, x: 0 }}
-                                        transition={{ delay: 0.2 + (idx * 0.1) }}
-                                        onClick={() => setPaymentMethod(method.id)}
-                                        whileHover={{ scale: 1.05, y: -2 }}
-                                        whileTap={{ scale: 0.95 }}
-                                        className={`relative overflow-hidden px-8 py-6 rounded-3xl font-bold text-xs transition-all duration-300 flex items-center gap-4 w-48 justify-center group
-                                            ${paymentMethod === method.id
-                                                ? `bg-gradient-to-br ${method.style} text-white shadow-2xl scale-105`
-                                                : 'bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 shadow-sm text-gray-400 dark:text-gray-500 hover:shadow-lg hover:border-gray-300'
-                                            }`}
-                                    >
-                                        <div className="relative z-10 flex items-center gap-3">
-                                            {paymentMethod === method.id && (
-                                                <motion.div
-                                                    layoutId="paymentGlow"
-                                                    className="absolute inset-0 bg-white/20 rounded-full blur-xl"
-                                                    initial={false}
-                                                    transition={{ type: "spring", stiffness: 500, damping: 30 }}
-                                                />
-                                            )}
-                                            <div className={`transition-transform duration-500 ${paymentMethod === method.id ? 'scale-125 rotate-6' : 'group-hover:scale-110'}`}>
-                                                {method.icon}
-                                            </div>
-                                            <span className="relative z-10 text-sm tracking-wide">{method.label}</span>
-                                        </div>
-                                    </motion.button>
-                                ))}
-                            </div>
-                        </section>
 
                         <div className="h-32"></div> {/* Spacer */}
                     </div>
@@ -932,7 +911,13 @@ const Registration = () => {
                     </div>
 
                     <button
-                        onClick={handleRegister}
+                        onClick={() => {
+                            if (paymentType === 'BPJS' && !sepData) {
+                                setShowSEPModal(true);
+                            } else {
+                                handleCreateTicket();
+                            }
+                        }}
                         disabled={!patientFound || !selectedDoctor}
                         className="relative overflow-hidden bg-black dark:bg-white text-white dark:text-black px-10 py-5 rounded-[24px] font-bold text-base shadow-2xl shadow-blue-500/20 dark:shadow-none hover:scale-105 active:scale-95 transition-all disabled:opacity-30 disabled:cursor-not-allowed flex items-center gap-3 disabled:hover:scale-100 disabled:shadow-none group"
                     >
@@ -1435,6 +1420,102 @@ const Registration = () => {
                                         </div>
                                     ))
                                 )}
+                            </div>
+                        </motion.div>
+                    </div>
+                )}
+            </AnimatePresence>
+
+            {/* SEP MODAL */}
+            <AnimatePresence>
+                {showSEPModal && patientFound && (
+                    <div className="fixed inset-0 bg-gray-900/80 backdrop-blur-sm z-[60] flex items-center justify-center p-4">
+                        <motion.div
+                            initial={{ scale: 0.9, opacity: 0 }}
+                            animate={{ scale: 1, opacity: 1 }}
+                            exit={{ scale: 0.9, opacity: 0 }}
+                            className="bg-white dark:bg-gray-800 w-full max-w-2xl rounded-[32px] overflow-hidden shadow-2xl border border-white/20"
+                        >
+                            <div className="bg-green-600 p-6 text-white flex justify-between items-center">
+                                <div>
+                                    <h3 className="font-bold text-xl">Penerbitan SEP (Simulasi)</h3>
+                                    <p className="text-green-100 text-sm">Surat Eligibilitas Peserta - BPJS Kesehatan</p>
+                                </div>
+                                <div className="bg-white/20 px-3 py-1 rounded-lg text-xs font-mono">
+                                    V-CLAIM BRIDGING
+                                </div>
+                            </div>
+                            <div className="p-8 space-y-6">
+                                {/* Header Info */}
+                                <div className="flex gap-4 p-4 bg-green-50 dark:bg-green-900/10 rounded-2xl border border-green-100 dark:border-green-800/20">
+                                    <div className="w-12 h-12 bg-green-100 text-green-600 rounded-full flex items-center justify-center font-bold text-lg">
+                                        {patientFound.name.charAt(0)}
+                                    </div>
+                                    <div>
+                                        <h4 className="font-bold text-gray-900 dark:text-white">{patientFound.name}</h4>
+                                        <p className="text-xs text-gray-500">NO. KARTU: <span className="font-mono font-bold text-gray-700">{patientFound.bpjs_card_no || '-'}</span></p>
+                                        <p className="text-xs text-gray-500">NIK: <span className="font-mono">{patientFound.nik}</span></p>
+                                    </div>
+                                </div>
+
+                                <div className="grid grid-cols-2 gap-6">
+                                    <div className="space-y-2">
+                                        <label className="text-xs font-bold text-gray-500 uppercase tracking-wider ml-1">No. Rujukan (Faskes 1)</label>
+                                        <input
+                                            value={sepInput.rujukan}
+                                            onChange={e => setSepInput({ ...sepInput, rujukan: e.target.value })}
+                                            className="w-full p-4 rounded-xl border border-gray-200 bg-gray-50 text-sm font-mono focus:ring-2 focus:ring-green-500 outline-none transition"
+                                            placeholder="1234567..."
+                                        />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <label className="text-xs font-bold text-gray-500 uppercase tracking-wider ml-1">Diagnosa Awal (ICD-10)</label>
+                                        <input
+                                            value={sepInput.diagnosa}
+                                            onChange={e => setSepInput({ ...sepInput, diagnosa: e.target.value })}
+                                            className="w-full p-4 rounded-xl border border-gray-200 bg-gray-50 text-sm font-medium focus:ring-2 focus:ring-green-500 outline-none transition"
+                                            placeholder="Contoh: DEMAM (R50.9)"
+                                        />
+                                    </div>
+                                </div>
+
+                                <div className="flex gap-3 pt-4">
+                                    <button
+                                        onClick={() => setShowSEPModal(false)}
+                                        className="flex-1 py-3 text-gray-500 font-bold hover:bg-gray-100 rounded-xl transition"
+                                    >
+                                        Cancel
+                                    </button>
+                                    <button
+                                        onClick={async () => {
+                                            setSepLoading(true);
+                                            try {
+                                                const res = await api.post('/bpjs/sep/insert', {
+                                                    noKartu: patientFound.bpjs_card_no || '000000',
+                                                    poli: selectedClinic, // ID Poli
+                                                    rujukan: sepInput.rujukan,
+                                                    diagnosa: sepInput.diagnosa
+                                                });
+                                                if (res.data.status === 'OK') {
+                                                    setSepData(res.data.data);
+                                                    toast.success('SEP Berhasil Terbit!');
+                                                    setShowSEPModal(false);
+                                                    // Continue to Create Ticket
+                                                    handleCreateTicket();
+                                                }
+                                            } catch (e) {
+                                                toast.error('Gagal terbit SEP');
+                                            } finally {
+                                                setSepLoading(false);
+                                            }
+                                        }}
+                                        disabled={sepLoading}
+                                        className="flex-[2] py-3 bg-green-600 hover:bg-green-700 text-white font-bold rounded-xl shadow-xl shadow-green-600/20 transition flex items-center justify-center gap-2"
+                                    >
+                                        {sepLoading ? <Activity className="animate-spin" size={18} /> : <CheckCircle size={18} />}
+                                        {sepLoading ? 'Processing...' : 'Terbitkan SEP & Booking'}
+                                    </button>
+                                </div>
                             </div>
                         </motion.div>
                     </div>

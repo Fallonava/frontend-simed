@@ -75,6 +75,37 @@ const checkKepesertaanByNIK = async (nik) => {
     }
 };
 
+const insertSEP = async (data) => {
+    // Simulate API Latency
+    await new Promise(resolve => setTimeout(resolve, 800));
+
+    const { noKartu, poli, rujukan } = data;
+
+    // Generate Dummy SEP Number
+    // Format: KODE_RS + 'R' + BULAN + TAHUN + SEQUENCE (e.g. 0001R0011221000001)
+    const date = new Date();
+    const month = (date.getMonth() + 1).toString().padStart(2, '0');
+    const year = date.getFullYear().toString().slice(-2);
+    const randomSeq = Math.floor(100000 + Math.random() * 900000);
+    const sepNo = `0001R001${month}${year}B${randomSeq}`;
+
+    return {
+        status: 'OK',
+        data: {
+            noSep: sepNo,
+            tglSep: date.toISOString().split('T')[0],
+            peserta: {
+                noKartu: noKartu,
+                nama: MOCK_DB[Object.keys(MOCK_DB).find(k => MOCK_DB[k].noKartu === noKartu)]?.nama || 'PESERTA DUMMY'
+            },
+            poli: poli,
+            diagnosa: data.diagnosa,
+            catatan: 'SEP INI ADALAH SIMULASI UNTUK TESTING'
+        }
+    };
+};
+
 module.exports = {
-    checkKepesertaanByNIK
+    checkKepesertaanByNIK,
+    insertSEP
 };
