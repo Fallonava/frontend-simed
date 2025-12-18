@@ -1,7 +1,7 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import useAuthStore from '../store/useAuthStore';
-import { LayoutDashboard, Users, Database, LogOut, Monitor, Calendar, Activity, FileText, Pill, Receipt, Sparkles, ClipboardPlus, Microscope } from 'lucide-react';
+import { LayoutDashboard, Users, Database, Calendar, Activity, FileText, Pill, Receipt, Monitor, ClipboardPlus, Microscope, Sparkles, LogOut } from 'lucide-react';
 import ThemeToggle from '../components/ThemeToggle';
 
 const MainMenu = () => {
@@ -89,12 +89,20 @@ const MainMenu = () => {
             color: 'bg-gradient-to-br from-red-400 to-pink-500'
         },
         {
-            title: 'Lab & Radiologi',
-            description: 'Order Processor',
+            title: 'Laboratorium',
+            description: 'Lab Orders',
             icon: <Microscope size={40} />,
-            path: '/lab-rad',
+            path: '/lab',
             roles: ['ADMIN', 'STAFF'],
-            color: 'bg-gradient-to-br from-purple-500 to-indigo-600'
+            color: 'bg-gradient-to-br from-purple-500 to-pink-600'
+        },
+        {
+            title: 'Radiologi',
+            description: 'X-Ray & Imaging',
+            icon: <Activity size={40} />,
+            path: '/radiology',
+            roles: ['ADMIN', 'STAFF'],
+            color: 'bg-gradient-to-br from-indigo-500 to-cyan-600'
         },
         {
             title: 'Kiosk Antrian',
