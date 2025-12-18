@@ -84,17 +84,24 @@ const NurseDashboard = () => {
 
     return (
         <PageWrapper title="Nurse Station (Triage)">
-            <Toaster position="top-center" />
-            <div className="min-h-screen bg-gray-50/50 dark:bg-gray-900/50 p-6 flex flex-col md:flex-row gap-6">
+            <Toaster position="top-right" />
+
+            {/* Background Elements */}
+            <div className="fixed inset-0 pointer-events-none overflow-hidden text-left">
+                <div className="absolute top-[-10%] left-[-10%] w-[500px] h-[500px] bg-blue-400/20 rounded-full blur-[100px]" />
+                <div className="absolute bottom-[-10%] right-[-10%] w-[500px] h-[500px] bg-cyan-400/20 rounded-full blur-[100px]" />
+            </div>
+
+            <div className="relative min-h-screen p-6 flex flex-col md:flex-row gap-6 max-w-[1600px] mx-auto z-10">
 
                 {/* LEFT: Queue List */}
                 <div className="w-full md:w-1/3 space-y-4">
-                    <div className="bg-white dark:bg-gray-800 p-4 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700">
-                        <h2 className="text-xl font-bold flex items-center gap-2">
-                            <Clock className="text-blue-500" />
-                            Waiting for Triage
+                    <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl p-6 rounded-[24px] shadow-lg border border-white/20 dark:border-gray-700">
+                        <h2 className="text-2xl font-bold flex items-center gap-3 text-gray-800 dark:text-white">
+                            <Clock className="text-blue-500" size={24} />
+                            Waiting List
                         </h2>
-                        <p className="text-gray-500 text-sm">Patients checked-in but not yet seen by doctor</p>
+                        <p className="text-gray-500 text-sm mt-1 ml-9">Patients waiting for triage assessment</p>
                     </div>
 
                     <div className="space-y-3 overflow-y-auto max-h-[calc(100vh-200px)]">
@@ -107,8 +114,8 @@ const NurseDashboard = () => {
                                 layoutId={item.id}
                                 onClick={() => handleSelect(item)}
                                 className={`p-4 rounded-xl cursor-pointer border transition-all ${selectedPatient?.id === item.id
-                                        ? 'bg-blue-50 border-blue-200 shadow-md ring-1 ring-blue-300'
-                                        : 'bg-white dark:bg-gray-800 border-transparent hover:bg-gray-50 dark:hover:bg-gray-700'
+                                    ? 'bg-blue-50 border-blue-200 shadow-md ring-1 ring-blue-300'
+                                    : 'bg-white dark:bg-gray-800 border-transparent hover:bg-gray-50 dark:hover:bg-gray-700'
                                     }`}
                             >
                                 <div className="flex justify-between items-start">
@@ -132,7 +139,7 @@ const NurseDashboard = () => {
                                 initial={{ opacity: 0, x: 20 }}
                                 animate={{ opacity: 1, x: 0 }}
                                 exit={{ opacity: 0, x: 20 }}
-                                className="bg-white dark:bg-gray-800 rounded-[32px] p-8 shadow-xl border border-gray-100 dark:border-gray-700"
+                                className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl rounded-[32px] p-8 shadow-xl border border-white/20 dark:border-gray-700 h-fit"
                             >
                                 <div className="flex justify-between items-center mb-6">
                                     <div>

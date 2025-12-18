@@ -40,68 +40,132 @@ const LabRadiologyDashboard = () => {
         }
     };
 
+    const containerVariants = {
+        hidden: { opacity: 0 },
+        show: {
+            opacity: 1,
+            transition: {
+                staggerChildren: 0.1
+            }
+        }
+    };
+
+    const itemVariants = {
+        hidden: { opacity: 0, y: 20 },
+        show: { opacity: 1, y: 0 }
+    };
+
     return (
         <PageWrapper title="Lab & Radiology">
-            <Toaster position="top-center" />
-            <div className="min-h-screen bg-gray-50/50 dark:bg-gray-900/50 p-6 max-w-7xl mx-auto">
-                <div className="flex gap-4 mb-8">
-                    <button
-                        onClick={() => setActiveTab('LAB')}
-                        className={`px-8 py-4 rounded-2xl font-bold flex items-center gap-3 transition-all ${activeTab === 'LAB' ? 'bg-purple-600 text-white shadow-lg shadow-purple-500/30' : 'bg-white dark:bg-gray-800 text-gray-500 hover:bg-gray-100'}`}
-                    >
-                        <Microscope size={24} /> Laboratorium
-                    </button>
-                    <button
-                        onClick={() => setActiveTab('RAD')}
-                        className={`px-8 py-4 rounded-2xl font-bold flex items-center gap-3 transition-all ${activeTab === 'RAD' ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/30' : 'bg-white dark:bg-gray-800 text-gray-500 hover:bg-gray-100'}`}
-                    >
-                        <Activity size={24} /> Radiologi
-                    </button>
-                </div>
+            <Toaster position="top-right" />
 
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {orders.length === 0 && (
-                        <div className="col-span-full text-center py-20 text-gray-400">
-                            <Clock size={48} className="mx-auto mb-4 opacity-50" />
-                            <p>No pending orders for {activeTab === 'LAB' ? 'Laboratory' : 'Radiology'}</p>
-                        </div>
-                    )}
+            {/* Background Elements */}
+            <div className="fixed inset-0 pointer-events-none overflow-hidden">
+                <div className="absolute top-[-10%] left-[-10%] w-[500px] h-[500px] bg-purple-400/20 rounded-full blur-[100px]" />
+                <div className="absolute bottom-[-10%] right-[-10%] w-[500px] h-[500px] bg-blue-400/20 rounded-full blur-[100px]" />
+            </div>
 
-                    {orders.map((order, idx) => (
-                        <motion.div
-                            key={order.id}
-                            initial={{ opacity: 0, y: 20 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            transition={{ delay: idx * 0.1 }}
-                            className="bg-white dark:bg-gray-800 p-6 rounded-[24px] shadow-sm border border-gray-100 dark:border-gray-700 flex flex-col justify-between h-full"
+            <div className="relative min-h-screen p-6 max-w-7xl mx-auto z-10">
+
+                {/* Header Section */}
+                <div className="flex flex-col md:flex-row justify-between items-end mb-10 gap-6">
+                    <div>
+                        <h1 className="text-4xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-purple-600 to-indigo-600 dark:from-purple-400 dark:to-indigo-400 mb-2">
+                            Order Management
+                        </h1>
+                        <p className="text-gray-500 font-medium">Process and verify medical examination requests.</p>
+                    </div>
+
+                    {/* Tab Switcher */}
+                    <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl p-1.5 rounded-2xl shadow-lg border border-white/20 flex gap-2">
+                        <button
+                            onClick={() => setActiveTab('LAB')}
+                            className={`px-6 py-3 rounded-xl font-bold flex items-center gap-2 transition-all duration-300 ${activeTab === 'LAB'
+                                ? 'bg-gradient-to-r from-purple-600 to-purple-500 text-white shadow-lg shadow-purple-500/30 scale-105'
+                                : 'text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700'}`}
                         >
-                            <div className="mb-4">
-                                <div className="flex justify-between items-start mb-2">
-                                    <div className="font-bold text-lg text-gray-900 dark:text-white">
-                                        {order.medical_record.patient.name}
-                                    </div>
-                                    <span className="text-xs bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded text-gray-500">
-                                        {new Date(order.created_at).toLocaleTimeString()}
-                                    </span>
-                                </div>
-                                <div className="text-sm text-gray-500 mb-4">
-                                    <span className="font-bold">Dr. {order.medical_record.doctor.name}</span>
-                                </div>
-                                <div className="bg-gray-50 dark:bg-gray-700/50 p-4 rounded-xl text-gray-700 dark:text-gray-300 font-medium">
-                                    <FileText size={16} className="inline mr-2 opacity-50" />
-                                    {order.notes}
-                                </div>
-                            </div>
-
-                            <button
-                                onClick={() => handleComplete(order.id)}
-                                className="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold flex items-center justify-center gap-2 active:scale-95 transition-all"
-                            >
-                                <CheckCircle size={20} /> Mark as Complete
-                            </button>
-                        </motion.div>
-                    ))}
+                            <Microscope size={20} /> Laboratorium
+                        </button>
+                        <button
+                            onClick={() => setActiveTab('RAD')}
+                            className={`px-6 py-3 rounded-xl font-bold flex items-center gap-2 transition-all duration-300 ${activeTab === 'RAD'
+                                ? 'bg-gradient-to-r from-indigo-600 to-blue-600 text-white shadow-lg shadow-indigo-500/30 scale-105'
+                                : 'text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700'}`}
+                        >
+                            <Activity size={20} /> Radiologi
+                        </button>
+                    </div>
                 </div>
+
+                {/* Orders Grid */}
+                <motion.div
+                    variants={containerVariants}
+                    initial="hidden"
+                    animate="show"
+                    className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
+                >
+                    <AnimatePresence mode="popLayout">
+                        {orders.length === 0 ? (
+                            <motion.div
+                                initial={{ opacity: 0 }} animate={{ opacity: 1 }}
+                                className="col-span-full py-32 flex flex-col items-center justify-center text-center"
+                            >
+                                <div className="w-24 h-24 bg-gray-100 dark:bg-gray-800 rounded-full flex items-center justify-center mb-6">
+                                    <CheckCircle size={48} className="text-gray-300" />
+                                </div>
+                                <h3 className="text-2xl font-bold text-gray-400">All caught up!</h3>
+                                <p className="text-gray-400 mt-2">No pending orders for {activeTab === 'LAB' ? 'Laboratory' : 'Radiology'}</p>
+                            </motion.div>
+                        ) : (
+                            orders.map((order) => (
+                                <motion.div
+                                    key={order.id}
+                                    variants={itemVariants}
+                                    layoutId={order.id}
+                                    className="group relative bg-white/70 dark:bg-gray-800/60 backdrop-blur-md p-6 rounded-[32px] border border-white/50 dark:border-gray-700 hover:shadow-2xl hover:shadow-blue-500/10 transition-all duration-300 hover:-translate-y-1"
+                                >
+                                    {/* Status Indicator */}
+                                    <div className="absolute top-6 right-6">
+                                        <span className="flex h-3 w-3">
+                                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-yellow-400 opacity-75"></span>
+                                            <span className="relative inline-flex rounded-full h-3 w-3 bg-yellow-500"></span>
+                                        </span>
+                                    </div>
+
+                                    <div className="mb-6">
+                                        <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-1">
+                                            {order.medical_record.patient.name}
+                                        </h3>
+                                        <p className="text-sm font-medium text-gray-500 mb-4 flex items-center gap-2">
+                                            <Clock size={14} /> {new Date(order.created_at).toLocaleTimeString()}
+                                            <span className="w-1 h-1 bg-gray-300 rounded-full" />
+                                            <span>Dr. {order.medical_record.doctor.name}</span>
+                                        </p>
+
+                                        <div className="bg-white/50 dark:bg-black/20 p-4 rounded-2xl border border-dashed border-gray-200 dark:border-gray-700/50">
+                                            <div className="flex items-start gap-3">
+                                                <FileText className="text-blue-500 mt-1" size={18} />
+                                                <div>
+                                                    <span className="block text-xs font-bold text-blue-500 uppercase tracking-wider mb-1">REQUEST</span>
+                                                    <p className="text-gray-700 dark:text-gray-300 leading-relaxed font-medium">
+                                                        {order.notes}
+                                                    </p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <button
+                                        onClick={() => handleComplete(order.id)}
+                                        className="w-full py-4 rounded-2xl font-bold text-white shadow-xl shadow-blue-500/20 active:scale-95 transition-all flex items-center justify-center gap-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500"
+                                    >
+                                        <CheckCircle size={20} /> Mark Complete
+                                    </button>
+                                </motion.div>
+                            ))
+                        )}
+                    </AnimatePresence>
+                </motion.div>
             </div>
         </PageWrapper>
     );
