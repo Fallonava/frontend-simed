@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo, memo } from 'react';
 import { Link } from 'react-router-dom';
 import axios from 'axios';
 import useQueueStore from '../store/useQueueStore';
@@ -7,11 +7,69 @@ import ScheduleCalendar from '../components/ScheduleCalendar';
 import DoctorLeaveCalendar from '../components/DoctorLeaveCalendar';
 import ThemeToggle from '../components/ThemeToggle';
 import UserManagement from '../components/UserManagement';
-import { LayoutGrid, RefreshCw, Activity, Database, Monitor, Download, Calendar as ScheduleCalendarIcon, Search, Bell, User } from 'lucide-react';
+import { LayoutGrid, RefreshCw, Activity, Database, Monitor, Download, Calendar as ScheduleCalendarIcon, Search, Bell, User, ExternalLink, LogOut } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
-import appIcon from '../assets/app_icon.png';
+import FallonavaLogo from '../components/FallonavaLogo';
+import PageLoader from '../components/PageLoader';
 
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8', '#82ca9d'];
+
+// --- Sub Components for Performance ---
+const LiveStatusSection = memo(({ doctors, leaves, isConnected }) => {
+    // Helper
+    const isSameDay = (d1, d2) => {
+        return d1.getDate() === d2.getDate() &&
+            d1.getMonth() === d2.getMonth() &&
+            d1.getFullYear() === d2.getFullYear();
+    };
+
+    // Filter doctors for today
+    const availableDoctors = useMemo(() => {
+        const today = new Date().getDay();
+        const dbDay = today === 0 ? 7 : today;
+        return doctors.filter(doctor => doctor.schedules?.some(s => s.day === dbDay));
+    }, [doctors]);
+
+    return (
+        <div className="max-w-[1600px] mx-auto pb-10 fade-in animate-in duration-300">
+            <div>
+                <div className="flex items-center justify-end mb-6">
+                    <div className={`flex items-center gap-2 px-4 py-2 rounded-full text-xs font-bold transition-colors border ${isConnected ? 'bg-green-50 dark:bg-green-900/30 text-green-600 dark:text-green-400 border-green-100 dark:border-green-800' : 'bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400 border-red-100 dark:border-red-800'}`}>
+                        <div className={`w-2 h-2 rounded-full ${isConnected ? 'bg-green-500 animate-pulse' : 'bg-red-500'}`}></div>
+                        {isConnected ? 'System Online' : 'System Offline'}
+                    </div>
+                </div>
+
+                {/* Grid */}
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-6">
+                    {availableDoctors.map((doctor) => {
+                        // Check if On Leave
+                        const todayLeave = leaves.find(l => l.doctor_id === doctor.id && isSameDay(new Date(l.date), new Date()));
+
+                        return (
+                            <DoctorCard
+                                key={doctor.id}
+                                doctor={doctor}
+                                onLeave={!!todayLeave}
+                                leaveReason={todayLeave?.reason || 'Cuti'}
+                            />
+                        );
+                    })}
+                </div>
+
+                {availableDoctors.length === 0 && (
+                    <div className="text-center py-32 card-soft">
+                        <div className="w-24 h-24 bg-theme-bg rounded-full flex items-center justify-center mx-auto mb-6">
+                            <LayoutGrid className="w-10 h-10 text-theme-gray" />
+                        </div>
+                        <h3 className="text-xl font-semibold text-theme-text">No Doctors Available Today</h3>
+                        <p className="text-theme-gray mt-2">There are no doctors scheduled for today.</p>
+                    </div>
+                )}
+            </div>
+        </div>
+    );
+});
 
 const AdminDashboard = () => {
     const { doctors, initialize, generateQuota, isConnected } = useQueueStore();
@@ -62,18 +120,12 @@ const AdminDashboard = () => {
         setActiveTab(id);
     };
 
-    const isSameDay = (d1, d2) => {
-        return d1.getDate() === d2.getDate() &&
-            d1.getMonth() === d2.getMonth() &&
-            d1.getFullYear() === d2.getFullYear();
-    };
-
     return (
         <div className="min-h-screen bg-theme-bg flex font-sans text-theme-text relative">
             {/* Mobile Header */}
             <div className="lg:hidden fixed top-0 left-0 right-0 h-16 bg-white dark:bg-gray-800 border-b border-gray-100 dark:border-gray-700 z-30 flex items-center px-4 justify-between shadow-sm">
                 <div className="flex items-center gap-3">
-                    <img src={appIcon} alt="Fallonava Logo" className="w-8 h-8 rounded-lg shadow-lg shadow-salm-purple/20" />
+                    <FallonavaLogo className="w-8 h-8 rounded-lg shadow-lg shadow-salm-purple/20" />
                     <span className="text-lg font-bold text-theme-text">Fallonava.</span>
                 </div>
                 <button
@@ -101,7 +153,7 @@ const AdminDashboard = () => {
                 ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
             `}>
                 <div className="flex items-center gap-3 mb-12 px-2">
-                    <img src={appIcon} alt="Fallonava Logo" className="w-10 h-10 rounded-xl shadow-lg shadow-salm-purple/20" />
+                    <FallonavaLogo className="w-10 h-10 rounded-xl shadow-lg shadow-salm-purple/20" />
                     <span className="text-xl font-bold text-theme-text tracking-tight">Fallonava.</span>
                 </div>
 
@@ -141,6 +193,14 @@ const AdminDashboard = () => {
                         <User className={`w-5 h-5 transition-transform duration-300 group-hover:scale-110 ${activeTab === 'users' ? 'text-white' : 'text-gray-400 group-hover:text-salm-purple'}`} />
                         <span className="relative z-10">User Management</span>
                     </button>
+                    <button
+                        onClick={() => window.open('/public/schedule', '_blank')}
+                        className={`w-full flex items-center gap-4 px-4 py-3.5 rounded-2xl text-left font-medium group relative overflow-hidden transition-all duration-300 ease-out hover:scale-[1.02] active:scale-[0.95] text-theme-gray dark:text-gray-400 hover:bg-white dark:hover:bg-gray-700/50 hover:shadow-lg hover:shadow-purple-500/5`}
+                    >
+                        <Monitor className="w-5 h-5 text-gray-400 group-hover:text-salm-purple transition-colors" />
+                        <span className="relative z-10 flex-1">Public Display</span>
+                        <ExternalLink className="w-4 h-4 text-gray-400 opacity-50 group-hover:opacity-100 transition-opacity" />
+                    </button>
                 </nav>
 
                 <div className="mt-auto pt-6 border-t border-gray-50 dark:border-gray-700 space-y-2">
@@ -148,9 +208,9 @@ const AdminDashboard = () => {
                         <Database className="w-5 h-5 transition-transform duration-300 group-hover:scale-110 text-gray-400 group-hover:text-salm-purple" />
                         <span className="relative z-10 font-medium">Master Data</span>
                     </Link>
-                    <Link to="/admin/counter" className="flex items-center gap-4 px-4 py-3 rounded-2xl text-theme-gray dark:text-gray-400 group relative overflow-hidden transition-all duration-300 ease-out hover:scale-[1.02] active:scale-[0.95] hover:bg-white dark:hover:bg-gray-700/50 hover:shadow-lg hover:shadow-purple-500/5">
-                        <Monitor className="w-5 h-5 transition-transform duration-300 group-hover:scale-110 text-gray-400 group-hover:text-salm-purple" />
-                        <span className="relative z-10 font-medium">Counter Staff</span>
+                    <Link to="/" className="flex items-center gap-4 px-4 py-3 rounded-2xl text-red-500/80 hover:text-red-600 group relative overflow-hidden transition-all duration-300 ease-out hover:scale-[1.02] active:scale-[0.95] hover:bg-red-50 dark:hover:bg-red-900/20">
+                        <LogOut className="w-5 h-5 transition-transform duration-300 group-hover:scale-110" />
+                        <span className="relative z-10 font-medium">Exit Dashboard</span>
                     </Link>
                 </div>
             </aside>
@@ -237,7 +297,7 @@ const AdminDashboard = () => {
                                 </div>
 
                                 {/* Analytics Section */}
-                                <div className="grid grid-cols-1 xl:grid-cols-3 gap-8 mb-10">
+                                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 lg:gap-8 mb-10">
                                     {/* Stats Cards */}
                                     <div className="space-y-6">
                                         <div className="card-soft p-6 flex items-center justify-between group hover:border-theme-purple/30">
@@ -361,55 +421,11 @@ const AdminDashboard = () => {
                     )}
 
                     {activeTab === 'live-status' && (
-                        <div className="max-w-[1600px] mx-auto pb-10 fade-in animate-in duration-300">
-                            <div>
-                                <div className="flex items-center justify-end mb-6">
-                                    <div className={`flex items-center gap-2 px-4 py-2 rounded-full text-xs font-bold transition-colors border ${isConnected ? 'bg-green-50 dark:bg-green-900/30 text-green-600 dark:text-green-400 border-green-100 dark:border-green-800' : 'bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400 border-red-100 dark:border-red-800'}`}>
-                                        <div className={`w-2 h-2 rounded-full ${isConnected ? 'bg-green-500 animate-pulse' : 'bg-red-500'}`}></div>
-                                        {isConnected ? 'System Online' : 'System Offline'}
-                                    </div>
-                                </div>
-
-                                {/* Grid */}
-                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-6">
-
-                                    {doctors.filter(doctor => {
-                                        // Get current day (1=Senin ... 6=Sabtu, 0=Minggu -> 7)
-                                        const today = new Date().getDay();
-                                        const dbDay = today === 0 ? 7 : today;
-
-                                        // Check if doctor has schedule for today
-                                        return doctor.schedules?.some(s => s.day === dbDay);
-                                    }).map((doctor) => {
-                                        // Check if On Leave
-                                        const todayLeave = leaves.find(l => l.doctor_id === doctor.id && isSameDay(new Date(l.date), new Date()));
-
-                                        return (
-                                            <DoctorCard
-                                                key={doctor.id}
-                                                doctor={doctor}
-                                                onLeave={!!todayLeave}
-                                                leaveReason={todayLeave?.reason || 'Cuti'}
-                                            />
-                                        );
-                                    })}
-                                </div>
-
-                                {doctors.filter(d => {
-                                    const today = new Date().getDay();
-                                    const dbDay = today === 0 ? 7 : today;
-                                    return d.schedules?.some(s => s.day === dbDay);
-                                }).length === 0 && (
-                                        <div className="text-center py-32 card-soft">
-                                            <div className="w-24 h-24 bg-theme-bg rounded-full flex items-center justify-center mx-auto mb-6">
-                                                <LayoutGrid className="w-10 h-10 text-theme-gray" />
-                                            </div>
-                                            <h3 className="text-xl font-semibold text-theme-text">No Doctors Available Today</h3>
-                                            <p className="text-theme-gray mt-2">There are no doctors scheduled for today.</p>
-                                        </div>
-                                    )}
-                            </div>
-                        </div>
+                        <LiveStatusSection
+                            doctors={doctors}
+                            leaves={leaves}
+                            isConnected={isConnected}
+                        />
                     )}
 
                     {activeTab === 'users' && <UserManagement />}

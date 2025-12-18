@@ -1,7 +1,8 @@
-import React, { useState, useEffect } from 'react';
-import { ChevronLeft, ChevronRight, Search, Plus, MoreHorizontal, Clock, Calendar as CalendarIcon, X, Check, Trash2, User, Briefcase, Coffee } from 'lucide-react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import { ChevronLeft, ChevronRight, Search, Plus, MoreHorizontal, Clock, Calendar as CalendarIcon, X, Check, Trash2, User, Briefcase, Coffee, ChevronDown } from 'lucide-react';
 import axios from 'axios';
 import toast from 'react-hot-toast';
+import MonthDayCell from './MonthDayCell';
 
 const DoctorLeaveCalendar = () => {
     // --- State ---
@@ -13,15 +14,27 @@ const DoctorLeaveCalendar = () => {
     const [allLeaves, setAllLeaves] = useState([]); // Store ALL leaves
     const [filterByDate, setFilterByDate] = useState(true); // Toggle for strict filtering
 
+    // Mini Calendar Toggle (Default Collapsed)
+    const [isMiniCalendarOpen, setIsMiniCalendarOpen] = useState(false);
+
+    // Modal State
+    const [isModalOpen, setIsModalOpen] = useState(false);
+    const [modalData, setModalData] = useState({ date: null, existingLeave: null, reason: '' });
+
     // Helper for date comparison (ignore time)
-    const isSameDay = (d1, d2) => {
+    const isSameDay = useCallback((d1, d2) => {
         return d1.getDate() === d2.getDate() &&
             d1.getMonth() === d2.getMonth() &&
             d1.getFullYear() === d2.getFullYear();
+    }, []);
+
+    // Date Key Helper for Map
+    const getDateKey = (date) => {
+        return `${date.getFullYear()}-${date.getMonth()}-${date.getDate()}`;
     };
 
     // Derived state for filtered doctors
-    const filteredDoctors = React.useMemo(() => {
+    const filteredDoctors = useMemo(() => {
         let result = doctors;
 
         // Filter by Search
@@ -29,12 +42,9 @@ const DoctorLeaveCalendar = () => {
             result = result.filter(doc => doc.name.toLowerCase().includes(searchQuery.toLowerCase()));
         }
 
-        // Filter by Day Schedule (only in Day View) -> REMOVED in favor of Leave Logic if needed, or keep?
-        // User request: "only display doctors on leave on the selected date"
-        // This implies overriding the schedule filter or combining it?
-        // Let's implement the "On Leave" filter primarily.
-
-        if (filterByDate) {
+        if (filterByDate && allLeaves.length > 0) {
+            // Optimize this slightly by pre-calculating relevant doctor IDs if the list is huge, 
+            // but for typical hospital size, this is fine.
             result = result.filter(doc => {
                 // Check if doctor has a leave on 'currentDate'
                 const onLeave = allLeaves.some(l => l.doctor_id === doc.id && isSameDay(new Date(l.date), currentDate));
@@ -43,11 +53,8 @@ const DoctorLeaveCalendar = () => {
         }
 
         return result;
-    }, [doctors, view, currentDate, searchQuery, allLeaves, filterByDate]);
+    }, [doctors, view, currentDate, searchQuery, allLeaves, filterByDate, isSameDay]);
 
-    // Modal State
-    const [isModalOpen, setIsModalOpen] = useState(false);
-    const [modalData, setModalData] = useState({ date: null, existingLeave: null, reason: '' });
 
     // --- Effects ---
     useEffect(() => {
@@ -55,25 +62,36 @@ const DoctorLeaveCalendar = () => {
         fetchAllLeaves();
     }, []);
 
-    // Auto-select first doctor logic - Adjusted to handle empty lists smoothly
+    // Auto-select first doctor logic
     useEffect(() => {
         if (filteredDoctors.length > 0) {
-            // If currently selected doctor is NOT in the filtered list, switch.
-            // If selected doctor IS in the list, keep them.
             if (!selectedDoctor || !filteredDoctors.find(d => d.id === selectedDoctor.id)) {
                 setSelectedDoctor(filteredDoctors[0]);
             }
         } else {
-            // No doctors match filter
             setSelectedDoctor(null);
         }
     }, [filteredDoctors, selectedDoctor]);
 
-    // Leaves for selected doctor (Derived from allLeaves)
-    const leaves = React.useMemo(() => {
+    // Leaves for selected doctor
+    const leaves = useMemo(() => {
         if (!selectedDoctor) return [];
         return allLeaves.filter(l => l.doctor_id === selectedDoctor.id);
     }, [selectedDoctor, allLeaves]);
+
+    // OPTIMIZATION: Create a Map for O(1) lookup of leaves by date
+    const leavesMap = useMemo(() => {
+        const map = new Map();
+        leaves.forEach(leave => {
+            const date = new Date(leave.date);
+            const key = getDateKey(date);
+            if (!map.has(key)) {
+                map.set(key, []);
+            }
+            map.get(key).push(leave);
+        });
+        return map;
+    }, [leaves]);
 
     // --- API Calls ---
     const fetchDoctors = async () => {
@@ -88,7 +106,6 @@ const DoctorLeaveCalendar = () => {
 
     const fetchAllLeaves = async () => {
         try {
-            // Get ALL leaves (no doctor_id param)
             const res = await axios.get(`${import.meta.env.VITE_API_URL || 'http://localhost:3000/api'}/doctor-leaves`);
             setAllLeaves(res.data);
         } catch (error) {
@@ -96,10 +113,6 @@ const DoctorLeaveCalendar = () => {
             toast.error('Gagal memuat data cuti');
         }
     };
-
-    // Keep fetchLeaves for single doctor update compatibility? 
-    // Better to re-fetch ALL to keep sync if we edit.
-    // Or just manually update local state. Re-fetching all is safer.
 
     const handleSaveLeave = async () => {
         if (!selectedDoctor || !modalData.date) return;
@@ -163,15 +176,22 @@ const DoctorLeaveCalendar = () => {
         setCurrentDate(newDate);
     };
 
-
-
-    const handleDateClick = (day) => {
+    const handleDateClick = useCallback((day) => {
         if (!selectedDoctor) {
             toast.error('Pilih dokter terlebih dahulu');
             return;
         }
 
-        const clickedDate = new Date(currentDate.getFullYear(), currentDate.getMonth(), day);
+        // Handle both simple day number (month view) or full Date object (week/day view)
+        let clickedDate;
+        if (typeof day === 'number') {
+            clickedDate = new Date(currentDate.getFullYear(), currentDate.getMonth(), day);
+        } else {
+            clickedDate = new Date(day);
+        }
+
+        const key = getDateKey(clickedDate);
+        // We can reuse leavesMap here too if we want, or find directly
         const existing = leaves.find(l => isSameDay(new Date(l.date), clickedDate));
 
         setModalData({
@@ -180,7 +200,7 @@ const DoctorLeaveCalendar = () => {
             reason: existing ? existing.reason : ''
         });
         setIsModalOpen(true);
-    };
+    }, [currentDate, selectedDoctor, leaves, isSameDay]); // Re-create if dependencies change
 
     // --- Renderers ---
     const renderMonthView = () => {
@@ -188,7 +208,7 @@ const DoctorLeaveCalendar = () => {
         const firstDay = getFirstDayOfMonth(currentDate);
         const days = [];
 
-        // Empty slots for previous month
+        // Empty slots
         for (let i = 0; i < firstDay; i++) {
             days.push(<div key={`empty-${i}`} className="bg-gray-50/30 dark:bg-gray-800/30 border border-gray-100 dark:border-gray-700 min-h-[120px]"></div>);
         }
@@ -198,45 +218,19 @@ const DoctorLeaveCalendar = () => {
             const currentDayDate = new Date(currentDate.getFullYear(), currentDate.getMonth(), day);
             const isToday = isSameDay(new Date(), currentDayDate);
 
-            const dayLeaves = leaves.filter(l => isSameDay(new Date(l.date), currentDayDate));
+            // OPTIMIZED LOOKUP
+            const dateKey = getDateKey(currentDayDate);
+            const dayLeaves = leavesMap.get(dateKey) || [];
 
             days.push(
-                <div
+                <MonthDayCell
                     key={day}
-                    onClick={() => handleDateClick(day)}
-                    className={`
-                        min-h-[120px] p-3 border relative group transition-all hover:bg-gray-50 dark:hover:bg-gray-700/50 cursor-pointer
-                        ${isToday
-                            ? 'bg-white dark:bg-gray-800 ring-2 ring-salm-blue ring-offset-2 dark:ring-offset-gray-900 border-transparent z-10 shadow-lg shadow-salm-blue/10 rounded-2xl'
-                            : 'bg-white dark:bg-gray-800 border-gray-100 dark:border-gray-700'}
-                    `}
-                >
-                    <div className="flex justify-between items-center mb-2">
-                        <span className={`text-sm font-semibold transition-all ${isToday
-                            ? 'bg-salm-blue text-white w-8 h-8 flex items-center justify-center rounded-full shadow-lg shadow-salm-blue/30 scale-110'
-                            : 'text-gray-700 dark:text-gray-300'
-                            }`}>
-                            {day}
-                        </span>
-                    </div>
-
-                    {/* Leave Blocks */}
-                    <div className="space-y-1">
-                        {dayLeaves.map((leave, idx) => (
-                            <div key={idx} className="bg-salm-light-pink/30 border border-salm-light-pink p-2 rounded-lg shadow-sm">
-                                <div className="text-xs font-bold text-salm-pink truncate">Leave</div>
-                                <div className="text-[10px] text-salm-pink truncate">{leave.reason || 'No specific reason'}</div>
-                            </div>
-                        ))}
-                    </div>
-
-                    {/* Hover Add Indicator */}
-                    {dayLeaves.length === 0 && (
-                        <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 pointer-events-none">
-                            <Plus className="w-6 h-6 text-gray-300" />
-                        </div>
-                    )}
-                </div>
+                    day={day}
+                    currentDate={currentDayDate}
+                    isToday={isToday}
+                    dayLeaves={dayLeaves}
+                    onClick={handleDateClick}
+                />
             );
         }
         return days;
@@ -246,7 +240,6 @@ const DoctorLeaveCalendar = () => {
         const startOfWeek = getStartOfWeek(currentDate);
         const days = [];
 
-        // Helper to get schedule for a specific day using DB convention (1-7, Sun=7)
         const getScheduleForDay = (date) => {
             if (!selectedDoctor?.schedules) return null;
             const dayIndex = date.getDay(); // 0-6
@@ -258,21 +251,23 @@ const DoctorLeaveCalendar = () => {
             const dayDate = new Date(startOfWeek);
             dayDate.setDate(startOfWeek.getDate() + i);
             const isToday = isSameDay(new Date(), dayDate);
-            const dayLeaves = leaves.filter(l => isSameDay(new Date(l.date), dayDate));
+
+            const dateKey = getDateKey(dayDate);
+            const dayLeaves = leavesMap.get(dateKey) || [];
+
             const schedule = getScheduleForDay(dayDate);
             const isWorkingDay = !!schedule;
 
             days.push(
                 <div
                     key={i}
-                    onClick={() => handleDateClick(dayDate.getDate())}
+                    onClick={() => handleDateClick(dayDate)} // Pass full Date object here
                     className={`
                         min-h-[240px] border-r border-gray-100 dark:border-gray-700 p-4 relative group transition-all duration-300 flex flex-col
                         hover:bg-gray-50/80 dark:hover:bg-gray-700/50 cursor-pointer
                         ${isToday ? 'bg-salm-light-blue/5' : ''}
                     `}
                 >
-                    {/* Date Header */}
                     <div className="text-center mb-6 z-10">
                         <div className={`text-xs font-bold uppercase tracking-wider mb-2 ${isToday ? 'text-salm-blue' : 'text-gray-400'}`}>
                             {dayDate.toLocaleString('default', { weekday: 'short' })}
@@ -287,10 +282,7 @@ const DoctorLeaveCalendar = () => {
                         </div>
                     </div>
 
-                    {/* Content Container */}
                     <div className="flex-1 flex flex-col gap-3 relative">
-
-                        {/* 1. Schedule Card (Base Layer) */}
                         <div className={`
                             p-3 rounded-xl border flex flex-col gap-1 transition-all
                             ${isWorkingDay
@@ -315,7 +307,6 @@ const DoctorLeaveCalendar = () => {
                             </div>
                         </div>
 
-                        {/* 2. Leave Overlay (Top Layer) */}
                         {dayLeaves.map((leave, idx) => (
                             <div
                                 key={idx}
@@ -336,7 +327,6 @@ const DoctorLeaveCalendar = () => {
                             </div>
                         ))}
 
-                        {/* Hover Add Button (Only if no leave) */}
                         {dayLeaves.length === 0 && (
                             <div className="absolute inset-x-0 bottom-0 top-auto flex justify-center py-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
                                 <div className="bg-salm-gradient text-white p-1.5 rounded-full shadow-lg transform translate-y-2 group-hover:translate-y-0 transition-transform">
@@ -358,7 +348,9 @@ const DoctorLeaveCalendar = () => {
 
     const renderDayView = () => {
         const isToday = isSameDay(new Date(), currentDate);
-        const dayLeaves = leaves.filter(l => isSameDay(new Date(l.date), currentDate));
+        // Lookup derived state instead of filter
+        const dateKey = getDateKey(currentDate);
+        const dayLeaves = leavesMap.get(dateKey) || [];
 
         return (
             <div className="h-full p-6">
@@ -414,7 +406,10 @@ const DoctorLeaveCalendar = () => {
             days.push(
                 <div
                     key={`mini-${day}`}
-                    onClick={() => setCurrentDate(dayDate)}
+                    onClick={(e) => {
+                        e.stopPropagation();
+                        setCurrentDate(dayDate);
+                    }}
                     className={`
                         w-full aspect-square flex items-center justify-center rounded-full cursor-pointer text-xs font-medium transition-all
                         ${isSelected
@@ -433,13 +428,13 @@ const DoctorLeaveCalendar = () => {
     };
 
     return (
-        <div className="w-full h-full flex flex-col lg:flex-row gap-8 relative z-10 pb-6 text-gray-800 dark:text-gray-200 font-sans">
+        <div className="w-full h-[calc(100vh-140px)] flex flex-col lg:flex-row gap-6 relative z-10 pb-2 text-gray-800 dark:text-gray-200 font-sans">
 
             {/* --- Left Sidebar --- */}
-            <div className="w-full lg:w-[320px] lg:h-full flex flex-col gap-4 lg:gap-6 shrink-0 transition-all">
+            <div className="w-full lg:w-[320px] h-full flex flex-col gap-4 shrink-0 transition-all overflow-hidden">
 
                 {/* Search / Filter Header */}
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-3 shrink-0">
                     <div className="relative flex-1">
                         <Search className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
                         <input
@@ -450,7 +445,7 @@ const DoctorLeaveCalendar = () => {
                             className="w-full pl-9 pr-4 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-sm focus:outline-none focus:border-salm-purple transition-colors text-gray-700 dark:text-gray-200 placeholder-gray-400"
                         />
                     </div>
-                    <div className="flex items-center gap-2 mt-3 px-1">
+                    <div className="flex items-center gap-2 px-1 shrink-0">
                         <input
                             type="checkbox"
                             checked={filterByDate}
@@ -459,34 +454,53 @@ const DoctorLeaveCalendar = () => {
                             id="filterByDate"
                         />
                         <label htmlFor="filterByDate" className="text-xs text-gray-500 font-medium cursor-pointer select-none">
-                            Absent only
+                            Absent
                         </label>
                     </div>
                 </div>
 
-                {/* Mini Calendar Widget */}
-                <div className="bg-white dark:bg-gray-800 rounded-3xl p-6 shadow-sm border border-gray-100 dark:border-gray-700">
-                    <div className="flex items-center justify-between mb-4">
-                        <h3 className="font-bold text-gray-800 dark:text-white">{currentDate.toLocaleString('default', { month: 'long', year: 'numeric' })}</h3>
-                        <div className="flex gap-1">
-                            <button onClick={() => changeMiniCalendarMonth(-1)} className="p-1 hover:bg-gray-100 rounded-full"><ChevronLeft className="w-4 h-4 text-gray-500" /></button>
-                            <button onClick={() => changeMiniCalendarMonth(1)} className="p-1 hover:bg-gray-100 rounded-full"><ChevronRight className="w-4 h-4 text-gray-500" /></button>
+                {/* Mini Calendar Widget (Collapsible) */}
+                <div className={`bg-white dark:bg-gray-800 rounded-3xl shadow-sm border border-gray-100 dark:border-gray-700 shrink-0 transition-all duration-300 overflow-hidden ${isMiniCalendarOpen ? 'p-6' : 'p-4'}`}>
+                    <div
+                        className="flex items-center justify-between cursor-pointer group"
+                        onClick={() => setIsMiniCalendarOpen(!isMiniCalendarOpen)}
+                    >
+                        <div className="flex items-center gap-3">
+                            <div className={`
+                                w-8 h-8 rounded-full flex items-center justify-center transition-all duration-300
+                                ${isMiniCalendarOpen
+                                    ? 'bg-salm-light-blue/20 text-salm-blue rotate-180'
+                                    : 'bg-gray-100 dark:bg-gray-700 text-gray-400 group-hover:bg-salm-light-blue/20 group-hover:text-salm-blue'}
+                            `}>
+                                <ChevronDown className="w-4 h-4" />
+                            </div>
+                            <h3 className="font-bold text-gray-800 dark:text-white group-hover:text-salm-purple transition-colors select-none">
+                                {currentDate.toLocaleString('default', { month: 'long', year: 'numeric' })}
+                            </h3>
                         </div>
+
+                        {isMiniCalendarOpen && (
+                            <div className="flex gap-1 animate-in fade-in slide-in-from-right-4 duration-300" onClick={(e) => e.stopPropagation()}>
+                                <button onClick={() => changeMiniCalendarMonth(-1)} className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition-colors"><ChevronLeft className="w-4 h-4 text-gray-500" /></button>
+                                <button onClick={() => changeMiniCalendarMonth(1)} className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition-colors"><ChevronRight className="w-4 h-4 text-gray-500" /></button>
+                            </div>
+                        )}
                     </div>
 
-                    <div className="grid grid-cols-7 text-center text-xs gap-y-3">
+                    <div className={`grid grid-cols-7 text-center text-xs gap-y-3 overflow-hidden transition-all duration-500 ease-in-out ${isMiniCalendarOpen ? 'mt-6 max-h-[300px] opacity-100' : 'max-h-0 opacity-0'}`}>
                         {['Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa', 'Su'].map(d => <span key={d} className="text-gray-400 font-medium">{d}</span>)}
                         {renderMiniCalendar()}
                     </div>
                 </div>
 
                 {/* Doctor List */}
-                <div className="flex-1 bg-white dark:bg-gray-800 rounded-2xl lg:rounded-3xl p-4 lg:p-6 shadow-sm border border-gray-100 dark:border-gray-700 flex flex-col overflow-hidden">
-                    <div className="flex items-center justify-between mb-4">
-                        <h3 className="font-bold text-gray-800 dark:text-white">Doctor List</h3>
-                        <button className="text-gray-400 hover:text-gray-600"><MoreHorizontal className="w-4 h-4" /></button>
+                <div className="flex-1 bg-white dark:bg-gray-800 rounded-2xl lg:rounded-3xl p-4 shadow-sm border border-gray-100 dark:border-gray-700 flex flex-col min-h-0">
+                    <div className="flex items-center justify-between mb-2 shrink-0">
+                        <h3 className="font-bold text-gray-800 dark:text-white text-sm">Doctor List</h3>
+                        <span className="text-xs text-gray-400 font-medium">{filteredDoctors.length} found</span>
+                        <button className="text-gray-400 hover:text-gray-600 ml-auto"><MoreHorizontal className="w-4 h-4" /></button>
                     </div>
-                    <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar space-y-3">
+                    <div className="flex-1 overflow-y-auto pr-1 custom-scrollbar space-y-2">
                         {filteredDoctors.length === 0 ? (
                             <div className="text-center text-gray-400 py-8 text-sm">
                                 No doctors scheduled for this day
@@ -502,14 +516,14 @@ const DoctorLeaveCalendar = () => {
                                         : 'bg-white dark:bg-gray-800 border-transparent hover:bg-gray-50 dark:hover:bg-gray-700 hover:border-gray-100 dark:hover:border-gray-600'}
                                 `}
                             >
-                                <div className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold ${selectedDoctor?.id === doc.id ? 'bg-salm-light-blue/30 text-salm-blue' : 'bg-gray-100 text-gray-500'}`}>
+                                <div className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold shrink-0 ${selectedDoctor?.id === doc.id ? 'bg-salm-light-blue/30 text-salm-blue' : 'bg-gray-100 text-gray-500'}`}>
                                     {doc.name.charAt(0)}
                                 </div>
                                 <div className="flex-1 min-w-0">
                                     <h4 className={`text-sm font-bold truncate ${selectedDoctor?.id === doc.id ? 'text-salm-purple' : 'text-gray-800 dark:text-gray-200'}`}>{doc.name}</h4>
                                     <p className="text-xs text-gray-500 dark:text-gray-400 truncate">{doc.specialization || 'Specialist'}</p>
                                 </div>
-                                {selectedDoctor?.id === doc.id && <div className="w-2 h-2 rounded-full bg-salm-blue"></div>}
+                                {selectedDoctor?.id === doc.id && <div className="w-2 h-2 rounded-full bg-salm-blue shrink-0"></div>}
                             </div>
                         ))}
                     </div>

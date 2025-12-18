@@ -6,12 +6,14 @@ const helmet = require('helmet');
 const compression = require('compression');
 const morgan = require('morgan');
 const { PrismaClient } = require('@prisma/client');
+const rateLimit = require('express-rate-limit'); // Security: Rate Limiting
 
 // ... Controllers imports ...
 const queueController = require('./controllers/queueController');
 const poliklinikController = require('./controllers/poliklinikController');
 const doctorController = require('./controllers/doctorController');
 const counterController = require('./controllers/counterController');
+const chronologyController = require('./controllers/chronologyController');
 const authController = require('./controllers/authController');
 const analyticsController = require('./controllers/analyticsController');
 const userController = require('./controllers/userController');
@@ -47,15 +49,16 @@ const defaultOrigins = ["http://localhost:5173", "http://127.0.0.1:5173", "http:
 const envOrigins = process.env.CORS_ORIGIN ? process.env.CORS_ORIGIN.split(',') : [];
 
 const checkOrigin = (origin, callback) => {
-    console.log('Check Origin:', origin); // DEBUG: Log origin
-    // if (!origin) return callback(null, true);
-    // const allowed = [...defaultOrigins, ...envOrigins];
-    // if (allowed.includes(origin) || origin.startsWith('http://192.168.') || origin.startsWith('http://172.') || origin.startsWith('http://10.')) {
-    //     callback(null, true);
-    // } else {
-    //     callback(new Error('Not allowed by CORS'));
-    // }
-    callback(null, true); // DEBUG: Allow all
+    // console.log('Check Origin:', origin); // DEBUG: Log only if needed
+    if (!origin) return callback(null, true); // Allow non-browser agents (e.g. Postman, Server-to-Server)
+
+    const allowed = [...defaultOrigins, ...envOrigins];
+    if (allowed.includes(origin) || origin.startsWith('http://192.168.') || origin.startsWith('http://172.') || origin.startsWith('http://10.')) {
+        callback(null, true);
+    } else {
+        console.warn(`[CORS BLOCK] Origin: ${origin} not allowed.`);
+        callback(new Error('Not allowed by CORS'));
+    }
 };
 
 const io = new Server(server, {
@@ -106,6 +109,17 @@ app.get('/api/analytics/daily', analyticsController.getDailyStats);
 
 // Patient Routes
 const patientController = require('./controllers/patientController');
+
+// Security: Rate Limiter for AI Generation (Prevent Abuse/Cost Spikes)
+const chronologyLimiter = rateLimit({
+    windowMs: 1 * 60 * 1000, // 1 minute
+    max: 10, // Limit each IP to 10 requests per windowMs
+    message: { error: "Too many requests, please try again later." },
+    standardHeaders: true,
+    legacyHeaders: false,
+});
+
+app.post('/api/chronology/generate', authMiddleware, chronologyLimiter, upload.single('file'), chronologyController.generateChronology);
 app.get('/api/patients/search', authMiddleware, patientController.search);
 app.post('/api/patients', authMiddleware, patientController.create);
 app.get('/api/patients', authMiddleware, patientController.getAll);           // New
@@ -127,11 +141,27 @@ app.get('/api/queues/skipped', queueController.getSkipped);
 app.post('/api/queues/recall-skipped', queueController.recallSkipped);
 app.get('/api/doctors', queueController.getDoctors); // Helper to get doctors and their status
 
+// ICD-10 Routes
+const icd10Controller = require('./controllers/icd10Controller');
+app.get('/api/icd10', authMiddleware, icd10Controller.search);
+
+
 // Medical Record Routes
 const medicalRecordController = require('./controllers/medicalRecordController');
 app.post('/api/medical-records', authMiddleware, medicalRecordController.create);
 app.get('/api/medical-records/history', authMiddleware, medicalRecordController.getHistory);
 app.get('/api/medical-records/patient/:patient_id', authMiddleware, medicalRecordController.getByPatient);
+
+// Service Order Routes (CPOE: Lab/Rad)
+const serviceOrderController = require('./controllers/serviceOrderController');
+app.post('/api/service-orders', authMiddleware, serviceOrderController.create);
+app.get('/api/service-orders', authMiddleware, serviceOrderController.getAll);
+app.put('/api/service-orders/:id/status', authMiddleware, serviceOrderController.updateStatus);
+
+// Triage Routes (Nurse Station)
+const triageController = require('./controllers/triageController');
+app.get('/api/triage/queue', authMiddleware, triageController.getTriageQueue);
+app.post('/api/triage/:queueId/submit', authMiddleware, triageController.submitTriage);
 
 // Pharmacy Routes
 const medicineController = require('./controllers/medicineController');

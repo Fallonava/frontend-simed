@@ -1,7 +1,7 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import useAuthStore from '../store/useAuthStore';
-import { LayoutDashboard, Users, Database, LogOut, Monitor, Calendar, Activity, FileText, Pill, Receipt } from 'lucide-react';
+import { LayoutDashboard, Users, Database, LogOut, Monitor, Calendar, Activity, FileText, Pill, Receipt, Sparkles, ClipboardPlus, Microscope } from 'lucide-react';
 import ThemeToggle from '../components/ThemeToggle';
 
 const MainMenu = () => {
@@ -22,14 +22,7 @@ const MainMenu = () => {
             roles: ['ADMIN'],
             color: 'bg-salm-blue'
         },
-        {
-            title: 'Counter Staff',
-            description: 'Manage patient queue calls',
-            icon: <Users size={40} />,
-            path: '/admin/counter',
-            roles: ['ADMIN', 'STAFF'],
-            color: 'bg-salm-light-blue'
-        },
+
         {
             title: 'Master Data',
             description: 'Manage doctors and poliklinik',
@@ -88,12 +81,36 @@ const MainMenu = () => {
             external: true
         },
         {
+            title: 'Nurse Station',
+            description: 'Triage & Vital Signs',
+            icon: <ClipboardPlus size={40} />,
+            path: '/nurse',
+            roles: ['ADMIN', 'STAFF'], // e.g., 'NURSE'
+            color: 'bg-gradient-to-br from-red-400 to-pink-500'
+        },
+        {
+            title: 'Lab & Radiologi',
+            description: 'Order Processor',
+            icon: <Microscope size={40} />,
+            path: '/lab-rad',
+            roles: ['ADMIN', 'STAFF'],
+            color: 'bg-gradient-to-br from-purple-500 to-indigo-600'
+        },
+        {
             title: 'Kiosk Antrian',
             description: 'Ambil Nomor Antrian',
             icon: <Monitor size={40} />,
             path: '/kiosk',
             roles: ['ADMIN', 'STAFF'],
             color: 'bg-salm-gradient'
+        },
+        {
+            title: 'AI Chronology',
+            description: 'Generate reports with AI',
+            icon: <Sparkles size={40} />,
+            path: '/chronology',
+            roles: ['ADMIN', 'STAFF'],
+            color: 'bg-gradient-to-br from-indigo-500 to-purple-600'
         }
     ];
 
@@ -123,9 +140,9 @@ const MainMenu = () => {
                         <button
                             key={index}
                             onClick={() => navigate(item.path)}
-                            className="bg-theme-card dark:bg-gray-800 rounded-2xl p-8 shadow-lg hover:shadow-xl transition-all hover:-translate-y-1 text-left group border border-theme-border dark:border-gray-700"
+                            className="bg-theme-card dark:bg-gray-800 rounded-2xl p-8 shadow-lg hover:shadow-xl transition-all hover:scale-[1.02] active:scale-[0.98] text-left group border border-theme-border dark:border-gray-700"
                         >
-                            <div className={`${item.color} w-16 h-16 rounded-2xl flex items-center justify-center text-white mb-6 shadow-lg group-hover:scale-110 transition-transform`}>
+                            <div className={`${item.color} w-16 h-16 rounded-2xl flex items-center justify-center text-white mb-6 shadow-lg group-hover:scale-105 transition-transform duration-300`}>
                                 {item.icon}
                             </div>
                             <h3 className="text-2xl font-bold text-theme-text mb-2">{item.title}</h3>

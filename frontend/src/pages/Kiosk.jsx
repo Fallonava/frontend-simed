@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import useQueueStore from '../store/useQueueStore';
 import TicketModal from '../components/TicketModal';
 import { Clock, ChevronRight, Activity, Calendar, Stethoscope } from 'lucide-react';
+import FallonavaLogo from '../components/FallonavaLogo';
 
 const Kiosk = () => {
     const { doctors, initialize, takeTicket } = useQueueStore();
@@ -39,9 +40,8 @@ const Kiosk = () => {
             <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl border-b border-black/5 dark:border-white/5 shrink-0 z-50">
                 <div className="max-w-[1920px] mx-auto px-6 h-16 flex items-center justify-between">
                     <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 bg-salm-gradient rounded-lg flex items-center justify-center shadow-lg shadow-salm-purple/20">
-                            <Activity className="text-white w-5 h-5" />
-                        </div>
+                        {/* Logo with Rich Styling */}
+                        <FallonavaLogo className="w-10 h-10 rounded-xl shadow-lg shadow-salm-purple/20 hover:scale-105 transition-transform duration-300" />
                         <div>
                             <h1 className="text-lg font-bold tracking-tight leading-none text-gray-900 dark:text-white">Sistem Antrian RS</h1>
                             <p className="text-[10px] text-gray-500 dark:text-gray-400 font-medium tracking-wide uppercase">Pelayanan Prima</p>

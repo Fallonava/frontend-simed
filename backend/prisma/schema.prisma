@@ -155,10 +155,36 @@ model MedicalRecord {
   assessment  String   @db.Text // Diagnosa
   plan        String   @db.Text // Tindakan/Resep
   
+  // New: Clinical Safety & Standards
+  triage_status String   @default("PENDING") // PENDING, COMPLETED, SKIPPED
+  icd10_code    String?
+  icd10         ICD10?   @relation(fields: [icd10_code], references: [code])
+  
   created_at  DateTime @default(now())
   updated_at  DateTime @updatedAt // Fixed: Use @updatedAt here if desired, or manually manage
   prescriptions Prescription[]
   transaction   Transaction?
+  service_orders ServiceOrder[]
+}
+
+model ICD10 {
+  code        String   @id
+  name        String
+  description String?
+  medical_records MedicalRecord[]
+}
+
+model ServiceOrder {
+  id                Int           @id @default(autoincrement())
+  medical_record_id Int
+  medical_record    MedicalRecord @relation(fields: [medical_record_id], references: [id])
+  type              String        // LAB, RAD
+  status            String        @default("PENDING") // PENDING, IN_PROGRESS, COMPLETED
+  notes             String?
+  result            String?       // URL or Text result
+  
+  created_at        DateTime      @default(now())
+  updated_at        DateTime      @updatedAt
 }
 
 model Medicine {
