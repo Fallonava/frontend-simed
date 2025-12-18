@@ -36,8 +36,15 @@ const Registration = () => {
         gender: 'L',
         birth_date: '',
         address: '',
-        phone: ''
+        phone: '',
+        // BPJS
+        bpjs_card_no: '',
+        is_bpjs: false
     });
+
+    // BPJS Simulation State
+    const [bpjsChecking, setBpjsChecking] = useState(false);
+    const [bpjsStatus, setBpjsStatus] = useState(null); // { status: 'AKTIF', kelas: '1', ... }
 
     // Recent Patients State
     const [recentPatients, setRecentPatients] = useState([]);
@@ -137,6 +144,44 @@ const Registration = () => {
         utterance.rate = 0.85;
         utterance.pitch = 1.1;
         window.speechSynthesis.speak(utterance);
+    };
+
+    // --- BPJS HELPER ---
+    const handleCheckBPJS = async (nikOverride) => {
+        const nikToCheck = nikOverride || newPatient.nik;
+        if (!nikToCheck) {
+            toast.error('NIK tidak boleh kosong');
+            return;
+        }
+
+        setBpjsChecking(true);
+        try {
+            const res = await api.post('/bpjs/check-participant', { nik: nikToCheck });
+            const { status, data, message } = res.data;
+
+            if (status === 'OK') {
+                setBpjsStatus(data.statusPeserta);
+                toast.success(`BPJS: ${data.nama} (Status: ${data.statusPeserta.keterangan})`);
+
+                // Auto-fill form
+                setNewPatient(prev => ({
+                    ...prev,
+                    name: data.nama,
+                    bpjs_card_no: data.noKartu,
+                    is_bpjs: data.statusPeserta.keterangan === 'AKTIF',
+                    gender: data.sex,
+                    birth_date: data.tglLahir
+                }));
+            } else {
+                setBpjsStatus({ keterangan: 'TIDAK DITEMUKAN / NON-AKTIF' });
+                toast.error(message || 'Peserta tidak ditemukan');
+            }
+        } catch (error) {
+            toast.error('Gagal cek BPJS (Mock Error)');
+            console.error(error);
+        } finally {
+            setBpjsChecking(false);
+        }
     };
 
     // --- COUNTER ACTIONS ---
@@ -1179,8 +1224,46 @@ const Registration = () => {
                                                 {counters.map((c) => <option key={c.id} value={c.name}>{c.name}</option>)}
                                             </select>
                                         </div>
-                                        <div>
-                                            <label className="text-xs font-bold text-gray-500 uppercase tracking-wider ml-1 mb-1.5 block">Filter Specialty</label>
+                                        <div className="grid grid-cols-2 gap-4">
+                                            <div className="space-y-1">
+                                                <label className="text-sm font-semibold text-gray-700 dark:text-gray-300">NIK (KTP)</label>
+                                                <div className="flex gap-2">
+                                                    <input
+                                                        type="text"
+                                                        className="flex-1 p-3 bg-gray-50 dark:bg-gray-700/50 rounded-xl border border-gray-200 dark:border-gray-600 focus:ring-2 focus:ring-blue-500 font-mono"
+                                                        value={newPatient.nik}
+                                                        onChange={(e) => setNewPatient({ ...newPatient, nik: e.target.value })}
+                                                        required
+                                                    />
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => handleCheckBPJS()}
+                                                        disabled={bpjsChecking}
+                                                        className="px-3 bg-green-600 hover:bg-green-700 text-white rounded-xl font-bold text-xs"
+                                                    >
+                                                        {bpjsChecking ? '...' : 'Cek BPJS'}
+                                                    </button>
+                                                </div>
+                                            </div>
+                                            <div className="space-y-1">
+                                                <label className="text-sm font-semibold text-gray-700 dark:text-gray-300">No. Kartu BPJS</label>
+                                                <input
+                                                    type="text"
+                                                    className={`w-full p-3 bg-gray-50 dark:bg-gray-700/50 rounded-xl border border-gray-200 dark:border-gray-600 focus:ring-2 focus:ring-blue-500 font-mono ${newPatient.is_bpjs ? 'ring-2 ring-green-500 bg-green-50' : ''}`}
+                                                    value={newPatient.bpjs_card_no}
+                                                    onChange={(e) => setNewPatient({ ...newPatient, bpjs_card_no: e.target.value })}
+                                                    placeholder="Auto-filled via Check"
+                                                />
+                                                {bpjsStatus && (
+                                                    <div className={`text-xs font-bold mt-1 ${bpjsStatus.keterangan === 'AKTIF' ? 'text-green-600' : 'text-red-500'}`}>
+                                                        Status: {bpjsStatus.keterangan}
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </div>
+
+                                        <div className="space-y-1">
+                                            <label className="text-sm font-semibold text-gray-700 dark:text-gray-300">Address</label>
                                             <select
                                                 className="w-full bg-gray-50 dark:bg-gray-800 border-0 rounded-xl px-4 py-3 text-sm font-medium focus:ring-2 focus:ring-salm-blue/50"
                                                 value={counterConfig.poliId}

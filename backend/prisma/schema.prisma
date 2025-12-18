@@ -84,8 +84,13 @@ model Patient {
   birth_date  DateTime
   address     String?
   phone       String?
-  bpjs_no     String?
-  allergies   String?  // New: SOP Safety
+  email       String?
+  allergies   String?  @db.Text
+  
+  // BPJS Data
+  bpjs_card_no String? @unique
+  is_bpjs      Boolean @default(false)
+  
   created_at  DateTime @default(now())
   updated_at  DateTime @updatedAt
   queues      Queue[]
