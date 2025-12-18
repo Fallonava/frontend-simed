@@ -176,6 +176,31 @@ const PharmacyDashboard = () => {
                                                 <span className="px-3 py-1 bg-yellow-100 text-yellow-700 rounded-full text-xs font-bold">PENDING</span>
                                             </div>
 
+                                            {/* Clinical Context */}
+                                            <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-xl text-sm space-y-2 border border-blue-100 dark:border-blue-800 mb-6">
+                                                <div className="flex gap-4">
+                                                    <div>
+                                                        <span className="block text-blue-500 font-bold text-xs uppercase">Diagnosa (ICD-10)</span>
+                                                        <span className="font-semibold text-gray-800 dark:text-gray-200">{p.medical_record?.assessment || '-'}</span>
+                                                    </div>
+                                                    <div>
+                                                        <span className="block text-red-500 font-bold text-xs uppercase">Alergi</span>
+                                                        <span className="font-semibold text-red-600 dark:text-red-300">{p.patient?.allergies || 'Tidak Ada'}</span>
+                                                    </div>
+                                                </div>
+                                                <div className="flex gap-4 pt-2 border-t border-blue-100 dark:border-blue-800">
+                                                    <div className="font-mono text-xs text-gray-500">
+                                                        <span className="font-bold">Vitals:</span> BP {p.medical_record?.systolic}/{p.medical_record?.diastolic} • T {p.medical_record?.temperature}°C • W {p.medical_record?.weight}kg
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <div>
+                                                <h3 className="font-bold text-gray-700 dark:text-gray-300 mb-2 flex items-center gap-2">
+                                                    <Pill size={16} /> Resep Obat
+                                                </h3>
+                                            </div>
+
                                             <div className="space-y-3 mb-6">
                                                 {p.items?.map((item, idx) => (
                                                     <div key={idx} className="flex justify-between items-center text-sm p-2 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
