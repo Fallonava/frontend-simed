@@ -7,7 +7,7 @@ import ScheduleCalendar from '../components/ScheduleCalendar';
 import DoctorLeaveCalendar from '../components/DoctorLeaveCalendar';
 import ThemeToggle from '../components/ThemeToggle';
 import UserManagement from '../components/UserManagement';
-import { LayoutGrid, RefreshCw, Activity, Database, Monitor, Download, Calendar as ScheduleCalendarIcon, Search, Bell, User } from 'lucide-react';
+import { LayoutGrid, RefreshCw, Activity, Database, Monitor, Download, Calendar as ScheduleCalendarIcon, Search, Bell, User, ExternalLink, LogOut } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 import FallonavaLogo from '../components/FallonavaLogo';
 import PageLoader from '../components/PageLoader';
@@ -198,7 +198,8 @@ const AdminDashboard = () => {
                         className={`w-full flex items-center gap-4 px-4 py-3.5 rounded-2xl text-left font-medium group relative overflow-hidden transition-all duration-300 ease-out hover:scale-[1.02] active:scale-[0.95] text-theme-gray dark:text-gray-400 hover:bg-white dark:hover:bg-gray-700/50 hover:shadow-lg hover:shadow-purple-500/5`}
                     >
                         <Monitor className="w-5 h-5 text-gray-400 group-hover:text-salm-purple transition-colors" />
-                        <span className="relative z-10">Public Display</span>
+                        <span className="relative z-10 flex-1">Public Display</span>
+                        <ExternalLink className="w-4 h-4 text-gray-400 opacity-50 group-hover:opacity-100 transition-opacity" />
                     </button>
                 </nav>
 
@@ -207,7 +208,10 @@ const AdminDashboard = () => {
                         <Database className="w-5 h-5 transition-transform duration-300 group-hover:scale-110 text-gray-400 group-hover:text-salm-purple" />
                         <span className="relative z-10 font-medium">Master Data</span>
                     </Link>
-
+                    <Link to="/" className="flex items-center gap-4 px-4 py-3 rounded-2xl text-red-500/80 hover:text-red-600 group relative overflow-hidden transition-all duration-300 ease-out hover:scale-[1.02] active:scale-[0.95] hover:bg-red-50 dark:hover:bg-red-900/20">
+                        <LogOut className="w-5 h-5 transition-transform duration-300 group-hover:scale-110" />
+                        <span className="relative z-10 font-medium">Exit Dashboard</span>
+                    </Link>
                 </div>
             </aside>
 

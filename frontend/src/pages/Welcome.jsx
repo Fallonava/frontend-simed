@@ -1,7 +1,8 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowRight, Activity, Monitor, Shield, Zap } from 'lucide-react';
-import { motion } from 'framer-motion';
+import { ArrowRight, Activity, Monitor, Shield, Zap, QrCode, X, ExternalLink, Calendar } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { QRCodeCanvas } from 'qrcode.react';
 import ThemeToggle from '../components/ThemeToggle';
 import useThemeStore from '../store/useThemeStore';
 import FallonavaLogo from '../components/FallonavaLogo';
@@ -9,6 +10,7 @@ import FallonavaLogo from '../components/FallonavaLogo';
 const Welcome = () => {
     const navigate = useNavigate();
     const { mode } = useThemeStore();
+    const [showQR, setShowQR] = useState(false);
 
     const containerVariants = {
         hidden: { opacity: 0 },
@@ -26,6 +28,8 @@ const Welcome = () => {
             transition: { type: "spring", stiffness: 100, damping: 10 }
         }
     };
+
+    const scheduleUrl = `${window.location.origin}/public/schedule`;
 
     return (
         <div className="min-h-screen bg-theme-bg text-theme-text relative overflow-hidden font-sans selection:bg-salm-pink selection:text-white transition-colors duration-300 bg-noise">
@@ -99,6 +103,13 @@ const Welcome = () => {
                         <Monitor className="w-4 h-4 text-gray-500 dark:text-gray-400" />
                         Kiosk Mode
                     </button>
+                    <button
+                        onClick={() => setShowQR(true)}
+                        className="px-8 py-4 rounded-full bg-salm-purple/10 dark:bg-salm-purple/20 backdrop-blur-md border border-salm-purple/20 hover:bg-salm-purple/20 dark:hover:bg-salm-purple/30 transition-all font-bold text-salm-purple dark:text-salm-light-pink shadow-sm flex items-center gap-2"
+                    >
+                        <QrCode className="w-4 h-4" />
+                        Live Schedule
+                    </button>
                 </motion.div>
 
                 {/* Floating Cards (Decorative) */}
@@ -143,6 +154,82 @@ const Welcome = () => {
                         </div>
                     </div>
                 </motion.div>
+
+                {/* QR Code Modal */}
+                <AnimatePresence>
+                    {showQR && (
+                        <>
+                            <motion.div
+                                initial={{ opacity: 0 }}
+                                animate={{ opacity: 1 }}
+                                exit={{ opacity: 0 }}
+                                onClick={() => setShowQR(false)}
+                                className="fixed inset-0 bg-black/60 backdrop-blur-sm z-40"
+                            />
+                            <motion.div
+                                initial={{ opacity: 0, scale: 0.9, y: 20 }}
+                                animate={{ opacity: 1, scale: 1, y: 0 }}
+                                exit={{ opacity: 0, scale: 0.9, y: 20 }}
+                                className="fixed inset-0 m-auto w-full max-w-sm h-fit z-50 px-4"
+                            >
+                                <div className="bg-white dark:bg-gray-800 rounded-[32px] p-6 shadow-2xl border border-white/20 relative overflow-hidden">
+                                    <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-salm-blue via-salm-purple to-salm-pink" />
+
+                                    <button
+                                        onClick={() => setShowQR(false)}
+                                        className="absolute top-4 right-4 p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors text-gray-500"
+                                    >
+                                        <X size={20} />
+                                    </button>
+
+                                    <div className="text-center mb-6 pt-2">
+                                        <div className="w-12 h-12 bg-salm-purple/10 rounded-xl flex items-center justify-center mx-auto mb-3 text-salm-purple">
+                                            <Calendar size={24} />
+                                        </div>
+                                        <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-1">Live Schedule</h3>
+                                        <p className="text-sm text-gray-500 dark:text-gray-400">Scan to view doctor's availability</p>
+                                    </div>
+
+                                    <div className="bg-white p-4 rounded-xl border-2 border-dashed border-gray-200 dark:border-gray-700 mx-auto w-fit mb-6">
+                                        <QRCodeCanvas
+                                            value={scheduleUrl}
+                                            size={200}
+                                            level={"H"}
+                                            includeMargin={true}
+                                            bgColor={"#ffffff"}
+                                            fgColor={"#000000"}
+                                            imageSettings={{
+                                                src: "/icon.png", // Ensure this exists or remove if not needed
+                                                x: undefined,
+                                                y: undefined,
+                                                height: 24,
+                                                width: 24,
+                                                excavate: true,
+                                            }}
+                                        />
+                                    </div>
+
+                                    <div className="space-y-3">
+                                        <div className="p-3 bg-gray-50 dark:bg-gray-700/50 rounded-xl flex items-center justify-between text-xs text-gray-500 dark:text-gray-400 break-all border border-gray-100 dark:border-gray-700">
+                                            <span className="truncate flex-1">{scheduleUrl}</span>
+                                        </div>
+
+                                        <button
+                                            onClick={() => {
+                                                navigate('/public/schedule');
+                                                setShowQR(false);
+                                            }}
+                                            className="w-full py-3 bg-salm-gradient text-white rounded-xl font-bold shadow-lg shadow-salm-purple/20 hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center justify-center gap-2"
+                                        >
+                                            <ExternalLink size={18} />
+                                            Open Page
+                                        </button>
+                                    </div>
+                                </div>
+                            </motion.div>
+                        </>
+                    )}
+                </AnimatePresence>
             </motion.main>
 
             {/* Footer */}

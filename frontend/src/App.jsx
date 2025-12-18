@@ -24,6 +24,9 @@ const PatientDetail = React.lazy(() => import('./pages/PatientDetail'));
 const PharmacyDashboard = React.lazy(() => import('./pages/PharmacyDashboard'));
 const CashierDashboard = React.lazy(() => import('./pages/CashierDashboard'));
 const PublicSchedule = React.lazy(() => import('./pages/PublicSchedule'));
+const ChronologyGenerator = React.lazy(() => import('./pages/ChronologyGenerator'));
+const NurseDashboard = React.lazy(() => import('./pages/NurseDashboard')); // New
+const LabRadiologyDashboard = React.lazy(() => import('./pages/LabRadiologyDashboard')); // New
 
 function AnimatedRoutes() {
   const location = useLocation();
@@ -69,10 +72,20 @@ function AnimatedRoutes() {
 
             {/* Cashier Module */}
             <Route path="/cashier" element={<PageWrapper><CashierDashboard /></PageWrapper>} />
+
+
+            {/* AI Features */}
+            <Route path="/chronology" element={<PageWrapper><ChronologyGenerator /></PageWrapper>} />
+
+            {/* Nurse Module */}
+            <Route path="/nurse" element={<PageWrapper><NurseDashboard /></PageWrapper>} />
+
+            {/* Lab & Radiology */}
+            <Route path="/lab-rad" element={<PageWrapper><LabRadiologyDashboard /></PageWrapper>} />
           </Route>
         </Routes>
       </Suspense>
-    </AnimatePresence>
+    </AnimatePresence >
   );
 }
 
