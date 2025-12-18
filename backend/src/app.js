@@ -163,6 +163,10 @@ const triageController = require('./controllers/triageController');
 app.get('/api/triage/queue', authMiddleware, triageController.getTriageQueue);
 app.post('/api/triage/:queueId/submit', authMiddleware, triageController.submitTriage);
 
+// BPJS Routes (Bridging/Mock)
+const bpjsController = require('./controllers/bpjsController');
+app.post('/api/bpjs/check-participant', authMiddleware, bpjsController.checkParticipant);
+
 // Pharmacy Routes
 const medicineController = require('./controllers/medicineController');
 const prescriptionController = require('./controllers/prescriptionController');

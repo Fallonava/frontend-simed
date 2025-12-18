@@ -1,33 +1,56 @@
 // Mock Service for BPJS V-Claim Simulation
 // In production, this would use axios with proper Headers (X-Consid-ID, X-Signature)
 
-const checkKepesertaanByNIK = async (nik) => {
-    // Simulate API Latency
-    await new Promise(resolve => setTimeout(resolve, 1500));
+// MOCK DATA DICTIONARY
+const MOCK_DB = {
+    '1000000000000001': { // KASUS 1: AKTIF - PBI (Kelas 3)
+        nama: 'BUDI SANTOSO (PBI)',
+        noKartu: '000123456001',
+        sex: 'L',
+        tglLahir: '1980-01-01',
+        statusPeserta: { kode: '0', keterangan: 'AKTIF' },
+        jenisPeserta: { kode: '1', keterangan: 'PBI (APBN)' },
+        kelasTanggungan: { kode: '3', keterangan: 'KELAS III' }
+    },
+    '1000000000000002': { // KASUS 2: AKTIF - MANDIRI (Kelas 1)
+        nama: 'SITI AMINAH (MANDIRI)',
+        noKartu: '000123456002',
+        sex: 'P',
+        tglLahir: '1995-05-20',
+        statusPeserta: { kode: '0', keterangan: 'AKTIF' },
+        jenisPeserta: { kode: '2', keterangan: 'PEKERJA MANDIRI' },
+        kelasTanggungan: { kode: '1', keterangan: 'KELAS I' }
+    },
+    '1000000000000003': { // KASUS 3: NON-AKTIF (Tunggakan)
+        nama: 'A. YANI (TUNGGAKAN)',
+        noKartu: '000123456003',
+        sex: 'L',
+        tglLahir: '1975-08-17',
+        statusPeserta: { kode: '1', keterangan: 'NON-AKTIF (TUNGGAKAN)' }, // Kode 1 usually issue
+        jenisPeserta: { kode: '2', keterangan: 'PEKERJA MANDIRI' },
+        kelasTanggungan: { kode: '2', keterangan: 'KELAS II' }
+    },
+    '1000000000000004': { // KASUS 4: DATA TIDAK LENGKAP
+        nama: 'TEST DATA ERROR',
+        noKartu: '000123456004',
+        sex: 'L',
+        tglLahir: '2000-01-01',
+        statusPeserta: { kode: '0', keterangan: 'AKTIF' },
+        jenisPeserta: { kode: '1', keterangan: 'PBI' },
+        kelasTanggungan: { kode: '3', keterangan: 'KELAS III' }
+    }
+};
 
-    // Mock Logic
-    if (nik === '1234567890123456') {
+const checkKepesertaanByNIK = async (nik) => {
+    // Simulate API Latency (Random 500ms - 1500ms)
+    await new Promise(resolve => setTimeout(resolve, 500 + Math.random() * 1000));
+
+    const participant = MOCK_DB[nik];
+
+    if (participant) {
         return {
             status: 'OK',
-            data: {
-                nama: 'BUDI SANTOSO (DUMMY)',
-                nik: nik,
-                noKartu: '000123456789',
-                sex: 'L',
-                tglLahir: '1990-01-01',
-                statusPeserta: {
-                    kode: '0',
-                    keterangan: 'AKTIF'
-                },
-                jenisPeserta: {
-                    kode: '1',
-                    keterangan: 'PBI (APBN)'
-                },
-                kelasTanggungan: {
-                    kode: '3',
-                    keterangan: 'KELAS III'
-                }
-            }
+            data: participant
         };
     } else if (nik === '0000000000000000') {
         return {
@@ -35,27 +58,18 @@ const checkKepesertaanByNIK = async (nik) => {
             message: 'Peserta Tidak Ditemukan'
         };
     } else {
-        // Random OK for other inputs for demo purpose
+        // Fallback for random NIK - Treats as New Active Patient
         return {
             status: 'OK',
             data: {
-                nama: 'PESERTA SIMULASI',
+                nama: `PASIEN BARU (${nik.slice(-4)})`,
                 nik: nik,
-                noKartu: '000987654321',
-                sex: 'P',
-                tglLahir: '1985-05-20',
-                statusPeserta: {
-                    kode: '0',
-                    keterangan: 'AKTIF'
-                },
-                jenisPeserta: {
-                    kode: '2',
-                    keterangan: 'PEKERJA MANDIRI'
-                },
-                kelasTanggungan: {
-                    kode: '1',
-                    keterangan: 'KELAS I'
-                }
+                noKartu: `000${nik.slice(0, 9)}`,
+                sex: Math.random() > 0.5 ? 'L' : 'P',
+                tglLahir: '1990-01-01',
+                statusPeserta: { kode: '0', keterangan: 'AKTIF' },
+                jenisPeserta: { kode: '1', keterangan: 'PBI (APBN)' },
+                kelasTanggungan: { kode: '3', keterangan: 'KELAS III' }
             }
         };
     }
