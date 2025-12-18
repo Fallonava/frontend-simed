@@ -968,7 +968,31 @@ const Registration = () => {
                                     </div>
                                     <div className="space-y-2">
                                         <label className="text-xs font-bold text-gray-500 uppercase tracking-wider ml-1">NIK (ID Number)</label>
-                                        <input required maxLength={16} className="w-full p-4 rounded-xl border-0 bg-gray-100 dark:bg-gray-700/50 focus:ring-2 focus:ring-blue-500 transition-all font-medium" value={newPatient.nik} onChange={e => setNewPatient({ ...newPatient, nik: e.target.value })} placeholder="16 Digits" />
+                                        <div className="flex gap-2">
+                                            <input required maxLength={16} className="flex-1 p-3 rounded-xl border-0 bg-gray-100 dark:bg-gray-700/50 focus:ring-2 focus:ring-blue-500 transition-all font-medium" value={newPatient.nik} onChange={e => setNewPatient({ ...newPatient, nik: e.target.value })} placeholder="16 Digits" />
+                                            <button
+                                                type="button"
+                                                onClick={() => handleCheckBPJS()}
+                                                disabled={bpjsChecking}
+                                                className="px-4 bg-green-600 hover:bg-green-700 text-white rounded-xl font-bold text-xs shadow-lg shadow-green-600/20"
+                                            >
+                                                {bpjsChecking ? '...' : 'Cek BPJS'}
+                                            </button>
+                                        </div>
+                                    </div>
+
+                                    {/* BPJS FIELD AUTO-FILLED */}
+                                    <div className="space-y-2">
+                                        <label className="text-xs font-bold text-gray-500 uppercase tracking-wider ml-1 flex justify-between">
+                                            <span>No. Kartu BPJS</span>
+                                            {bpjsStatus && <span className={bpjsStatus.keterangan === 'AKTIF' ? 'text-green-500' : 'text-red-500'}>{bpjsStatus.keterangan}</span>}
+                                        </label>
+                                        <input
+                                            className={`w-full p-4 rounded-xl border-0 bg-gray-100 dark:bg-gray-700/50 focus:ring-2 focus:ring-blue-500 transition-all font-medium ${newPatient.is_bpjs ? 'ring-2 ring-green-500 bg-green-50' : ''}`}
+                                            value={newPatient.bpjs_card_no}
+                                            onChange={e => setNewPatient({ ...newPatient, bpjs_card_no: e.target.value })}
+                                            placeholder="Auto-filled"
+                                        />
                                     </div>
                                     <div className="space-y-2">
                                         <label className="text-xs font-bold text-gray-500 uppercase tracking-wider ml-1">Date of Birth</label>
@@ -1224,53 +1248,15 @@ const Registration = () => {
                                                 {counters.map((c) => <option key={c.id} value={c.name}>{c.name}</option>)}
                                             </select>
                                         </div>
-                                        <div className="grid grid-cols-2 gap-4">
-                                            <div className="space-y-1">
-                                                <label className="text-sm font-semibold text-gray-700 dark:text-gray-300">NIK (KTP)</label>
-                                                <div className="flex gap-2">
-                                                    <input
-                                                        type="text"
-                                                        className="flex-1 p-3 bg-gray-50 dark:bg-gray-700/50 rounded-xl border border-gray-200 dark:border-gray-600 focus:ring-2 focus:ring-blue-500 font-mono"
-                                                        value={newPatient.nik}
-                                                        onChange={(e) => setNewPatient({ ...newPatient, nik: e.target.value })}
-                                                        required
-                                                    />
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => handleCheckBPJS()}
-                                                        disabled={bpjsChecking}
-                                                        className="px-3 bg-green-600 hover:bg-green-700 text-white rounded-xl font-bold text-xs"
-                                                    >
-                                                        {bpjsChecking ? '...' : 'Cek BPJS'}
-                                                    </button>
-                                                </div>
-                                            </div>
-                                            <div className="space-y-1">
-                                                <label className="text-sm font-semibold text-gray-700 dark:text-gray-300">No. Kartu BPJS</label>
-                                                <input
-                                                    type="text"
-                                                    className={`w-full p-3 bg-gray-50 dark:bg-gray-700/50 rounded-xl border border-gray-200 dark:border-gray-600 focus:ring-2 focus:ring-blue-500 font-mono ${newPatient.is_bpjs ? 'ring-2 ring-green-500 bg-green-50' : ''}`}
-                                                    value={newPatient.bpjs_card_no}
-                                                    onChange={(e) => setNewPatient({ ...newPatient, bpjs_card_no: e.target.value })}
-                                                    placeholder="Auto-filled via Check"
-                                                />
-                                                {bpjsStatus && (
-                                                    <div className={`text-xs font-bold mt-1 ${bpjsStatus.keterangan === 'AKTIF' ? 'text-green-600' : 'text-red-500'}`}>
-                                                        Status: {bpjsStatus.keterangan}
-                                                    </div>
-                                                )}
-                                            </div>
-                                        </div>
-
-                                        <div className="space-y-1">
-                                            <label className="text-sm font-semibold text-gray-700 dark:text-gray-300">Address</label>
+                                        <div>
+                                            <label className="text-xs font-bold text-gray-500 uppercase tracking-wider ml-1 mb-1.5 block">Filter Specialty</label>
                                             <select
                                                 className="w-full bg-gray-50 dark:bg-gray-800 border-0 rounded-xl px-4 py-3 text-sm font-medium focus:ring-2 focus:ring-salm-blue/50"
                                                 value={counterConfig.poliId}
                                                 onChange={(e) => setCounterConfig({ ...counterConfig, poliId: e.target.value })}
                                             >
                                                 <option value="all">All Specialties</option>
-                                                {clinics.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
+                                                {clinics.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
                                             </select>
                                         </div>
                                     </div>
