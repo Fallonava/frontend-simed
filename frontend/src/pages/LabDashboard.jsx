@@ -16,6 +16,7 @@ const LabDashboard = () => {
     const fetchOrders = async () => {
         try {
             const res = await api.get(`/service-orders?type=LAB`);
+            console.log("Fetched Lab Orders:", res.data);
             setOrders(res.data);
         } catch (error) {
             console.error(error);

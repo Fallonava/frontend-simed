@@ -38,6 +38,48 @@ const DoctorDashboard = () => {
     // CDS State
     const [drugAlert, setDrugAlert] = useState(null); // { type: 'ALLERGY' | 'INTERACTION', message: '' }
 
+    // VOICE SCRIBE STATE
+    const [isListening, setIsListening] = useState(null); // 'subjective' | 'objective' | 'plan' | null
+
+    const startListening = (field) => {
+        if (!('webkitSpeechRecognition' in window)) {
+            toast.error("Browser does not support Voice Recognition.");
+            return;
+        }
+
+        const recognition = new window.webkitSpeechRecognition();
+        recognition.lang = 'id-ID'; // Indonesian Support
+        recognition.continuous = false;
+        recognition.interimResults = false;
+
+        recognition.onstart = () => {
+            setIsListening(field);
+            toast.loading("Listening... (Speak now)", { id: 'voice-toast' });
+        };
+
+        recognition.onresult = (event) => {
+            const transcript = event.results[0][0].transcript;
+            setSoap(prev => ({
+                ...prev,
+                [field]: prev[field] ? `${prev[field]} ${transcript}` : transcript
+            }));
+            toast.dismiss('voice-toast');
+            toast.success("Transcribed!");
+        };
+
+        recognition.onerror = (event) => {
+            console.error(event.error);
+            setIsListening(null);
+            toast.dismiss('voice-toast');
+        };
+
+        recognition.onend = () => {
+            setIsListening(null);
+        };
+
+        recognition.start();
+    };
+
     const [patientHistory, setPatientHistory] = useState([]);
     const [viewMode, setViewMode] = useState('record'); // 'record' or 'history'
 
@@ -97,13 +139,30 @@ const DoctorDashboard = () => {
             }
         };
         const fetchICD10 = async () => {
-            // In real app, fetch only on search or huge list. Simple for now: fetch small seed.
-            // Or better: Implement search API. For now assuming /api/icd10 is available or we stub it.
-            // Wait, I haven't made specific ICD-10 endpoint (except seed). 
-            // Let's assume we can GET /api/icd10 later. For now, empty or mock.
-            // EDIT: better to use simple search input that queries API.
-            // Let's skip fetchAll and do onInput search.
+            // Mock ICD-10 Database
+            const mockICD10 = [
+                { code: 'A00', name: 'Cholera' },
+                { code: 'A01', name: 'Typhoid and paratyphoid fevers' },
+                { code: 'A09', name: 'Infectious gastroenteritis and colitis, unspecified' },
+                { code: 'A15', name: 'Respiratory tuberculosis, bacteriologically and histologically confirmed' },
+                { code: 'B50', name: 'Plasmodium falciparum malaria' },
+                { code: 'E10', name: 'Type 1 diabetes mellitus' },
+                { code: 'E11', name: 'Type 2 diabetes mellitus' },
+                { code: 'I10', name: 'Essential (primary) hypertension' },
+                { code: 'J00', name: 'Acute nasopharyngitis [common cold]' },
+                { code: 'J06.9', name: 'Acute upper respiratory infection, unspecified' },
+                { code: 'J45', name: 'Asthma' },
+                { code: 'K21', name: 'Gastro-esophageal reflux disease' },
+                { code: 'K29.7', name: 'Gastritis, unspecified' },
+                { code: 'R50.9', name: 'Fever, unspecified' },
+                { code: 'R51', name: 'Headache' },
+                { code: 'Z00.0', name: 'General medical examination' }
+            ];
+            // In a real app, this would be a large JSON or API output.
+            // We'll use this for local filtering.
+            window.icd10Database = mockICD10;
         };
+        fetchICD10();
         fetchDoctors();
         fetchMedicines();
     }, []);
@@ -193,6 +252,7 @@ const DoctorDashboard = () => {
                 queue_id: selectedQueue.id,
                 ...soap
             });
+            console.log("Medical Record Created:", recordRes.data);
 
             // 2. Create Prescription (if items exist)
             if (prescriptionItems.length > 0) {
@@ -210,13 +270,19 @@ const DoctorDashboard = () => {
                 // We need an endpoint for batch creation or loop
                 // Let's loop for now or assume /service-orders endpoint
                 // Plan: Create endpoint POST /api/service-orders
-                await Promise.all(serviceOrders.map(order =>
-                    api.post('/service-orders', {
+                console.log("Submitting Service Orders:", serviceOrders);
+                await Promise.all(serviceOrders.map(order => {
+                    console.log("Posting order:", {
                         medical_record_id: recordRes.data.id,
                         type: order.type,
                         notes: order.notes
-                    })
-                ));
+                    });
+                    return api.post('/service-orders', {
+                        medical_record_id: recordRes.data.id,
+                        type: order.type,
+                        notes: order.notes
+                    });
+                }));
                 toast.success("Orders Sent to Lab/Radiology");
             }
 
@@ -233,28 +299,55 @@ const DoctorDashboard = () => {
     };
 
     const checkDrugInteraction = (newMed) => {
-        // 1. Check Allergy
+        const medName = newMed.name.toLowerCase();
+        const currentMeds = prescriptionItems.map(p => p.name.toLowerCase());
+
+        // 1. Check Allergy (Enhanced Logic)
         if (selectedQueue?.patient?.allergies) {
             const allergies = selectedQueue.patient.allergies.toLowerCase();
-            const medName = newMed.name.toLowerCase();
-            // Simple keyword matching simulation
-            if (allergies.includes(medName) ||
-                (allergies.includes("antibiotik") && (medName.includes("amoxicillin") || medName.includes("cefadroxil"))) ||
-                (allergies.includes("seafood") && medName.includes("glucosamine")) // Example
-            ) {
-                return { type: 'ALLERGY', message: `PASIEN ALERGI: ${selectedQueue.patient.allergies}. Obat ${newMed.name} mungkin berisiko.` };
+
+            // Allergy Mapping
+            const allergyMap = {
+                'penicillin': ['amoxicillin', 'ampicillin', 'penicillin', 'augmentin'],
+                'sulfa': ['cotrimoxazole', 'sulfamethoxazole', 'trimethoprim'],
+                'nsaid': ['aspirin', 'ibuprofen', 'diclofenac', 'ketorolac', 'mefenamic'],
+                'seafood': ['glucosamine', 'omega-3']
+            };
+
+            // Check direct match
+            if (allergies.includes(medName)) {
+                return { type: 'ALLERGY', message: `⚠️ STOP: Patient has ${selectedQueue.patient.allergies} allergy!` };
+            }
+
+            // Check group mapping
+            for (const [allergen, relatedMeds] of Object.entries(allergyMap)) {
+                if (allergies.includes(allergen)) {
+                    if (relatedMeds.some(rel => medName.includes(rel))) {
+                        return { type: 'ALLERGY', message: `⚠️ STOP: Patient is allergic to ${allergen.toUpperCase()}. ${newMed.name} belongs to this group.` };
+                    }
+                }
             }
         }
 
-        // 2. Check Drug-Drug Interaction
-        const currentMeds = prescriptionItems.map(p => p.name.toLowerCase());
-        const newMedName = newMed.name.toLowerCase();
+        // 2. Check Drug-Drug Interaction (Expanded Knowledge Base)
+        const interactions = [
+            { a: 'aspirin', b: 'warfarin', risk: 'HIGH: Increased bleeding risk.' },
+            { a: 'simvastatin', b: 'erythromycin', risk: 'HIGH: Risk of muscle toxicity (Rhabdomyolysis).' },
+            { a: 'sildenafil', b: 'nitroglycerin', risk: 'CRITICAL: Severe hypotension (Fatal Drop in BP).' },
+            { a: 'digoxin', b: 'amiodarone', risk: 'HIGH: Digoxin toxicity risk.' },
+            { a: 'ibuprofen', b: 'aspirin', risk: 'MODERATE: Reduces cardioprotective effect of Aspirin.' }
+        ];
 
-        if (
-            (newMedName.includes("aspirin") && currentMeds.some(m => m.includes("warfarin"))) ||
-            (newMedName.includes("warfarin") && currentMeds.some(m => m.includes("aspirin")))
-        ) {
-            return { type: 'INTERACTION', message: `INTERAKSI OBAT BERBAHAYA: Aspirin + Warfarin dapat memicu pendarahan!` };
+        for (const rule of interactions) {
+            // Check if new med is A and B exists in list, OR new med is B and A exists
+            const hasA = currentMeds.some(m => m.includes(rule.a));
+            const hasB = currentMeds.some(m => m.includes(rule.b));
+            const newIsA = medName.includes(rule.a);
+            const newIsB = medName.includes(rule.b);
+
+            if ((newIsA && hasB) || (newIsB && hasA)) {
+                return { type: 'INTERACTION', message: `⛔ DRUG INTERACTION: ${rule.a.toUpperCase()} + ${rule.b.toUpperCase()}. ${rule.risk}` };
+            }
         }
 
         return null; // Safe
@@ -264,15 +357,19 @@ const DoctorDashboard = () => {
         const alert = checkDrugInteraction(med);
         if (alert) {
             setDrugAlert(alert);
-            // Optionally block or allow override. Let's allow but show toast/modal.
-            // For this UI, we'll set alert state and show a modal, user must confirm to proceed?
-            // Let's simpler approach: Show Toast Error and DONT add.
-            toast.error(alert.message, { duration: 5000, icon: '⚠️' });
-            // Ideally prompt "Do you want to proceed anyway?" -> requires more UI state.
-            // Let's auto-add but with warning visually in list? 
-            // Better: Donkey implementation -> Just warn and add, but let doctor delete if mistake.
-            // OR: Block add. Let's Block add for safety in this demo.
-            return;
+            // Play Alert Sound
+            const audio = new Audio('/sounds/alert.mp3'); // Assuming file exists or fails silently
+            audio.catch(() => { }); // Safety
+
+            // Show strong alert
+            toast.error(
+                <div className="flex flex-col">
+                    <span className="font-bold text-lg">{alert.type === 'ALLERGY' ? 'ALLERGY WARNING' : 'INTERACTION ALERT'}</span>
+                    <span className="text-sm">{alert.message}</span>
+                </div>
+                , { duration: 6000, icon: '🛑', style: { border: '2px solid red', background: '#FEF2F2', color: '#991B1B' } });
+
+            return; // Block addition
         }
 
         setPrescriptionItems([...prescriptionItems, {
@@ -509,14 +606,23 @@ const DoctorDashboard = () => {
 
                                         <div className="grid grid-cols-2 gap-8">
                                             {/* Subjective */}
-                                            <div className="space-y-3">
-                                                <label className="flex items-center gap-2 text-sm font-bold text-gray-500 uppercase tracking-wider">
-                                                    <span className="w-6 h-6 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center text-xs">S</span>
-                                                    Subjective (Keluhan)
-                                                </label>
+                                            <div className="space-y-3 relative">
+                                                <div className="flex justify-between items-center">
+                                                    <label className="flex items-center gap-2 text-sm font-bold text-gray-500 uppercase tracking-wider">
+                                                        <span className="w-6 h-6 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center text-xs">S</span>
+                                                        Subjective (Keluhan)
+                                                    </label>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => startListening('subjective')}
+                                                        className={`p-2 rounded-full transition-colors ${isListening === 'subjective' ? 'bg-red-500 text-white animate-pulse' : 'bg-gray-100 dark:bg-gray-700 text-gray-500 hover:text-blue-500'}`}
+                                                    >
+                                                        {isListening === 'subjective' ? <mic-off size={16} /> : <div className="flex items-center gap-1 text-xs font-bold"><User size={14} /> Dictate</div>}
+                                                    </button>
+                                                </div>
                                                 <textarea
                                                     className="w-full h-40 p-5 rounded-[24px] bg-gray-50 dark:bg-gray-800 border-none focus:ring-2 focus:ring-blue-500 transition-all text-lg resize-none shadow-inner"
-                                                    placeholder="Keluhan utama pasien..."
+                                                    placeholder="Keluhan utama pasien... (Click 'Dictate' to speak)"
                                                     value={soap.subjective}
                                                     onChange={e => setSoap({ ...soap, subjective: e.target.value })}
                                                     required
@@ -524,11 +630,20 @@ const DoctorDashboard = () => {
                                             </div>
 
                                             {/* Objective */}
-                                            <div className="space-y-3">
-                                                <label className="flex items-center gap-2 text-sm font-bold text-gray-500 uppercase tracking-wider">
-                                                    <span className="w-6 h-6 rounded-full bg-red-100 text-red-600 flex items-center justify-center text-xs">O</span>
-                                                    Objective (Pemeriksaan)
-                                                </label>
+                                            <div className="space-y-3 relative">
+                                                <div className="flex justify-between items-center">
+                                                    <label className="flex items-center gap-2 text-sm font-bold text-gray-500 uppercase tracking-wider">
+                                                        <span className="w-6 h-6 rounded-full bg-red-100 text-red-600 flex items-center justify-center text-xs">O</span>
+                                                        Objective (Pemeriksaan)
+                                                    </label>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => startListening('objective')}
+                                                        className={`p-2 rounded-full transition-colors ${isListening === 'objective' ? 'bg-red-500 text-white animate-pulse' : 'bg-gray-100 dark:bg-gray-700 text-gray-500 hover:text-red-500'}`}
+                                                    >
+                                                        {isListening === 'objective' ? <mic-off size={16} /> : <div className="flex items-center gap-1 text-xs font-bold"><Activity size={14} /> Dictate</div>}
+                                                    </button>
+                                                </div>
                                                 <textarea
                                                     className="w-full h-40 p-5 rounded-[24px] bg-gray-50 dark:bg-gray-800 border-none focus:ring-2 focus:ring-red-500 transition-all text-lg resize-none shadow-inner"
                                                     placeholder="Hasil pemeriksaan fisik..."
@@ -552,16 +667,21 @@ const DoctorDashboard = () => {
                                                         type="text"
                                                         placeholder="Ketik kode atau nama diagnosa (min. 2 karakter)..."
                                                         className="w-full p-4 pl-12 rounded-[24px] bg-gray-50 dark:bg-gray-800 border-none focus:ring-2 focus:ring-yellow-500 font-bold text-lg"
-                                                        onChange={async (e) => {
+                                                        onChange={(e) => {
                                                             const val = e.target.value;
                                                             setSoap({ ...soap, assessment: val });
 
                                                             if (val.length > 1) {
-                                                                try {
-                                                                    const res = await api.get(`/icd10?q=${val}`);
-                                                                    setIcd10List(res.data);
-                                                                } catch (err) {
-                                                                    console.error("ICD10 Search Error", err);
+                                                                // Use local mock database if available, else try API (fallback)
+                                                                if (window.icd10Database) {
+                                                                    const results = window.icd10Database.filter(item =>
+                                                                        item.code.toLowerCase().includes(val.toLowerCase()) ||
+                                                                        item.name.toLowerCase().includes(val.toLowerCase())
+                                                                    );
+                                                                    setIcd10List(results);
+                                                                } else {
+                                                                    // Fallback to API if we had one
+                                                                    setIcd10List([]);
                                                                 }
                                                             } else {
                                                                 setIcd10List([]);
@@ -600,10 +720,19 @@ const DoctorDashboard = () => {
 
                                             {/* Plan */}
                                             <div className="space-y-3">
-                                                <label className="flex items-center gap-2 text-sm font-bold text-gray-500 uppercase tracking-wider">
-                                                    <span className="w-6 h-6 rounded-full bg-green-100 text-green-600 flex items-center justify-center text-xs">P</span>
-                                                    Plan (Terapi/Tindakan) & E-Prescription
-                                                </label>
+                                                <div className="flex justify-between items-center">
+                                                    <label className="flex items-center gap-2 text-sm font-bold text-gray-500 uppercase tracking-wider">
+                                                        <span className="w-6 h-6 rounded-full bg-green-100 text-green-600 flex items-center justify-center text-xs">P</span>
+                                                        Plan (Terapi/Tindakan) & E-Prescription
+                                                    </label>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => startListening('plan')}
+                                                        className={`p-2 rounded-full transition-colors ${isListening === 'plan' ? 'bg-red-500 text-white animate-pulse' : 'bg-gray-100 dark:bg-gray-700 text-gray-500 hover:text-green-500'}`}
+                                                    >
+                                                        {isListening === 'plan' ? <mic-off size={16} /> : <div className="flex items-center gap-1 text-xs font-bold"><CheckCircle size={14} /> Dictate</div>}
+                                                    </button>
+                                                </div>
                                                 <textarea
                                                     className="w-full h-24 p-5 rounded-[24px] bg-gray-50 dark:bg-gray-800 border-none focus:ring-2 focus:ring-green-500 transition-all text-lg resize-none shadow-inner mb-4"
                                                     placeholder="Resep obat dan tindakan (Teks)..."

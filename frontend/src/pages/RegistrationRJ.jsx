@@ -25,7 +25,7 @@ const RegistrationRJ = () => {
     const [doctors, setDoctors] = useState([]);
     const [selectedClinic, setSelectedClinic] = useState(null);
     const [selectedDoctor, setSelectedDoctor] = useState(null);
-    const [paymentMethod, setPaymentMethod] = useState(null);
+
     const [showNewPatientModal, setShowNewPatientModal] = useState(false);
     const [showCardModal, setShowCardModal] = useState(false); // New State
 
@@ -414,14 +414,13 @@ const RegistrationRJ = () => {
         setPatientFound(null);
         setSelectedClinic(null);
         setSelectedDoctor(null);
-        setPaymentMethod(null);
         setTicketData(null);
         setIsSearching(false);
         toast('Form Reset', { icon: '🔄' });
     };
 
     const handleCreateTicket = async () => {
-        if (!patientFound || !selectedDoctor || !selectedClinic || !paymentMethod) {
+        if (!patientFound || !selectedDoctor || !selectedClinic || !paymentType) {
             toast.error("Please complete all steps");
             return;
         }
@@ -431,7 +430,8 @@ const RegistrationRJ = () => {
         try {
             const res = await api.post('/queue/ticket', {
                 doctor_id: selectedDoctor,
-                patient_id: patientFound.id
+                patient_id: patientFound.id,
+                payment_type: paymentType // Pass this to backend
             });
 
             // Prepare Ticket Data
@@ -455,7 +455,7 @@ const RegistrationRJ = () => {
     };
 
     const handleRegister = async () => {
-        if (!patientFound || !selectedDoctor || !selectedClinic || !paymentMethod) {
+        if (!patientFound || !selectedDoctor || !selectedClinic || !paymentType) {
             toast.error("Please complete all steps");
             return;
         }

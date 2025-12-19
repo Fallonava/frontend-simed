@@ -30,7 +30,8 @@ const PublicSchedule = React.lazy(() => import('./pages/PublicSchedule'));
 const ChronologyGenerator = React.lazy(() => import('./pages/ChronologyGenerator'));
 const NurseDashboard = React.lazy(() => import('./pages/NurseDashboard'));
 const CentralPharmacy = React.lazy(() => import('./pages/CentralPharmacy'));
-const GeneralAssets = React.lazy(() => import('./pages/GeneralAssets')); // New
+const GeneralAssets = React.lazy(() => import('./pages/GeneralAssets'));
+const QueueDisplay = React.lazy(() => import('./pages/QueueDisplay')); // Phase 2: TV Display // New
 const LabDashboard = React.lazy(() => import('./pages/LabDashboard'));
 const RadiologyDashboard = React.lazy(() => import('./pages/RadiologyDashboard')); // New
 const AdmissionDashboard = React.lazy(() => import('./pages/AdmissionDashboard')); // Inpatient Module
@@ -62,6 +63,9 @@ function AnimatedRoutes() {
           <Route path="/" element={
             user ? <Navigate to="/menu" replace /> : <PageWrapper><Welcome /></PageWrapper>
           } />
+
+          {/* Public Queue Display (TV Mode) */}
+          <Route path="/queue-display" element={<QueueDisplay />} />
 
           <Route path="/kiosk" element={<PageWrapper><Kiosk /></PageWrapper>} />
           <Route path="/counter" element={<PageWrapper><Counter /></PageWrapper>} />
