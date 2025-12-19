@@ -68,7 +68,7 @@ exports.getTriageQueue = async (req, res) => {
 // POST /api/triage/:queueId/submit
 exports.submitTriage = async (req, res) => {
     const { queueId } = req.params;
-    const { vitals, allergies } = req.body;
+    const { vitals, allergies, triage_level, chief_complaint } = req.body;
     const { id: queueIntId } = { id: parseInt(queueId) };
 
     try {
@@ -88,7 +88,6 @@ exports.submitTriage = async (req, res) => {
         }
 
         // 2. Buat atau Update MedicalRecord
-        // Cek dulu apakah Medical Record sudah ada untuk queue ini
         const existingMR = await prisma.medicalRecord.findFirst({
             where: { queue_id: parseInt(queueId) }
         });
@@ -99,6 +98,8 @@ exports.submitTriage = async (req, res) => {
                 where: { id: existingMR.id },
                 data: {
                     ...vitals, // Spread systolic, temp, etc.
+                    triage_level: parseInt(triage_level),
+                    chief_complaint: chief_complaint,
                     triage_status: 'COMPLETED'
                 }
             });
@@ -109,6 +110,8 @@ exports.submitTriage = async (req, res) => {
                     doctor_id: queueItem.daily_quota.doctor_id,
                     queue_id: parseInt(queueId),
                     ...vitals,
+                    triage_level: parseInt(triage_level),
+                    chief_complaint: chief_complaint,
                     triage_status: 'COMPLETED',
                     subjective: '', // Placeholder SOAP
                     objective: '',

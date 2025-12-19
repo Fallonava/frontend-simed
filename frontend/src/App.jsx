@@ -1,7 +1,8 @@
 import React, { Suspense } from 'react';
-import { BrowserRouter, Routes, Route, useLocation } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, useLocation, Navigate } from 'react-router-dom';
 import { AnimatePresence } from 'framer-motion';
 import ProtectedRoute from './components/ProtectedRoute';
+import useAuthStore from './store/useAuthStore';
 import ThemeToggle from './components/ThemeToggle';
 import CommandPalette from './components/CommandPalette';
 import PageWrapper from './components/PageWrapper';
@@ -17,7 +18,9 @@ const MainMenu = React.lazy(() => import('./pages/MainMenu'));
 const DoctorLeaveCalendar = React.lazy(() => import('./components/DoctorLeaveCalendar')); // Accessed via route
 const Welcome = React.lazy(() => import('./pages/Welcome'));
 const QueueStatus = React.lazy(() => import('./pages/QueueStatus'));
-const Registration = React.lazy(() => import('./pages/Registration'));
+const RegistrationRJ = React.lazy(() => import('./pages/RegistrationRJ'));
+const RegistrationIGD = React.lazy(() => import('./pages/RegistrationIGD'));
+const RegistrationRanap = React.lazy(() => import('./pages/RegistrationRanap'));
 const DoctorDashboard = React.lazy(() => import('./pages/DoctorDashboard'));
 const PatientList = React.lazy(() => import('./pages/PatientList'));
 const PatientDetail = React.lazy(() => import('./pages/PatientDetail'));
@@ -30,9 +33,14 @@ const LabDashboard = React.lazy(() => import('./pages/LabDashboard'));
 const RadiologyDashboard = React.lazy(() => import('./pages/RadiologyDashboard')); // New
 const AdmissionDashboard = React.lazy(() => import('./pages/AdmissionDashboard')); // Inpatient Module
 const BedHeadUnit = React.lazy(() => import('./pages/BedHeadUnit')); // Tablet Mode
+const InpatientNurseDashboard = React.lazy(() => import('./pages/InpatientNurseDashboard'));
+const NutritionKitchen = React.lazy(() => import('./pages/NutritionKitchen')); // Phase 6
+const HRDashboard = React.lazy(() => import('./pages/HRDashboard')); // Phase 8
+const FinanceDashboard = React.lazy(() => import('./pages/FinanceDashboard')); // Phase 9
 
 function AnimatedRoutes() {
   const location = useLocation();
+  const { user } = useAuthStore();
 
   return (
     <AnimatePresence mode="wait">
@@ -40,11 +48,13 @@ function AnimatedRoutes() {
         <Routes location={location} key={location.pathname}>
           <Route path="/login" element={<PageWrapper><Login /></PageWrapper>} />
 
-          {/* Public Routes */}
-          <Route path="/" element={<PageWrapper><Welcome /></PageWrapper>} />
+          {/* Public Routes - Conditional Redirect */}
+          <Route path="/" element={
+            user ? <Navigate to="/menu" replace /> : <PageWrapper><Welcome /></PageWrapper>
+          } />
+
           <Route path="/kiosk" element={<PageWrapper><Kiosk /></PageWrapper>} />
           <Route path="/counter" element={<PageWrapper><Counter /></PageWrapper>} />
-          <Route path="/queue-status/:ticketId" element={<PageWrapper><QueueStatus /></PageWrapper>} />
           <Route path="/queue-status/:ticketId" element={<PageWrapper><QueueStatus /></PageWrapper>} />
           <Route path="/public/schedule" element={<PageWrapper><PublicSchedule /></PageWrapper>} />
 
@@ -65,8 +75,10 @@ function AnimatedRoutes() {
 
           {/* Staff Routes */}
           <Route element={<ProtectedRoute allowedRoles={['STAFF', 'ADMIN']} />}>
-            <Route path="/admin/counter" element={<PageWrapper><Registration /></PageWrapper>} /> {/* Redirecting old route to Registration just in case, or we can just remove it. Let's redirect for safety or just use Registration */}
-            <Route path="/registration" element={<PageWrapper><Registration /></PageWrapper>} />
+            <Route path="/admin/counter" element={<PageWrapper><RegistrationRJ /></PageWrapper>} />
+            <Route path="/registration" element={<PageWrapper><RegistrationRJ /></PageWrapper>} />
+            <Route path="/registration/igd" element={<PageWrapper><RegistrationIGD /></PageWrapper>} />
+            <Route path="/registration/ranap" element={<PageWrapper><RegistrationRanap /></PageWrapper>} />
             <Route path="/doctor/dashboard" element={<PageWrapper><DoctorDashboard /></PageWrapper>} />
 
 
@@ -93,6 +105,12 @@ function AnimatedRoutes() {
 
             {/* Inpatient / Admission */}
             <Route path="/admission" element={<PageWrapper><AdmissionDashboard /></PageWrapper>} />
+
+            {/* Phase 6: Nurse Monitoring */}
+            <Route path="/nurse/inpatient" element={<PageWrapper><InpatientNurseDashboard /></PageWrapper>} />
+            <Route path="/nutrition" element={<PageWrapper><NutritionKitchen /></PageWrapper>} />
+            <Route path="/hr" element={<PageWrapper><HRDashboard /></PageWrapper>} />
+            <Route path="/finance" element={<PageWrapper><FinanceDashboard /></PageWrapper>} />
           </Route>
         </Routes>
       </Suspense>

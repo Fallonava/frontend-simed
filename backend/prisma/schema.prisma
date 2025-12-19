@@ -101,6 +101,8 @@ model Patient {
   // Inpatient Relations
   current_bed Bed?
   admissions  Admission[]
+  
+  invoices    Invoice[]
 }
 
 model Sequence {
@@ -114,6 +116,8 @@ model User {
   username String @unique
   password String
   role     String // ADMIN, STAFF
+  
+  employee Employee?
 }
 
 model Counter {
@@ -165,8 +169,10 @@ model MedicalRecord {
   plan        String   @db.Text // Tindakan/Resep
   
   // New: Clinical Safety & Standards
-  triage_status String   @default("PENDING") // PENDING, COMPLETED, SKIPPED
-  icd10_code    String?
+  triage_status   String   @default("PENDING") // PENDING, COMPLETED, SKIPPED
+  triage_level    Int?     // 1 (Resus) to 5 (Non-Urgent)
+  chief_complaint String?  @db.Text
+  icd10_code      String?
   icd10         ICD10?   @relation(fields: [icd10_code], references: [code])
   
   created_at  DateTime @default(now())
@@ -174,6 +180,7 @@ model MedicalRecord {
   prescriptions Prescription[]
   transaction   Transaction?
   service_orders ServiceOrder[]
+  invoices      Invoice[]
 }
 
 model ICD10 {
@@ -239,6 +246,8 @@ model PrescriptionItem {
   quantity        Int
   dosage          String   // e.g. "3x1 after meal"
   notes           String?
+  
+  medication_logs MedicationLog[]
 }
 
 model Transaction {
@@ -311,4 +320,149 @@ model Admission {
   
   created_at      DateTime @default(now())
   updated_at      DateTime @updatedAt
+  
+  observations    InpatientObservation[]
+  medication_logs MedicationLog[]
+  diet_orders     DietOrder[]
+  invoices        Invoice[]
+}
+
+model InpatientObservation {
+  id            Int      @id @default(autoincrement())
+  admission_id  Int
+  admission     Admission @relation(fields: [admission_id], references: [id])
+  
+  nurse_name    String?   // Name of nurse who input (since we don't have Nurse Auth yet)
+  timestamp     DateTime  @default(now())
+  
+  systolic      Int?
+  diastolic     Int?
+  heart_rate    Int?
+  temperature   Float?
+  resp_rate     Int?
+  sats          Int?      // SpO2
+  
+  notes         String?   @db.Text // CPPT (S/O)
+}
+
+model MedicationLog {
+  id              Int      @id @default(autoincrement())
+  admission_id    Int
+  admission       Admission @relation(fields: [admission_id], references: [id])
+  
+  prescription_item_id Int?
+  prescription_item    PrescriptionItem? @relation(fields: [prescription_item_id], references: [id])
+  medicine_name        String? // Fallback if no prescription item (e.g. ward stock)
+  
+  given_at        DateTime @default(now())
+  given_by        String?  // Nurse Name
+  status          String   // GIVEN, SKIPPED, REFUSED
+  notes           String?
+}
+
+model DietMenu {
+  id          Int      @id @default(autoincrement())
+  name        String   // e.g. "Bubur Halus", "Nasi Tim", "Low Salt"
+  code        String   @unique
+  type        String   // REGULAR, SOFT, LIQUID, DIET
+  description String?
+  calories    Int?     // kcal estimates
+  
+  orders      DietOrder[]
+}
+
+model DietOrder {
+  id            Int      @id @default(autoincrement())
+  admission_id  Int
+  admission     Admission @relation(fields: [admission_id], references: [id])
+  
+  diet_menu_id  Int
+  diet_menu     DietMenu @relation(fields: [diet_menu_id], references: [id])
+  
+  extras        String?  // e.g. "No Egg", "Extra Fruit"
+  meal_time     String   // BREAKFAST, LUNCH, DINNER
+  date          DateTime @default(now())
+  status        String   @default("ORDERED") // ORDERED, PREPARED, DELIVERED
+  
+  created_at    DateTime @default(now())
+  updated_at    DateTime @updatedAt
+}
+
+model Employee {
+  id              Int      @id @default(autoincrement())
+  full_name       String
+  nip             String   @unique // Employee ID
+  role            String   // DOCTOR, NURSE, ADMIN, STAFF
+  
+  sip_str         String?  // License Number
+  sip_expiry      DateTime?
+  
+  phone           String?
+  email           String?
+  join_date       DateTime @default(now())
+  
+  user_id         Int?     @unique
+  user            User?    @relation(fields: [user_id], references: [id])
+  
+  schedules       EmployeeSchedule[]
+  created_at      DateTime @default(now())
+  updated_at      DateTime @updatedAt
+}
+
+model Shift {
+  id          Int      @id @default(autoincrement())
+  name        String   // Pagi, Siang, Malam
+  start_time  String   // "07:00"
+  end_time    String   // "14:00"
+  color       String   @default("blue") // For Calendar UI
+  
+  schedules   EmployeeSchedule[]
+}
+
+model EmployeeSchedule {
+  id          Int      @id @default(autoincrement())
+  employee_id Int
+  employee    Employee @relation(fields: [employee_id], references: [id])
+  
+  shift_id    Int
+  shift       Shift    @relation(fields: [shift_id], references: [id])
+  
+  date        DateTime
+  notes       String?
+  created_at  DateTime @default(now())
+  
+  @@unique([employee_id, date])
+}
+
+model Invoice {
+  id              Int      @id @default(autoincrement())
+  patient_id      Int
+  patient         Patient  @relation(fields: [patient_id], references: [id])
+  
+  admission_id    Int?
+  admission       Admission? @relation(fields: [admission_id], references: [id])
+  
+  medical_record_id Int?
+  medical_record    MedicalRecord? @relation(fields: [medical_record_id], references: [id])
+  
+  total_amount    Float
+  status          String   @default("PENDING") // PENDING, PAID, CANCELLED
+  payment_method  String?  // CASH, TRANSFER, BPJS, INSURANCE
+  
+  items           InvoiceItem[]
+  
+  created_at      DateTime @default(now())
+  updated_at      DateTime @updatedAt
+}
+
+model InvoiceItem {
+  id          Int      @id @default(autoincrement())
+  invoice_id  Int
+  invoice     Invoice  @relation(fields: [invoice_id], references: [id])
+  
+  description String
+  amount      Float
+  quantity    Int      @default(1)
+  
+  created_at  DateTime @default(now())
 }

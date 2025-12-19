@@ -181,6 +181,36 @@ app.post('/api/admission/checkin', authMiddleware, admissionController.checkIn);
 app.post('/api/admission/checkout', authMiddleware, admissionController.checkOut);
 app.put('/api/admission/bed-status', authMiddleware, admissionController.updateBedStatus);
 
+// Inpatient Clinical Routes (CPPT & e-MAR)
+const inpatientController = require('./controllers/inpatientController');
+app.get('/api/inpatient/:admissionId/clinical', authMiddleware, inpatientController.getClinicalData);
+app.post('/api/inpatient/:admissionId/observation', authMiddleware, inpatientController.addObservation);
+app.post('/api/inpatient/:admissionId/mar', authMiddleware, inpatientController.logMedication);
+
+// Nutrition / Gizi Routes
+const nutritionController = require('./controllers/nutritionController');
+app.get('/api/nutrition/menus', authMiddleware, nutritionController.getMenus);
+app.post('/api/nutrition/order', authMiddleware, nutritionController.createOrder);
+app.get('/api/nutrition/kitchen', authMiddleware, nutritionController.getKitchenOrders);
+app.put('/api/nutrition/order/:id/status', authMiddleware, nutritionController.updateStatus);
+
+// HR Routes
+const hrController = require('./controllers/hrController');
+app.get('/api/hr/employees', authMiddleware, hrController.getEmployees);
+app.put('/api/hr/employee/:id', authMiddleware, hrController.updateEmployee);
+app.get('/api/hr/roster', authMiddleware, hrController.getRoster);
+app.post('/api/hr/schedule', authMiddleware, hrController.assignShift);
+app.post('/api/hr/auto-roster', authMiddleware, hrController.autoGenerateRoster); // NEW
+app.get('/api/hr/payroll', authMiddleware, hrController.getPayrollStats);        // NEW
+
+// Finance Routes
+const financeController = require('./controllers/financeController');
+app.post('/api/finance/generate', authMiddleware, financeController.createInvoice);
+app.get('/api/finance/unpaid', authMiddleware, financeController.getUnpaidInvoices);
+app.post('/api/finance/pay/:id', authMiddleware, financeController.payInvoice);
+app.get('/api/finance/report', authMiddleware, financeController.getDailyReport);
+app.get('/api/finance/analytics', authMiddleware, financeController.getAnalytics); // NEW
+
 // Bed Head Unit Routes (Tablet)
 app.get('/api/bed-panel/:bedId', admissionController.getBedPanel); // Public/Kiosk for demo
 app.post('/api/bed-panel/request', admissionController.requestService);

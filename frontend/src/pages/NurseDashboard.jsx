@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Activity, Thermometer, Heart, Wind, Scale, AlertTriangle, CheckCircle, Clock } from 'lucide-react';
 import toast, { Toaster } from 'react-hot-toast';
-import api from '../utils/axiosConfig';
+import api from '../services/api';
 import PageWrapper from '../components/PageWrapper';
 import useThemeStore from '../store/useThemeStore';
 
@@ -23,6 +23,22 @@ const NurseDashboard = () => {
         respiratory_rate: '' // Note: Add to DB if missing, or use notes
     });
     const [allergies, setAllergies] = useState('');
+    const [triageLevel, setTriageLevel] = useState(3); // Default Level 3 (Urgent/Standard)
+    const [complaint, setComplaint] = useState('');
+
+    // BMI Calculation Watcher
+    useEffect(() => {
+        if (vitals.weight && vitals.height) {
+            // Check if height is cm or m (usually cm input 170)
+            // Convention: Input is CM.
+            const h = parseFloat(vitals.height) / 100;
+            const w = parseFloat(vitals.weight);
+            if (h > 0 && w > 0) {
+                // BMI logic handled visually or kept for display
+                // console.log("BMI:", w / (h*h));
+            }
+        }
+    }, [vitals.weight, vitals.height]);
 
     const fetchQueue = async () => {
         try {
@@ -69,7 +85,9 @@ const NurseDashboard = () => {
                     weight: parseFloat(vitals.weight),
                     height: parseFloat(vitals.height),
                 },
-                allergies: allergies
+                allergies: allergies,
+                triage_level: triageLevel,
+                chief_complaint: complaint
             });
             toast.success('Triage Completed. Patient sent to Doctor.');
             setSelectedPatient(null);
@@ -156,6 +174,58 @@ const NurseDashboard = () => {
                                 </div>
 
                                 <form onSubmit={handleSubmit} className="space-y-8">
+
+                                    {/* 1. Triage Assessment Level (ATS Scale) */}
+                                    <section>
+                                        <div className="flex justify-between items-center mb-4">
+                                            <h3 className="text-sm font-bold uppercase tracking-wider text-gray-400 flex items-center gap-2">
+                                                <AlertTriangle size={16} /> Triage Level (ATS)
+                                            </h3>
+                                            <span className={`text-xs font-bold px-3 py-1 rounded-full ${triageLevel === 1 ? 'bg-red-100 text-red-600' :
+                                                triageLevel === 2 ? 'bg-orange-100 text-orange-600' :
+                                                    triageLevel === 3 ? 'bg-yellow-100 text-yellow-700' :
+                                                        triageLevel === 4 ? 'bg-green-100 text-green-600' : 'bg-blue-100 text-blue-600'
+                                                }`}>
+                                                Level {triageLevel} Selected
+                                            </span>
+                                        </div>
+                                        <div className="grid grid-cols-5 gap-3">
+                                            {[1, 2, 3, 4, 5].map((level) => (
+                                                <button
+                                                    key={level}
+                                                    type="button"
+                                                    onClick={() => setTriageLevel(level)}
+                                                    className={`py-3 px-2 rounded-xl border-2 transition-all flex flex-col items-center gap-1 group
+                                                    ${triageLevel === level
+                                                            ? level === 1 ? 'bg-red-600 border-red-600 text-white shadow-lg shadow-red-500/30' :
+                                                                level === 2 ? 'bg-orange-500 border-orange-500 text-white shadow-lg shadow-orange-500/30' :
+                                                                    level === 3 ? 'bg-yellow-400 border-yellow-400 text-black shadow-lg shadow-yellow-500/30' :
+                                                                        level === 4 ? 'bg-green-500 border-green-500 text-white shadow-lg shadow-green-500/30' :
+                                                                            'bg-blue-500 border-blue-500 text-white shadow-lg shadow-blue-500/30'
+                                                            : 'bg-white dark:bg-gray-800 border-gray-100 dark:border-gray-700 text-gray-400 hover:border-gray-300'
+                                                        }`}
+                                                >
+                                                    <span className="text-lg font-black">{level}</span>
+                                                    <span className="text-[9px] uppercase font-bold tracking-tighter opacity-80">
+                                                        {level === 1 ? 'Resus' : level === 2 ? 'Emergency' : level === 3 ? 'Urgent' : level === 4 ? 'Less Urgent' : 'Non Urgent'}
+                                                    </span>
+                                                </button>
+                                            ))}
+                                        </div>
+
+                                        {/* Chief Complaint */}
+                                        <div className="mt-4">
+                                            <label className="text-xs font-semibold text-gray-500 mb-2 block">Chief Complaint / Keluhan Utama</label>
+                                            <textarea
+                                                value={complaint}
+                                                onChange={(e) => setComplaint(e.target.value)}
+                                                required
+                                                className="w-full p-4 bg-gray-50 dark:bg-gray-700 rounded-xl border-0 focus:ring-2 focus:ring-blue-500 font-medium"
+                                                placeholder="Describe patient's main complaint..."
+                                                rows={2}
+                                            />
+                                        </div>
+                                    </section>
 
                                     {/* Vital Signs Section */}
                                     <section>

@@ -121,7 +121,7 @@ const DoctorDashboard = () => {
             const existingMR = selectedQueue.medical_records?.[0];
 
             setSoap({
-                subjective: existingMR?.subjective || '',
+                subjective: existingMR?.subjective || existingMR?.chief_complaint || '', // Auto-fill Complaint
                 objective: existingMR?.objective || '',
                 assessment: existingMR?.assessment || '',
                 plan: existingMR?.plan || '',
@@ -354,6 +354,18 @@ const DoctorDashboard = () => {
                                                 <div className={`text-sm ${selectedQueue?.id === q.id ? 'text-blue-100' : 'text-gray-500 dark:text-gray-400'}`}>
                                                     {q.patient?.name || 'Unknown Patient'}
                                                 </div>
+
+                                                {/* Triage Badge */}
+                                                {q.medical_records && q.medical_records[0]?.triage_level && (
+                                                    <div className={`mt-1 inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold uppercase
+                                                        ${q.medical_records[0].triage_level === 1 ? 'bg-red-500 text-white' :
+                                                            q.medical_records[0].triage_level === 2 ? 'bg-orange-500 text-white' :
+                                                                q.medical_records[0].triage_level === 3 ? 'bg-yellow-400 text-black' :
+                                                                    q.medical_records[0].triage_level === 4 ? 'bg-green-500 text-white' : 'bg-blue-500 text-white'
+                                                        }`}>
+                                                        ATS {q.medical_records[0].triage_level}
+                                                    </div>
+                                                )}
                                             </div>
                                             <div className={`text-[10px] font-bold px-2 py-1 rounded-full ${selectedQueue?.id === q.id ? 'bg-white/20 text-white' : 'bg-gray-100 dark:bg-gray-600 text-gray-500'}`}>
                                                 #{q.queue_number}
