@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Search, Plus, User, FileText, Printer, CheckCircle, MapPin, Phone, CreditCard, Stethoscope, Activity, ChevronRight, X, ArrowRight, RefreshCcw, Mic, Bell, Users, LogOut, Volume2, ChevronUp, ChevronDown, Settings } from 'lucide-react';
+import { Search, Plus, Calendar, Clock, MapPin, ChevronRight, Stethoscope, User, Fingerprint, Printer, CheckCircle, X, CreditCard, Activity, Umbrella, Phone, FileText, ArrowRight, RefreshCcw, Mic, Bell, Users, LogOut, Volume2, ChevronUp, ChevronDown, Settings } from 'lucide-react';
 import toast, { Toaster } from 'react-hot-toast';
 import { useNavigate } from 'react-router-dom';
 import { QRCodeCanvas } from 'qrcode.react';
@@ -704,21 +704,14 @@ const Registration = () => {
                                 <div className="text-4xl font-light text-gray-900 dark:text-white tracking-tight">{new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}</div>
                                 <div className="text-gray-400 font-medium text-sm mt-1 mb-4">{new Date().toLocaleDateString('id-ID', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</div>
 
-                                {/* PAYMENT TOGGLE */}
-                                <div className="bg-gray-100 dark:bg-gray-800 p-1 rounded-xl flex gap-1">
-                                    <button
-                                        onClick={() => setPaymentType('UMUM')}
-                                        className={`px-4 py-2 rounded-lg text-xs font-bold transition-all ${paymentType === 'UMUM' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
-                                    >
-                                        PASIEN UMUM
-                                    </button>
-                                    <button
-                                        onClick={() => setPaymentType('BPJS')}
-                                        className={`px-4 py-2 rounded-lg text-xs font-bold transition-all ${paymentType === 'BPJS' ? 'bg-green-500 text-white shadow-lg shadow-green-500/30' : 'text-gray-500 hover:text-gray-700'}`}
-                                    >
-                                        BPJS KESEHATAN
-                                    </button>
-                                </div>
+                                {paymentType === 'BPJS' && (
+                                    <div className="bg-green-50 dark:bg-green-900/20 px-3 py-1 rounded-full border border-green-200 dark:border-green-800">
+                                        <span className="text-[10px] font-bold text-green-600 dark:text-green-400 uppercase tracking-wide flex items-center gap-1">
+                                            <span className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse" />
+                                            BPJS Active
+                                        </span>
+                                    </div>
+                                )}
                             </div>
                         </div>
 
@@ -883,6 +876,77 @@ const Registration = () => {
                         </section>
 
 
+
+
+                        {/* Step 3: Payment / Guarantee */}
+                        <section className="relative">
+                            <h3 className="text-[11px] font-bold uppercase tracking-widest text-gray-400 mb-6 pl-1 flex items-center gap-2">
+                                <span className="w-5 h-5 rounded-full bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 flex items-center justify-center text-[10px]">3</span>
+                                Payment / Penjamin
+                            </h3>
+                            <div className="flex gap-4">
+                                {[
+                                    { id: 'UMUM', label: 'UMUM / PRIBADI', icon: <CreditCard size={20} />, color: 'blue' },
+                                    { id: 'BPJS', label: 'BPJS KESEHATAN', icon: <Activity size={20} />, color: 'green' },
+                                    { id: 'ASURANSI', label: 'ASURANSI LAIN', icon: <Umbrella size={20} />, color: 'purple' }
+                                ].map((type) => (
+                                    <button
+                                        key={type.id}
+                                        onClick={() => setPaymentType(type.id)}
+                                        className={`relative flex-1 py-6 rounded-2xl border-2 transition-all duration-300 flex flex-col items-center justify-center gap-3 group overflow-hidden
+                                            ${paymentType === type.id
+                                                ? `bg-white dark:bg-gray-800 border-${type.color}-500 shadow-xl shadow-${type.color}-500/20 scale-105 z-10`
+                                                : 'bg-white dark:bg-gray-800 border-gray-100 dark:border-gray-800 text-gray-400 hover:border-gray-300'
+                                            }`}
+                                    >
+                                        <div className={`p-3 rounded-full transition-colors duration-300 ${paymentType === type.id ? `bg-${type.color}-500 text-white` : 'bg-gray-100 dark:bg-gray-700'}`}>
+                                            {type.icon}
+                                        </div>
+                                        <span className={`font-bold text-xs tracking-wider ${paymentType === type.id ? `text-${type.color}-600 dark:text-${type.color}-400` : ''}`}>
+                                            {type.label}
+                                        </span>
+
+                                        {/* Status Badge for BPJS */}
+                                        {type.id === 'BPJS' && (
+                                            <div className="absolute top-3 right-3">
+                                                <span className="flex h-2 w-2">
+                                                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+                                                    <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
+                                                </span>
+                                            </div>
+                                        )}
+                                    </button>
+                                ))}
+                            </div>
+
+                            {/* BPJS Info Card (Visible only when BPJS is selected) */}
+                            <AnimatePresence>
+                                {paymentType === 'BPJS' && (
+                                    <motion.div
+                                        initial={{ height: 0, opacity: 0 }}
+                                        animate={{ height: 'auto', opacity: 1 }}
+                                        exit={{ height: 0, opacity: 0 }}
+                                        className="overflow-hidden"
+                                    >
+                                        <div className="mt-4 p-4 bg-green-50 dark:bg-green-900/10 border border-green-100 dark:border-green-800 rounded-2xl flex items-center justify-between">
+                                            <div className="flex items-center gap-3">
+                                                <div className="p-2 bg-green-100 dark:bg-green-800 rounded-lg text-green-600 dark:text-green-300">
+                                                    <Activity size={20} />
+                                                </div>
+                                                <div>
+                                                    <h4 className="font-bold text-sm text-green-800 dark:text-green-300">BPJS Kesehatan Intergration</h4>
+                                                    <p className="text-xs text-green-600 dark:text-green-400">SEP akan diterbitkan otomatis saat registrasi.</p>
+                                                </div>
+                                            </div>
+                                            <div className="text-right">
+                                                <div className="text-xs font-bold text-gray-400 uppercase">Status Peserta</div>
+                                                <div className="font-bold text-green-600">AKTIF</div>
+                                            </div>
+                                        </div>
+                                    </motion.div>
+                                )}
+                            </AnimatePresence>
+                        </section>
 
                         <div className="h-32"></div> {/* Spacer */}
                     </div>
