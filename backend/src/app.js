@@ -149,7 +149,8 @@ app.get('/api/icd10', authMiddleware, icd10Controller.search);
 // Medical Record Routes
 const medicalRecordController = require('./controllers/medicalRecordController');
 app.post('/api/medical-records', authMiddleware, medicalRecordController.create);
-app.get('/api/medical-records/history', authMiddleware, medicalRecordController.getHistory);
+app.get('/api/medical-records/history', authMiddleware, medicalRecordController.getHistory); // By patient_id query
+app.get('/api/medical-records/all', authMiddleware, medicalRecordController.getAll); // Dashboard listing
 app.get('/api/medical-records/patient/:patient_id', authMiddleware, medicalRecordController.getByPatient);
 
 // Service Order Routes (CPOE: Lab/Rad)
@@ -208,11 +209,20 @@ const financeController = require('./controllers/financeController');
 app.post('/api/finance/generate', authMiddleware, financeController.createInvoice);
 app.get('/api/finance/unpaid', authMiddleware, financeController.getUnpaidInvoices);
 app.post('/api/finance/pay/:id', authMiddleware, financeController.payInvoice);
+app.get('/api/finance/billables', authMiddleware, financeController.getBillableVisits);
 app.get('/api/finance/report', authMiddleware, financeController.getDailyReport);
 app.get('/api/finance/analytics', authMiddleware, financeController.getAnalytics); // NEW
 
 // Bed Head Unit Routes (Tablet)
 app.get('/api/bed-panel/:bedId', admissionController.getBedPanel); // Public/Kiosk for demo
+
+// SATUSEHAT Integration
+app.get('/api/satusehat/patient', authMiddleware, require('./controllers/satusehatController').searchPatientByNIK);
+app.post('/api/satusehat/encounter', authMiddleware, require('./controllers/satusehatController').createEncounter);
+
+// Smart Documents
+const documentController = require('./controllers/documentController');
+app.post('/api/documents/generate', authMiddleware, documentController.generateDocument);
 app.post('/api/bed-panel/request', admissionController.requestService);
 
 // Pharmacy Routes
@@ -235,6 +245,46 @@ app.get('/api/transactions', authMiddleware, transactionController.getPending); 
 app.post('/api/transactions/invoice', authMiddleware, transactionController.createInvoice);
 app.put('/api/transactions/:id/pay', authMiddleware, transactionController.pay);
 
+// Billing Routes
+// ...
+
+// Inventory & Logistics Routes (Phase 2)
+const inventoryController = require('./controllers/inventoryController');
+app.get('/api/inventory/stocks', authMiddleware, inventoryController.getStock);
+app.get('/api/inventory/alerts', authMiddleware, inventoryController.getLowStock);
+app.post('/api/inventory/po', authMiddleware, inventoryController.createPO);
+app.get('/api/inventory/po/pending', authMiddleware, inventoryController.getPendingPOs);
+app.post('/api/inventory/receive', authMiddleware, inventoryController.receiveGoods);
+app.post('/api/inventory/transfer', authMiddleware, inventoryController.transferStock);
+app.post('/api/inventory/transfer', authMiddleware, inventoryController.transferStock);
+
+// Back Office: Casemix & Claims (Phase 2b)
+const casemixController = require('./controllers/casemixController');
+app.get('/api/casemix/pending', authMiddleware, casemixController.getPendingCoding);
+app.post('/api/casemix/save', authMiddleware, casemixController.saveCoding);
+app.post('/api/casemix/claim', authMiddleware, casemixController.generateClaimFile);
+
+// Bed Management (Phase 2b)
+const bedController = require('./controllers/bedController');
+app.get('/api/beds', authMiddleware, bedController.getAllBeds);
+app.get('/api/beds/stats', authMiddleware, bedController.getStats);
+app.put('/api/beds/:id/status', authMiddleware, bedController.updateBedStatus);
+
+// Nurse Station (CPPT & e-MAR) (Phase 2b)
+// Nurse Station (CPPT & e-MAR) (Phase 2b)
+// inpatientController already required above
+app.get('/api/nurse/active-inpatients', authMiddleware, admissionController.getActive);
+app.get('/api/inpatient/:admissionId/clinical', authMiddleware, inpatientController.getClinicalData);
+app.post('/api/inpatient/:admissionId/observation', authMiddleware, inpatientController.addObservation);
+app.post('/api/inpatient/:admissionId/mar', authMiddleware, inpatientController.logMedication);
+
+const dischargeController = require('./controllers/dischargeController');
+app.post('/api/discharge/:id/finalize', authMiddleware, dischargeController.finalizeDischarge);
+
+// LIS/RIS Bridging (Phase 2b)
+const integratedResultController = require('./controllers/integratedResultController');
+app.get('/api/results/pending', authMiddleware, integratedResultController.getPendingOrders);
+app.put('/api/results/:id/submit', authMiddleware, integratedResultController.submitResult);
 
 // Master Data Routes
 app.get('/api/polies', poliklinikController.getAll);

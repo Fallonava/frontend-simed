@@ -7,8 +7,11 @@ import {
 } from 'lucide-react';
 import api from '../services/api';
 import toast from 'react-hot-toast';
+import { useNavigate } from 'react-router-dom';
+import ModernHeader from '../components/ModernHeader';
 
 const AdmissionDashboard = () => {
+    const navigate = useNavigate();
     const [rooms, setRooms] = useState([]);
     const [stats, setStats] = useState({ total: 0, available: 0, occupied: 0, cleaning: 0 });
     const [loading, setLoading] = useState(true);
@@ -132,12 +135,19 @@ const AdmissionDashboard = () => {
 
     return (
         <PageWrapper title="Inpatient Management" subtitle="Bed Availability & Admission">
+            <ModernHeader
+                title="Inpatient Ward"
+                subtitle="Bed Management & Admission"
+                onBack={() => navigate('/menu')}
+                className="mb-8"
+            />
+
             {/* STATS HEADER */}
-            <div className="grid grid-cols-4 gap-4 mb-8">
-                <StatCard label="Total Beds" value={stats.total} icon={<Bed size={20} />} color="bg-blue-500" />
-                <StatCard label="Available" value={stats.available} icon={<CheckCircle size={20} />} color="bg-green-500" />
-                <StatCard label="Occupied" value={stats.occupied} icon={<User size={20} />} color="bg-red-500" />
-                <StatCard label="Cleaning" value={stats.cleaning} icon={<Activity size={20} />} color="bg-yellow-500" />
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+                <StatCard label="Total Beds" value={stats.total} icon={<Bed size={24} />} color="bg-blue-500" />
+                <StatCard label="Available" value={stats.available} icon={<CheckCircle size={24} />} color="bg-green-500" />
+                <StatCard label="Occupied" value={stats.occupied} icon={<User size={24} />} color="bg-red-500" />
+                <StatCard label="Cleaning" value={stats.cleaning} icon={<Activity size={24} />} color="bg-yellow-500" />
             </div>
 
             {/* MAIN CONTENT - ROOM GRID */}

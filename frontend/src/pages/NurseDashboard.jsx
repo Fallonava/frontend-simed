@@ -2,12 +2,15 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Activity, Thermometer, Heart, Wind, Scale, AlertTriangle, CheckCircle, Clock } from 'lucide-react';
 import toast, { Toaster } from 'react-hot-toast';
+import { useNavigate } from 'react-router-dom';
+import ModernHeader from '../components/ModernHeader';
 import api from '../services/api';
 import PageWrapper from '../components/PageWrapper';
 import useThemeStore from '../store/useThemeStore';
 
 const NurseDashboard = () => {
     const { mode } = useThemeStore();
+    const navigate = useNavigate();
     const [queue, setQueue] = useState([]);
     const [selectedPatient, setSelectedPatient] = useState(null);
     const [loading, setLoading] = useState(false);
@@ -104,13 +107,14 @@ const NurseDashboard = () => {
         <PageWrapper title="Nurse Station (Triage)">
             <Toaster position="top-right" />
 
-            {/* Background Elements */}
-            <div className="fixed inset-0 pointer-events-none overflow-hidden text-left">
-                <div className="absolute top-[-10%] left-[-10%] w-[500px] h-[500px] bg-blue-400/20 rounded-full blur-[100px]" />
-                <div className="absolute bottom-[-10%] right-[-10%] w-[500px] h-[500px] bg-cyan-400/20 rounded-full blur-[100px]" />
-            </div>
+            <ModernHeader
+                title="Nurse Station"
+                subtitle="Triage & Vital Signs Monitoring"
+                onBack={() => navigate('/menu')}
+                className="mb-8"
+            />
 
-            <div className="relative min-h-screen p-6 flex flex-col md:flex-row gap-6 max-w-[1600px] mx-auto z-10">
+            <div className="relative min-h-screen flex flex-col md:flex-row gap-6 max-w-[1920px] mx-auto z-10 pb-20">
 
                 {/* LEFT: Queue List */}
                 <div className="w-full md:w-1/3 space-y-4">

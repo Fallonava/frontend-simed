@@ -8,6 +8,7 @@ import { io } from 'socket.io-client';
 import api from '../utils/axiosConfig';
 import PageWrapper from '../components/PageWrapper';
 import defaultAvatar from '../assets/doctor_avatar.png';
+import ModernHeader from '../components/ModernHeader';
 
 const SOCKET_URL = import.meta.env.VITE_SOCKET_URL || 'http://localhost:3000';
 const CHIME_URL = '/airport-chime.mp3';
@@ -470,30 +471,20 @@ const RegistrationRanap = () => {
         <PageWrapper title="Registration">
             <Toaster position="top-center" toastOptions={{ className: 'backdrop-blur-md bg-white/80 dark:bg-gray-800/80' }} />
 
-            <div className="flex flex-col lg:flex-row h-auto lg:h-[calc(100vh-100px)] gap-6 p-6 max-w-[1920px] mx-auto print:hidden">
+            {/* NEW HEADER */}
+            <ModernHeader
+                title="Inpatient Admission"
+                subtitle="Inpatient / Admission Management"
+                onBack={() => navigate('/menu')}
+            />
+
+            <div className="flex flex-col lg:flex-row h-auto lg:h-[calc(100vh-140px)] gap-6 p-6 max-w-[1920px] mx-auto print:hidden">
 
                 {/* LEFT PANEL: PATIENT IDENTIFICATION */}
                 <div className="w-full lg:w-[22%] flex flex-col gap-6">
                     <div className="flex flex-col gap-4">
-                        <div>
-                            <h1 className="text-2xl font-extrabold text-gray-900 dark:text-white tracking-tight">Check-In</h1>
-                            <p className="text-xs text-gray-500 font-medium">Identify patient to start</p>
-                        </div>
-
-                        <div className="flex gap-2">
-                            <button onClick={() => navigate('/menu')} className="flex-1 bg-gray-100 dark:bg-gray-800 hover:bg-white dark:hover:bg-gray-700 hover:shadow-md transition-all rounded-xl px-4 py-2.5 text-[11px] font-bold text-gray-500 dark:text-gray-400 border border-transparent hover:border-gray-200 dark:hover:border-gray-600 flex items-center justify-center gap-2 group">
-                                <span className="group-hover:-translate-x-0.5 transition-transform">←</span> Menu
-                            </button>
-                            <button
-                                onClick={() => setIsCounterOpen(!isCounterOpen)}
-                                className={`flex-1 transition-all rounded-xl px-4 py-2.5 text-[11px] font-bold border border-transparent flex items-center justify-center gap-2 group ${isCounterOpen ? 'bg-salm-blue text-white shadow-lg shadow-salm-blue/30' : 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/30'}`}
-                            >
-                                {isCounterOpen ? 'Close Counter' : 'Open Counter'} <div className={`w-2 h-2 rounded-full ${isCounterInitialized ? 'bg-green-400 animate-pulse' : 'bg-gray-300'}`}></div>
-                            </button>
-                        </div>
-
-                        <button onClick={handleReset} className="w-full bg-white dark:bg-gray-800 hover:bg-red-50 dark:hover:bg-red-900/20 hover:text-red-500 hover:shadow-sm border border-gray-200 dark:border-gray-700 transition-all rounded-xl px-4 py-2 text-[11px] font-bold text-gray-400 flex items-center justify-center gap-2">
-                            <RefreshCcw size={12} /> Reset Form
+                        <button onClick={handleReset} className="w-full bg-white dark:bg-gray-800 hover:bg-red-50 dark:hover:bg-red-900/20 hover:text-red-500 hover:shadow-sm border border-gray-200 dark:border-gray-700 transition-all rounded-xl px-4 py-3 text-xs font-bold text-gray-400 flex items-center justify-center gap-2">
+                            <RefreshCcw size={14} /> Reset Form
                         </button>
                     </div>
 

@@ -3,9 +3,13 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Microscope, CheckCircle, Clock } from 'lucide-react';
 import toast, { Toaster } from 'react-hot-toast';
 import api from '../utils/axiosConfig';
+
 import PageWrapper from '../components/PageWrapper';
+import ModernHeader from '../components/ModernHeader';
+import { useNavigate } from 'react-router-dom';
 
 const LabDashboard = () => {
+    const navigate = useNavigate();
     const [orders, setOrders] = useState([]);
     const [loading, setLoading] = useState(true);
 
@@ -26,16 +30,26 @@ const LabDashboard = () => {
         return () => clearInterval(interval);
     }, []);
 
-    const handleComplete = async (id) => {
+    const [selectedOrder, setSelectedOrder] = useState(null);
+    const [results, setResults] = useState({ hb: '', leukocytes: '', platelets: '', notes: '' });
+
+    const openModal = (order) => {
+        setSelectedOrder(order);
+        setResults({ hb: '', leukocytes: '', platelets: '', notes: '' });
+    };
+
+    const handleSubmit = async () => {
         try {
-            await api.put(`/service-orders/${id}/status`, {
-                status: 'COMPLETED',
-                result: 'Result uploaded/verified' // Placeholder
+            await api.put(`/results/${selectedOrder.id}/submit`, {
+                result_data: results,
+                notes: results.notes,
+                technician_name: 'Lab Staff'
             });
-            toast.success('Lab Order completed');
+            toast.success('Lab Result Submitted');
+            setSelectedOrder(null);
             fetchOrders();
         } catch (error) {
-            toast.error('Failed to update status');
+            toast.error('Failed to submit result');
         }
     };
 
@@ -67,12 +81,13 @@ const LabDashboard = () => {
             <div className="relative min-h-screen p-6 max-w-7xl mx-auto z-10">
 
                 {/* Header Section */}
-                <div className="mb-10">
-                    <h1 className="text-4xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-purple-600 to-pink-600 dark:from-purple-400 dark:to-pink-400 mb-2">
-                        Laboratorium
-                    </h1>
-                    <p className="text-gray-500 font-medium">Verify and process laboratory test requests.</p>
-                </div>
+                {/* Header Section */}
+                <ModernHeader
+                    title="Laboratorium"
+                    subtitle="Laboratory Unit / Test Verification"
+                    onBack={() => navigate('/menu')}
+                    className="mb-8"
+                />
 
                 {/* Orders Grid */}
                 <motion.div
@@ -133,16 +148,59 @@ const LabDashboard = () => {
                                     </div>
 
                                     <button
-                                        onClick={() => handleComplete(order.id)}
+                                        onClick={() => openModal(order)}
                                         className="w-full py-4 rounded-2xl font-bold text-white shadow-xl shadow-purple-500/20 active:scale-95 transition-all flex items-center justify-center gap-2 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500"
                                     >
-                                        <CheckCircle size={20} /> Mark Complete
+                                        <CheckCircle size={20} /> Enter Results
                                     </button>
                                 </motion.div>
                             ))
                         )}
                     </AnimatePresence>
                 </motion.div>
+
+                {/* Result Entry Modal */}
+                <AnimatePresence>
+                    {selectedOrder && (
+                        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+                            <motion.div
+                                initial={{ opacity: 0, scale: 0.95 }}
+                                animate={{ opacity: 1, scale: 1 }}
+                                exit={{ opacity: 0, scale: 0.95 }}
+                                className="bg-white dark:bg-gray-800 w-full max-w-lg rounded-3xl shadow-2xl p-6 border border-gray-100 dark:border-gray-700"
+                            >
+                                <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">Enter Lab Results</h3>
+                                <p className="text-gray-500 text-sm mb-6">Patient: {selectedOrder.medical_record.patient.name}</p>
+
+                                <div className="space-y-4">
+                                    <div className="grid grid-cols-3 gap-4">
+                                        <div>
+                                            <label className="text-xs font-bold text-gray-500">Hemoglobin</label>
+                                            <input type="number" step="0.1" value={results.hb} onChange={e => setResults({ ...results, hb: e.target.value })} className="w-full bg-gray-50 dark:bg-gray-700 p-2 rounded-xl mt-1 font-bold" placeholder="g/dL" />
+                                        </div>
+                                        <div>
+                                            <label className="text-xs font-bold text-gray-500">Leukocytes</label>
+                                            <input type="number" value={results.leukocytes} onChange={e => setResults({ ...results, leukocytes: e.target.value })} className="w-full bg-gray-50 dark:bg-gray-700 p-2 rounded-xl mt-1 font-bold" placeholder="/uL" />
+                                        </div>
+                                        <div>
+                                            <label className="text-xs font-bold text-gray-500">Platelets</label>
+                                            <input type="number" value={results.platelets} onChange={e => setResults({ ...results, platelets: e.target.value })} className="w-full bg-gray-50 dark:bg-gray-700 p-2 rounded-xl mt-1 font-bold" placeholder="/uL" />
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <label className="text-xs font-bold text-gray-500">Notes / Conclusion</label>
+                                        <textarea value={results.notes} onChange={e => setResults({ ...results, notes: e.target.value })} className="w-full bg-gray-50 dark:bg-gray-700 p-3 rounded-xl mt-1 text-sm h-24" placeholder="Normal findings..."></textarea>
+                                    </div>
+                                </div>
+
+                                <div className="flex gap-3 mt-8">
+                                    <button onClick={() => setSelectedOrder(null)} className="flex-1 py-3 text-gray-500 font-bold hover:bg-gray-50 rounded-xl">Cancel</button>
+                                    <button onClick={handleSubmit} className="flex-1 py-3 bg-purple-600 text-white font-bold rounded-xl hover:bg-purple-700 shadow-lg shadow-purple-200">Submit Results</button>
+                                </div>
+                            </motion.div>
+                        </div>
+                    )}
+                </AnimatePresence>
             </div>
         </PageWrapper>
     );

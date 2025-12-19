@@ -90,6 +90,7 @@ model Patient {
   // BPJS Data
   bpjs_card_no String? @unique
   is_bpjs      Boolean @default(false)
+  ihs_number   String? // SATUSEHAT ID
   
   created_at  DateTime @default(now())
   updated_at  DateTime @updatedAt
@@ -174,7 +175,16 @@ model MedicalRecord {
   chief_complaint String?  @db.Text
   icd10_code      String?
   icd10         ICD10?   @relation(fields: [icd10_code], references: [code])
+
+  // SATUSEHAT Integration
+  satusehat_id  String?  // Encounter ID (UUID)
+  casemix       Casemix?
   
+  // Smart Document Fields
+  rest_days     Int?     // For Surat Sakit
+  documents     MedicalDocument[]
+  
+
   created_at  DateTime @default(now())
   updated_at  DateTime @updatedAt // Fixed: Use @updatedAt here if desired, or manually manage
   prescriptions Prescription[]
@@ -212,6 +222,9 @@ model Medicine {
   unit      String   // strips, bottles, pcs
   price     Float    @default(0)
   expiry    DateTime?
+  
+  min_stock   Int      @default(100)
+  reorder_qty Int      @default(500)
   created_at DateTime @default(now())
   updated_at DateTime @updatedAt
   
@@ -246,6 +259,8 @@ model PrescriptionItem {
   quantity        Int
   dosage          String   // e.g. "3x1 after meal"
   notes           String?
+  
+  actual_price    Float?   // Snapshot of unit_cost from StockBatch
   
   medication_logs MedicationLog[]
 }
@@ -455,6 +470,44 @@ model Invoice {
   updated_at      DateTime @updatedAt
 }
 
+model MedicalDocument {
+  id              Int      @id @default(autoincrement())
+  type            String   // SAKIT, SEHAT, RUJUKAN
+  medical_record_id Int
+  medical_record  MedicalRecord @relation(fields: [medical_record_id], references: [id])
+  
+  generated_url   String?
+  verified_hash   String?
+  
+  created_at      DateTime @default(now())
+}
+
+model Casemix {
+  id              Int      @id @default(autoincrement())
+  medical_record_id Int    @unique
+  medical_record  MedicalRecord @relation(fields: [medical_record_id], references: [id])
+  
+  // Coding (ICD-10)
+  primary_icd10   String   // e.g A00.9
+  secondary_icd10s String? // JSON or comma separated e.g A00.1, B01.2
+  
+  // Procedures (ICD-9)
+  procedures      String?  // JSON or comma separated
+  
+  // Grouping Result (INA-CBG)
+  ina_cbg_code    String?  // e.g A-4-10-I
+  ina_cbg_desc    String?  // e.g Infeksi Bakteri
+  tariff          Float?   // Rp 2.500.000
+  
+  status          String   @default("PENDING") // PENDING, CODED, GROUPED, CLAIMED
+  
+  coder_name      String?  // User who did the coding
+  coded_at        DateTime?
+  
+  created_at      DateTime @default(now())
+  updated_at      DateTime @updatedAt
+}
+
 model InvoiceItem {
   id          Int      @id @default(autoincrement())
   invoice_id  Int
@@ -464,5 +517,107 @@ model InvoiceItem {
   amount      Float
   quantity    Int      @default(1)
   
+  cost_basis  Float?   // COGS Snapshot (Unit Cost * Quantity)
+  
   created_at  DateTime @default(now())
+}
+
+// === INVENTORY & LOGISTICS ===
+
+model Supplier {
+  id          Int      @id @default(autoincrement())
+  name        String
+  contact     String?
+  address     String?
+  email       String?
+  
+  purchases   PurchaseOrder[]
+  created_at  DateTime @default(now())
+}
+
+model InventoryLocation {
+  id          Int      @id @default(autoincrement())
+  name        String   // "Gudang Utama", "Apotek RJ", "IGD Depot"
+  type        String   // WAREHOUSE, DEPOT, CART
+  
+  stocks      StockBatch[]
+  transfers_out StockTransfer[] @relation("Origin")
+  transfers_in  StockTransfer[] @relation("Destination")
+}
+
+model PurchaseOrder {
+  id          Int      @id @default(autoincrement())
+  supplier_id Int
+  supplier    Supplier @relation(fields: [supplier_id], references: [id])
+  
+  po_number   String   @unique // PO-2024-001
+  status      String   @default("DRAFT") // DRAFT, ORDERED, RECEIVED, CANCELLED
+  total_cost  Float    @default(0)
+  
+  items       PurchaseOrderItem[]
+  received_at DateTime?
+  
+  created_at  DateTime @default(now())
+  updated_at  DateTime @updatedAt
+}
+
+model PurchaseOrderItem {
+  id          Int      @id @default(autoincrement())
+  po_id       Int
+  po          PurchaseOrder @relation(fields: [po_id], references: [id])
+  
+  medicine_id Int?     // If linked to medicine catalog
+  item_name   String   // Or generic item name
+  
+  quantity    Int
+  unit_cost   Float
+  
+  received_qty Int     @default(0)
+}
+
+model StockBatch {
+  id          Int      @id @default(autoincrement())
+  location_id Int
+  location    InventoryLocation @relation(fields: [location_id], references: [id])
+  
+  item_name   String   // "Paracetamol 500mg"
+  sku         String?  // Barcode
+  
+  batch_no    String   // B-123
+  expiry_date DateTime
+  
+  quantity    Int      @default(0)
+  unit_cost   Float?   // COGS tracking
+  
+  created_at  DateTime @default(now())
+  updated_at  DateTime @updatedAt
+}
+
+model StockTransfer {
+  id          Int      @id @default(autoincrement())
+  from_loc_id Int
+  from_loc    InventoryLocation @relation("Origin", fields: [from_loc_id], references: [id])
+  
+  to_loc_id   Int
+  to_loc      InventoryLocation @relation("Destination", fields: [to_loc_id], references: [id])
+  
+  status      String   @default("PENDING") // PENDING, APPROVED, COMPLETED
+  
+  requested_by String? // User ID or Name
+  approved_by  String?
+  
+  items       StockTransferItem[]
+  
+  created_at  DateTime @default(now())
+  updated_at  DateTime @updatedAt
+}
+
+model StockTransferItem {
+  id          Int      @id @default(autoincrement())
+  transfer_id Int
+  transfer    StockTransfer @relation(fields: [transfer_id], references: [id])
+  
+  stock_batch_id Int?  // Optional: if specific batch is picked
+  item_name   String
+  quantity    Int
 }

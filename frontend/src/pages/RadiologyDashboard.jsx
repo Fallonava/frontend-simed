@@ -3,9 +3,13 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Activity, CheckCircle, Clock } from 'lucide-react';
 import toast, { Toaster } from 'react-hot-toast';
 import api from '../utils/axiosConfig';
+
 import PageWrapper from '../components/PageWrapper';
+import ModernHeader from '../components/ModernHeader';
+import { useNavigate } from 'react-router-dom';
 
 const RadiologyDashboard = () => {
+    const navigate = useNavigate();
     const [orders, setOrders] = useState([]);
     const [loading, setLoading] = useState(true);
 
@@ -26,16 +30,26 @@ const RadiologyDashboard = () => {
         return () => clearInterval(interval);
     }, []);
 
-    const handleComplete = async (id) => {
+    const [selectedOrder, setSelectedOrder] = useState(null);
+    const [resultData, setResultData] = useState({ imageUrl: '', report: '' });
+
+    const openModal = (order) => {
+        setSelectedOrder(order);
+        setResultData({ imageUrl: 'https://via.placeholder.com/600x400?text=X-RAY+SCAN', report: '' });
+    };
+
+    const handleSubmit = async () => {
         try {
-            await api.put(`/service-orders/${id}/status`, {
-                status: 'COMPLETED',
-                result: 'Result uploaded/verified' // Placeholder
+            await api.put(`/results/${selectedOrder.id}/submit`, {
+                result_data: resultData.imageUrl, // For now just URL string
+                notes: resultData.report,
+                technician_name: 'Rad Tech'
             });
-            toast.success('Radiology Order completed');
+            toast.success('Radiology Result Submitted');
+            setSelectedOrder(null);
             fetchOrders();
         } catch (error) {
-            toast.error('Failed to update status');
+            toast.error('Failed to submit result');
         }
     };
 
@@ -67,12 +81,13 @@ const RadiologyDashboard = () => {
             <div className="relative min-h-screen p-6 max-w-7xl mx-auto z-10">
 
                 {/* Header Section */}
-                <div className="mb-10">
-                    <h1 className="text-4xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 to-cyan-600 dark:from-indigo-400 dark:to-cyan-400 mb-2">
-                        Radiologi
-                    </h1>
-                    <p className="text-gray-500 font-medium">Verify and process radiology imaging requests.</p>
-                </div>
+                {/* Header Section */}
+                <ModernHeader
+                    title="Radiologi"
+                    subtitle="Radiology Unit / Image Verification"
+                    onBack={() => navigate('/menu')}
+                    className="mb-8"
+                />
 
                 {/* Orders Grid */}
                 <motion.div
@@ -133,16 +148,53 @@ const RadiologyDashboard = () => {
                                     </div>
 
                                     <button
-                                        onClick={() => handleComplete(order.id)}
+                                        onClick={() => openModal(order)}
                                         className="w-full py-4 rounded-2xl font-bold text-white shadow-xl shadow-indigo-500/20 active:scale-95 transition-all flex items-center justify-center gap-2 bg-gradient-to-r from-indigo-600 to-cyan-600 hover:from-indigo-500 hover:to-cyan-500"
                                     >
-                                        <CheckCircle size={20} /> Mark Complete
+                                        <CheckCircle size={20} /> Upload Result
                                     </button>
                                 </motion.div>
                             ))
                         )}
                     </AnimatePresence>
                 </motion.div>
+
+                {/* Result Entry Modal */}
+                <AnimatePresence>
+                    {selectedOrder && (
+                        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+                            <motion.div
+                                initial={{ opacity: 0, scale: 0.95 }}
+                                animate={{ opacity: 1, scale: 1 }}
+                                exit={{ opacity: 0, scale: 0.95 }}
+                                className="bg-white dark:bg-gray-800 w-full max-w-lg rounded-3xl shadow-2xl p-6 border border-gray-100 dark:border-gray-700"
+                            >
+                                <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">Upload PACS/Image</h3>
+                                <p className="text-gray-500 text-sm mb-6">Patient: {selectedOrder.medical_record.patient.name}</p>
+
+                                <div className="space-y-4">
+                                    <div className="border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-2xl p-8 flex flex-col items-center justify-center text-center hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors cursor-pointer">
+                                        <div className="w-12 h-12 bg-indigo-100 text-indigo-500 rounded-full flex items-center justify-center mb-3">
+                                            <Activity size={24} />
+                                        </div>
+                                        <p className="font-bold text-gray-700 dark:text-gray-300">Click to Upload DICOM/JPG</p>
+                                        <p className="text-xs text-gray-400 mt-1">Simulated Upload</p>
+                                    </div>
+
+                                    <div>
+                                        <label className="text-xs font-bold text-gray-500">Radiologist Report</label>
+                                        <textarea value={resultData.report} onChange={e => setResultData({ ...resultData, report: e.target.value })} className="w-full bg-gray-50 dark:bg-gray-700 p-3 rounded-xl mt-1 text-sm h-32" placeholder="Findings: No fracture seen..."></textarea>
+                                    </div>
+                                </div>
+
+                                <div className="flex gap-3 mt-8">
+                                    <button onClick={() => setSelectedOrder(null)} className="flex-1 py-3 text-gray-500 font-bold hover:bg-gray-50 rounded-xl">Cancel</button>
+                                    <button onClick={handleSubmit} className="flex-1 py-3 bg-indigo-600 text-white font-bold rounded-xl hover:bg-indigo-700 shadow-lg shadow-indigo-200">Submit Report</button>
+                                </div>
+                            </motion.div>
+                        </div>
+                    )}
+                </AnimatePresence>
             </div>
         </PageWrapper>
     );

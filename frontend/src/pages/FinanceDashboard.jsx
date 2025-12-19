@@ -6,8 +6,9 @@ import toast, { Toaster } from 'react-hot-toast';
 import PageLoader from '../components/PageLoader';
 
 const FinanceDashboard = () => {
-    const [activeTab, setActiveTab] = useState('cashier'); // cashier, report
+    const [activeTab, setActiveTab] = useState('cashier'); // cashier, report, billables
     const [unpaid, setUnpaid] = useState([]);
+    const [billables, setBillables] = useState([]); // NEW: List of finished visits needing invoice
     const [analytics, setAnalytics] = useState([]);
     const [report, setReport] = useState(null);
     const [selectedInvoice, setSelectedInvoice] = useState(null);
@@ -16,7 +17,7 @@ const FinanceDashboard = () => {
 
     useEffect(() => {
         fetchData();
-        const interval = setInterval(fetchData, 15000); // Polling for new invoices
+        const interval = setInterval(fetchData, 15000);
         return () => clearInterval(interval);
     }, [activeTab]);
 
@@ -25,6 +26,9 @@ const FinanceDashboard = () => {
             if (activeTab === 'cashier') {
                 const res = await api.get('/finance/unpaid');
                 if (res.data.success) setUnpaid(res.data.data);
+            } else if (activeTab === 'billables') { // NEW
+                const res = await api.get('/finance/billables');
+                if (res.data.success) setBillables(res.data.data);
             } else if (activeTab === 'report') {
                 const res = await api.get('/finance/report');
                 if (res.data.success) setReport(res.data);
@@ -36,6 +40,20 @@ const FinanceDashboard = () => {
             console.error('Fetch error', error);
         } finally {
             setLoading(false);
+        }
+    };
+
+    const handleGenerateInvoice = async (recordId) => {
+        setProcessing(true);
+        const toastId = toast.loading('Calculating Bill & Generating Invoice...');
+        try {
+            await api.post('/finance/generate', { medicalRecordId: recordId });
+            toast.success('Invoice Generated Successfully!', { id: toastId });
+            fetchData(); // Refresh list
+        } catch (error) {
+            toast.error('Failed to generate invoice', { id: toastId });
+        } finally {
+            setProcessing(false);
         }
     };
 
@@ -55,7 +73,6 @@ const FinanceDashboard = () => {
     };
 
     const handleWhatsApp = (txn) => {
-        // Mock Phone Number if missing
         const phone = txn.patient.phone || '6281234567890';
         const message = `Halo ${txn.patient.name}, Terima kasih telah berobat di RS SIMED. Total pembayaran Anda: Rp ${txn.total_amount.toLocaleString()}. Simpan struk ini sebagai bukti pembayaran yang sah.`;
         const url = `https://wa.me/${phone}?text=${encodeURIComponent(message)}`;
@@ -79,10 +96,16 @@ const FinanceDashboard = () => {
 
                 <div className="flex bg-white dark:bg-gray-800 rounded-xl p-1 shadow-sm border border-gray-200 dark:border-gray-700">
                     <button
+                        onClick={() => setActiveTab('billables')}
+                        className={`px-6 py-2 rounded-lg font-bold text-sm transition-all ${activeTab === 'billables' ? 'bg-pink-100 text-pink-700' : 'text-gray-500 hover:text-gray-700'}`}
+                    >
+                        Need Billing ({billables?.length || 0})
+                    </button>
+                    <button
                         onClick={() => setActiveTab('cashier')}
                         className={`px-6 py-2 rounded-lg font-bold text-sm transition-all ${activeTab === 'cashier' ? 'bg-pink-100 text-pink-700' : 'text-gray-500 hover:text-gray-700'}`}
                     >
-                        Cashier
+                        Cashier / Unpaid
                     </button>
                     <button
                         onClick={() => setActiveTab('report')}
@@ -98,6 +121,63 @@ const FinanceDashboard = () => {
                     </button>
                 </div>
             </header>
+
+            {activeTab === 'billables' && (
+                <div className="space-y-4">
+                    <h2 className="font-bold text-lg mb-4 flex items-center gap-2">
+                        <Search size={18} /> Ready to Bill ({billables.length})
+                    </h2>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        {billables.length === 0 ? (
+                            <div className="col-span-full text-center py-20 text-gray-400 bg-white dark:bg-gray-800 rounded-3xl border border-dashed">
+                                No finished visits pending billing.
+                            </div>
+                        ) : (
+                            billables.map(record => (
+                                <motion.div
+                                    key={record.id}
+                                    initial={{ opacity: 0, scale: 0.95 }}
+                                    animate={{ opacity: 1, scale: 1 }}
+                                    className="bg-white dark:bg-gray-800 p-6 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm hover:shadow-md transition-all"
+                                >
+                                    <div className="flex justify-between items-start mb-4">
+                                        <div>
+                                            <div className="font-bold text-xl">{record.patient.name}</div>
+                                            <div className="text-xs text-gray-500">{new Date(record.created_at).toLocaleString()}</div>
+                                        </div>
+                                        <div className="bg-green-100 text-green-700 px-2 py-1 rounded text-xs font-bold uppercase">
+                                            Finished
+                                        </div>
+                                    </div>
+
+                                    <div className="space-y-2 mb-6">
+                                        <div className="text-sm flex justify-between">
+                                            <span className="text-gray-500">Doctor</span>
+                                            <span className="font-medium">{record.doctor.name}</span>
+                                        </div>
+                                        <div className="text-sm flex justify-between">
+                                            <span className="text-gray-500">Meds Prescribed</span>
+                                            <span className="font-medium">{record.prescriptions?.length > 0 ? 'Yes' : 'No'}</span>
+                                        </div>
+                                        <div className="text-sm flex justify-between">
+                                            <span className="text-gray-500">Lab/Rad Orders</span>
+                                            <span className="font-medium">{record.service_orders?.length > 0 ? 'Yes' : 'None'}</span>
+                                        </div>
+                                    </div>
+
+                                    <button
+                                        onClick={() => handleGenerateInvoice(record.id)}
+                                        disabled={processing}
+                                        className="w-full bg-pink-500 hover:bg-pink-600 text-white font-bold py-3 rounded-xl transition-all active:scale-95 flex items-center justify-center gap-2"
+                                    >
+                                        <DollarSign size={18} /> Generate Invoice
+                                    </button>
+                                </motion.div>
+                            ))
+                        )}
+                    </div>
+                </div>
+            )}
 
             {activeTab === 'cashier' && (
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">

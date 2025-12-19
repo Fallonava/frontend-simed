@@ -104,3 +104,12 @@ Unique constraint failed on the fields: (`nik`)
 [2025-12-10T11:06:15.090Z] Request Body: {"name":"fakt","nik":"3303","gender":"L","birth_date":"2025-12-05","address":"pbg","phone":"0"}
 [2025-12-10T13:37:10.119Z] Request Body: {"name":"fakt","nik":"09","gender":"L","birth_date":"2025-12-03","address":"-","phone":"-"}
 [2025-12-18T13:59:51.827Z] Request Body: {"name":"fakt","nik":"1000000000000001","gender":"L","birth_date":"2025-12-11","address":"678","phone":"56787","bpjs_card_no":"","is_bpjs":false}
+[2025-12-19T09:43:26.460Z] Request Body: {"name":"Test Patient 1766137406455","nik":"1234567890406456","birth_date":"1990-01-01","gender":"L","phone":"08123456789","address":"Test Address"}
+[2025-12-19T09:43:48.510Z] Request Body: {"name":"Test Patient 1766137428507","nik":"1234567890428507","birth_date":"1990-01-01","gender":"L","phone":"08123456789","address":"Test Address"}
+[2025-12-19T09:45:29.666Z] Request Body: {"name":"Test Patient 1766137529662","nik":"1234567890529662","birth_date":"1990-01-01","gender":"L","phone":"08123456789","address":"Test Address"}
+[2025-12-19T09:46:06.959Z] Request Body: {"name":"Test Patient 1766137566955","nik":"1234567890566955","birth_date":"1990-01-01","gender":"L","phone":"08123456789","address":"Test Address"}
+[2025-12-19T09:46:33.788Z] Request Body: {"name":"Test Patient 1766137593784","nik":"1234567890593784","birth_date":"1990-01-01","gender":"L","phone":"08123456789","address":"Test Address"}
+[2025-12-19T09:51:02.328Z] Request Body: {"nik":"TEST1766137862325","name":"Pharmacy Test Patient","birth_date":"1990-01-01","gender":"L","no_rm":"RM-1766137862325"}
+[2025-12-19T09:51:19.271Z] Request Body: {"nik":"TEST1766137879268","name":"Pharmacy Test Patient","birth_date":"1990-01-01","gender":"L","no_rm":"RM-1766137879268"}
+[2025-12-19T09:54:28.906Z] Request Body: {"nik":"BILL1766138068905","name":"Billing Test Patient","birth_date":"1985-05-05","gender":"P","no_rm":"RM-BILL-1766138068905"}
+[2025-12-19T09:55:32.155Z] Request Body: {"nik":"BILL1766138132152","name":"Billing Test Patient","birth_date":"1985-05-05","gender":"P","no_rm":"RM-BILL-1766138132152"}

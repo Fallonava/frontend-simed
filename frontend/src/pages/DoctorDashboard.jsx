@@ -1,12 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Link } from 'react-router-dom';
-import { Users, Clock, CheckCircle, Activity, FileText, Save, History, Search, ChevronRight, User, Home, ArrowLeft, Trash2, Plus, X } from 'lucide-react';
+import { Users, Clock, CheckCircle, Activity, FileText, Save, History, Search, ChevronRight, User, Home, ArrowLeft, Trash2, Plus, X, Printer } from 'lucide-react';
 import toast, { Toaster } from 'react-hot-toast';
+
+import { useNavigate } from 'react-router-dom';
+import ModernHeader from '../components/ModernHeader';
 import api from '../utils/axiosConfig';
 import PageWrapper from '../components/PageWrapper';
 
 const DoctorDashboard = () => {
+    const navigate = useNavigate();
     const [doctors, setDoctors] = useState([]);
     const [selectedDoctor, setSelectedDoctor] = useState(null);
     const [queues, setQueues] = useState([]);
@@ -39,6 +43,36 @@ const DoctorDashboard = () => {
 
     // List State
     const [icd10List, setIcd10List] = useState([]);
+
+    // Document State
+    const [showDocModal, setShowDocModal] = useState(false);
+    const [selectedDocRecord, setSelectedDocRecord] = useState(null); // Which record to print for
+
+    const handleGenerateDocument = async (type, data = {}) => {
+        if (!selectedDocRecord) return;
+        const toastId = toast.loading('Generating Document...');
+        try {
+            const response = await api.post('/documents/generate', {
+                type,
+                medical_record_id: selectedDocRecord.id,
+                data: { ...data, rest_days: 2 } // Mock data for now
+            }, { responseType: 'blob' });
+
+            // Download PDF
+            const url = window.URL.createObjectURL(new Blob([response.data]));
+            const link = document.createElement('a');
+            link.href = url;
+            link.setAttribute('download', `${type}_${selectedDocRecord.id}.pdf`);
+            document.body.appendChild(link);
+            link.click();
+
+            toast.success('Document Generated!', { id: toastId });
+            setShowDocModal(false);
+        } catch (error) {
+            console.error(error);
+            toast.error('Failed to generate document', { id: toastId });
+        }
+    };
 
     // Fetch Doctors for the "View As" selector
     useEffect(() => {
@@ -278,15 +312,17 @@ const DoctorDashboard = () => {
         <PageWrapper title="Doctor Dashboard">
             <Toaster position="top-center" toastOptions={{ className: 'backdrop-blur-md bg-white/80 dark:bg-gray-800/80' }} />
 
-            <div className="flex flex-col lg:flex-row h-auto lg:h-[calc(100vh-100px)] gap-6 p-6 max-w-[1600px] mx-auto">
+            <ModernHeader
+                title="Doctor Workstation"
+                subtitle="EMR & Clinical Order Entry"
+                onBack={() => navigate('/menu')}
+                className="mb-6"
+            />
+
+            <div className="flex flex-col lg:flex-row h-auto lg:h-[calc(100vh-140px)] gap-6 p-6 max-w-[1920px] mx-auto">
 
                 {/* LEFT PANEL: QUEUE LIST */}
                 <div className="w-full lg:w-[30%] flex flex-col gap-6">
-                    {/* Navigation Back */}
-                    <Link to="/" className="flex items-center gap-2 text-gray-500 hover:text-blue-600 transition-colors font-medium px-2">
-                        <ArrowLeft size={20} />
-                        Back to Menu
-                    </Link>
 
                     {/* Doctor Selector */}
                     <div className="bg-white/60 dark:bg-gray-800/60 backdrop-blur-xl p-4 rounded-[24px] shadow-lg border border-white/20">
@@ -641,6 +677,42 @@ const DoctorDashboard = () => {
                                                         {prescriptionItems.length === 0 && <div className="text-xs text-gray-400 italic text-center py-2">No medicines selected</div>}
                                                     </div>
                                                 </div>
+
+                                                {/* SERVICE ORDER BUTTONS */}
+                                                <div className="grid grid-cols-2 gap-4">
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => setShowOrderModal('LAB')}
+                                                        className="p-4 rounded-xl border-2 border-dashed border-blue-200 dark:border-blue-800 text-blue-500 font-bold hover:bg-blue-50 dark:hover:bg-blue-900/20 transition flex items-center justify-center gap-2"
+                                                    >
+                                                        <Activity size={20} /> Order Lab
+                                                    </button>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => setShowOrderModal('RAD')}
+                                                        className="p-4 rounded-xl border-2 border-dashed border-purple-200 dark:border-purple-800 text-purple-500 font-bold hover:bg-purple-50 dark:hover:bg-purple-900/20 transition flex items-center justify-center gap-2"
+                                                    >
+                                                        <Activity size={20} /> Order Radiology
+                                                    </button>
+                                                </div>
+
+                                                {/* Service Orders List */}
+                                                {serviceOrders.length > 0 && (
+                                                    <div className="space-y-2 mt-4">
+                                                        <h4 className="font-bold text-sm text-gray-500 uppercase">Pending Orders</h4>
+                                                        {serviceOrders.map((order, idx) => (
+                                                            <div key={idx} className="flex justify-between items-center bg-gray-50 dark:bg-gray-700/30 p-3 rounded-xl border border-gray-100 dark:border-gray-700">
+                                                                <div className="flex items-center gap-3">
+                                                                    <div className={`w-8 h-8 rounded-lg flex items-center justify-center font-bold text-xs ${order.type === 'LAB' ? 'bg-blue-100 text-blue-600' : 'bg-purple-100 text-purple-600'}`}>
+                                                                        {order.type}
+                                                                    </div>
+                                                                    <div className="text-sm font-medium dark:text-gray-300">{order.notes}</div>
+                                                                </div>
+                                                                <button type="button" onClick={() => removeOrder(idx)} className="text-red-400 hover:text-red-500"><X size={16} /></button>
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                )}
                                             </div>
                                         </div>
 
@@ -669,6 +741,12 @@ const DoctorDashboard = () => {
                                                                 Dr. {record.doctor?.name}
                                                             </div>
                                                         </div>
+                                                        <button
+                                                            onClick={() => { setSelectedDocRecord(record); setShowDocModal(true); }}
+                                                            className="flex items-center gap-2 text-xs font-bold text-blue-600 bg-blue-50 hover:bg-blue-100 px-3 py-1.5 rounded-lg transition"
+                                                        >
+                                                            <Printer size={14} /> Cetak Surat
+                                                        </button>
                                                     </div>
                                                     <div className="grid grid-cols-2 gap-4 text-sm">
                                                         <div className="bg-blue-50/50 dark:bg-gray-700/30 p-4 rounded-xl">
@@ -698,6 +776,104 @@ const DoctorDashboard = () => {
                     )}
                 </div>
             </div>
+            {/* Service Order Modal */}
+            <AnimatePresence>
+                {showOrderModal && (
+                    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+                        <motion.div
+                            initial={{ scale: 0.9, opacity: 0 }}
+                            animate={{ scale: 1, opacity: 1 }}
+                            exit={{ scale: 0.9, opacity: 0 }}
+                            className="bg-white dark:bg-gray-800 w-full max-w-md rounded-[32px] p-6 shadow-2xl border border-white/20"
+                        >
+                            <h3 className="font-bold text-xl mb-4 dark:text-white">Order {showOrderModal === 'LAB' ? 'Laboratorium' : 'Radiology'}</h3>
+                            <div className="space-y-4">
+                                <div>
+                                    <label className="text-xs font-bold text-gray-500 uppercase">Notes (Jenis Pemeriksaan)</label>
+                                    <textarea
+                                        autoFocus
+                                        className="w-full h-32 p-4 rounded-xl bg-gray-50 dark:bg-gray-700 border-none focus:ring-2 focus:ring-blue-500"
+                                        placeholder={`Contoh: ${showOrderModal === 'LAB' ? 'Darah Lengkap, Urin Rutin' : 'Thorax PA, USG Abdomen'}`}
+                                        id="orderNotes"
+                                    />
+                                </div>
+                                <div className="flex gap-3 pt-2">
+                                    <button onClick={() => setShowOrderModal(null)} className="flex-1 py-3 bg-gray-100 hover:bg-gray-200 rounded-xl font-bold text-gray-500">Cancel</button>
+                                    <button
+                                        onClick={() => {
+                                            const notes = document.getElementById('orderNotes').value;
+                                            if (!notes) return toast.error('Isi jenis pemeriksaan');
+                                            handleAddOrder(showOrderModal, notes);
+                                        }}
+                                        className="flex-1 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold shadow-lg shadow-blue-500/30"
+                                    >
+                                        Submit Order
+                                    </button>
+                                </div>
+                            </div>
+                        </motion.div>
+                    </div>
+                )}
+            </AnimatePresence>
+
+            {/* Smart Document Modal */}
+            <AnimatePresence>
+                {showDocModal && (
+                    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+                        <motion.div
+                            initial={{ scale: 0.9, opacity: 0 }}
+                            animate={{ scale: 1, opacity: 1 }}
+                            exit={{ scale: 0.9, opacity: 0 }}
+                            className="bg-white dark:bg-gray-800 w-full max-w-lg rounded-[32px] p-6 shadow-2xl border border-white/20"
+                        >
+                            <div className="flex justify-between items-center mb-6">
+                                <div>
+                                    <h3 className="font-bold text-2xl dark:text-white">Cetak Dokumen</h3>
+                                    <p className="text-sm text-gray-500">Pilih jenis surat medis yang ingin dicetak</p>
+                                </div>
+                                <button onClick={() => setShowDocModal(false)} className="bg-gray-100 dark:bg-gray-700 p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-600 transition">
+                                    <X size={20} className="text-gray-500 dark:text-gray-300" />
+                                </button>
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-4">
+                                <button
+                                    onClick={() => handleGenerateDocument('SAKIT')}
+                                    className="p-4 rounded-2xl bg-orange-50 hover:bg-orange-100 border-2 border-orange-100 hover:border-orange-200 transition text-left group"
+                                >
+                                    <div className="bg-orange-200 w-10 h-10 rounded-xl flex items-center justify-center mb-3 group-hover:scale-110 transition">
+                                        <Activity size={20} className="text-orange-600" />
+                                    </div>
+                                    <div className="font-bold text-gray-800">Surat Sakit</div>
+                                    <div className="text-xs text-gray-500 mt-1">Auto-fill dari Diagnosa</div>
+                                </button>
+
+                                <button
+                                    onClick={() => handleGenerateDocument('SEHAT')}
+                                    className="p-4 rounded-2xl bg-green-50 hover:bg-green-100 border-2 border-green-100 hover:border-green-200 transition text-left group"
+                                >
+                                    <div className="bg-green-200 w-10 h-10 rounded-xl flex items-center justify-center mb-3 group-hover:scale-110 transition">
+                                        <CheckCircle size={20} className="text-green-600" />
+                                    </div>
+                                    <div className="font-bold text-gray-800">Surat Sehat</div>
+                                    <div className="text-xs text-gray-500 mt-1">Sesuai hasil TTV</div>
+                                </button>
+
+                                <button
+                                    onClick={() => handleGenerateDocument('RUJUKAN')}
+                                    className="p-4 rounded-2xl bg-blue-50 hover:bg-blue-100 border-2 border-blue-100 hover:border-blue-200 transition text-left group"
+                                >
+                                    <div className="bg-blue-200 w-10 h-10 rounded-xl flex items-center justify-center mb-3 group-hover:scale-110 transition">
+                                        <FileText size={20} className="text-blue-600" />
+                                    </div>
+                                    <div className="font-bold text-gray-800">Surat Rujukan</div>
+                                    <div className="text-xs text-gray-500 mt-1">Estimasi & Alasan Rujuk</div>
+                                </button>
+                            </div>
+                        </motion.div>
+                    </div>
+                )}
+            </AnimatePresence>
         </PageWrapper>
     );
 };

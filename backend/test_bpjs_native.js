@@ -29,7 +29,7 @@ async function testBPJS() {
                 'Content-Type': 'application/json',
                 'Authorization': `Bearer ${token}`
             },
-            body: JSON.stringify({ nik: '1234567890123456' })
+            body: JSON.stringify({ nik: '1000000000000001' })
         });
 
         console.log('Response Status:', bpjsRes.status);
@@ -37,7 +37,33 @@ async function testBPJS() {
         console.log('Response Data:', JSON.stringify(bpjsData, null, 2));
 
         if (bpjsData.status === 'OK' && bpjsData.data.statusPeserta.keterangan === 'AKTIF') {
-            console.log('✅ VERIFICATION PASSED: BPJS Mock is working correctly.');
+            console.log('✅ VERIFICATION PASSED: BPJS Check working.');
+
+            // 3. Test Create SEP (Mock)
+            console.log('Testing Create SEP...');
+            const sepRes = await fetch(`${BASE_URL}/bpjs/sep/insert`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({
+                    noKartu: '000123456001',
+                    poli: 'INT',
+                    rujukan: '1234567',
+                    diagnosa: 'A00.1'
+                })
+            });
+
+            const sepData = await sepRes.json();
+            console.log('SEP Response:', JSON.stringify(sepData, null, 2));
+
+            if (sepData.status === 'OK' && sepData.data.noSep) {
+                console.log('✅ VERIFICATION PASSED: SEP Created successfully.');
+            } else {
+                console.error('❌ SE P FAILED');
+            }
+
         } else {
             console.error('❌ VERIFICATION FAILED: Unexpected response.');
         }

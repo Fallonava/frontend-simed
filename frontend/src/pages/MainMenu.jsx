@@ -1,194 +1,250 @@
 import React from 'react';
+import ModernHeader from '../components/ModernHeader';
 import { useNavigate } from 'react-router-dom';
 import useAuthStore from '../store/useAuthStore';
 import {
     LayoutDashboard, Users, Database, Calendar, Activity, FileText, Pill,
     Receipt, Monitor, ClipboardPlus, Microscope, Sparkles, LogOut, Bed,
-    Bell, Utensils, Briefcase, CalendarOff, Siren
+    Bell, Utensils, Briefcase, CalendarOff, Siren, Archive, Package, Printer, Box
 } from 'lucide-react';
 import ThemeToggle from '../components/ThemeToggle';
 
 const MainMenu = () => {
-    const { user, logout } = useAuthStore();
+    const { user } = useAuthStore();
     const navigate = useNavigate();
-
-    const handleLogout = () => {
-        logout();
-        navigate('/login');
-    };
 
     // Organized by Categories
     const menuGroups = [
         {
-            category: "Front Office & Registration",
+            category: "Front Office & Admission",
             items: [
                 {
-                    title: 'Pendaftaran Rawat Jalan',
-                    description: 'Outpatient Registration',
-                    icon: <ClipboardPlus size={32} />, // Changed icon key import might be needed if not present
+                    title: 'Admisi Rawat Jalan',
+                    description: 'Outpatient Admission',
+                    icon: <ClipboardPlus size={32} />,
                     path: '/registration',
                     roles: ['ADMIN', 'STAFF'],
-                    color: 'bg-blue-500'
+                    color: 'bg-blue-600'
                 },
                 {
-                    title: 'Pendaftaran IGD',
-                    description: 'Emergency Unit',
+                    title: 'Instalasi Gawat Darurat',
+                    description: 'Emergency Department',
                     icon: <Siren size={32} />,
                     path: '/registration/igd',
                     roles: ['ADMIN', 'STAFF'],
-                    color: 'bg-red-500'
+                    color: 'bg-red-600'
                 },
                 {
-                    title: 'Pendaftaran Rawat Inap',
+                    title: 'Admisi Rawat Inap',
                     description: 'Inpatient Admission',
                     icon: <Bed size={32} />,
                     path: '/registration/ranap',
                     roles: ['ADMIN', 'STAFF'],
-                    color: 'bg-orange-500'
+                    color: 'bg-orange-600'
                 },
                 {
-                    title: 'Kiosk Antrian',
-                    description: 'Self Service Ticket',
+                    title: 'Anjungan Mandiri',
+                    description: 'Kiosk System',
                     icon: <Monitor size={32} />,
                     path: '/kiosk',
                     roles: ['ADMIN', 'STAFF'],
-                    color: 'bg-cyan-500'
+                    color: 'bg-cyan-600'
                 },
                 {
-                    title: 'Public Display',
-                    description: 'TV Queue Monitor',
+                    title: 'Display Antrian',
+                    description: 'Public Queue Display',
                     icon: <Monitor size={32} />,
                     path: '/counter',
                     roles: ['ADMIN', 'STAFF'],
-                    color: 'bg-indigo-500',
+                    color: 'bg-indigo-600',
+                    external: true
+                },
+                {
+                    title: 'Info Jadwal Dokter',
+                    description: 'Physician Schedule',
+                    icon: <Calendar size={32} />,
+                    path: '/public/schedule',
+                    roles: ['ADMIN', 'STAFF'],
+                    color: 'bg-purple-600',
                     external: true
                 }
             ]
         },
         {
-            category: "Clinical Care (Medis)",
+            category: "Medical Records (Rekam Medis)",
+            items: [
+                {
+                    title: 'Manajemen Rekam Medis',
+                    description: 'Coding & Archiving',
+                    icon: <Archive size={32} />,
+                    path: '/medical-records',
+                    roles: ['ADMIN', 'STAFF'],
+                    color: 'bg-emerald-700'
+                },
+                {
+                    title: 'Sentra Dokumen',
+                    description: 'Medical Documents Center',
+                    icon: <Printer size={32} />,
+                    path: '/documents/center',
+                    roles: ['ADMIN', 'STAFF'],
+                    color: 'bg-cyan-700'
+                }
+            ]
+        },
+        {
+            category: "Clinical Care Services",
             items: [
                 {
                     title: 'Nurse Station',
-                    description: 'Triage & Vitals',
+                    description: 'Triage & Vital Signs',
                     icon: <ClipboardPlus size={32} />,
                     path: '/nurse',
                     roles: ['ADMIN', 'STAFF'],
-                    color: 'bg-pink-500'
+                    color: 'bg-pink-600'
                 },
                 {
-                    title: 'Doctor Desk',
-                    description: 'Medical Records',
+                    title: 'Doctor Workstation',
+                    description: 'EMR & CPOE',
                     icon: <Activity size={32} />,
                     path: '/doctor/dashboard',
                     roles: ['ADMIN', 'STAFF'],
                     color: 'bg-emerald-600'
                 },
                 {
-                    title: 'Rawat Inap',
-                    description: 'Admission & Bed Mgmt',
+                    title: 'Bangsal Rawat Inap',
+                    description: 'Ward Management',
                     icon: <Bed size={32} />,
                     path: '/admission',
                     roles: ['ADMIN', 'STAFF'],
-                    color: 'bg-orange-500'
+                    color: 'bg-orange-600'
                 },
                 {
-                    title: 'Nurse Monitor',
-                    description: 'Inpatient Alerts',
+                    title: 'Patient Monitoring',
+                    description: 'Inpatient Clinical Alerts',
                     icon: <Bell size={32} />,
                     path: '/nurse/inpatient',
                     roles: ['ADMIN', 'STAFF'],
-                    color: 'bg-red-600'
+                    color: 'bg-red-700'
                 }
             ]
         },
         {
-            category: "Ancillary Services (Penunjang)",
+            category: "Logistics & Supply Chain",
+            items: [
+
+                {
+                    title: 'Gudang Farmasi',
+                    description: 'Central Pharmacy Warehouse',
+                    icon: <Package size={32} />,
+                    path: '/logistics/pharmacy',
+                    roles: ['ADMIN', 'STAFF'],
+                    color: 'bg-teal-600'
+                },
+                {
+                    title: 'Aset & Umum',
+                    description: 'General Assets Inventory',
+                    icon: <Box size={32} />,
+                    path: '/logistics/assets',
+                    roles: ['ADMIN'],
+                    color: 'bg-blue-600'
+                }
+            ]
+        },
+        {
+            category: "Ancillary Units (Penunjang)",
             items: [
                 {
-                    title: 'Apotek',
-                    description: 'Pharmacy & Drug Dispense',
+                    title: 'Apotek Rawat Jalan',
+                    description: 'Outpatient Pharmacy (Depo)',
                     icon: <Pill size={32} />,
                     path: '/pharmacy',
                     roles: ['ADMIN', 'STAFF'],
-                    color: 'bg-teal-500'
+                    color: 'bg-teal-600'
                 },
                 {
-                    title: 'Laboratorium',
-                    description: 'Lab Orders & Results',
+                    title: 'Instalasi Laboratorium',
+                    description: 'Laboratory Information',
                     icon: <Microscope size={32} />,
                     path: '/lab',
                     roles: ['ADMIN', 'STAFF'],
-                    color: 'bg-purple-600'
+                    color: 'bg-purple-700'
                 },
                 {
-                    title: 'Radiologi',
-                    description: 'Imaging & X-Ray',
-                    icon: <Activity size={32} />, // Using Activity as placeholder for Rad
+                    title: 'Instalasi Radiologi',
+                    description: 'Radiology Information',
+                    icon: <Activity size={32} />,
                     path: '/radiology',
                     roles: ['ADMIN', 'STAFF'],
-                    color: 'bg-indigo-600'
+                    color: 'bg-indigo-700'
                 },
                 {
-                    title: 'Instalasi Gizi',
-                    description: 'Kitchen & Diet Order',
+                    title: 'Gizi & Dietetik',
+                    description: 'Nutrition & Kitchen',
                     icon: <Utensils size={32} />,
                     path: '/nutrition',
                     roles: ['ADMIN', 'STAFF'],
-                    color: 'bg-amber-500'
+                    color: 'bg-amber-600'
                 }
             ]
         },
         {
-            category: "Back Office & Management",
+            category: "Executive & Back Office",
             items: [
                 {
-                    title: 'Dashboard Admin',
-                    description: 'Analytics & Stats',
+                    title: 'Executive Dashboard',
+                    description: 'Business Intelligence',
                     icon: <LayoutDashboard size={32} />,
                     path: '/admin/dashboard',
+                    roles: ['ADMIN'],
+                    color: 'bg-gray-800'
+                },
+                {
+                    title: 'Data Induk (Master)',
+                    description: 'Hospital Master Data',
+                    icon: <Database size={32} />,
+                    path: '/admin/master-data',
                     roles: ['ADMIN'],
                     color: 'bg-gray-700'
                 },
                 {
-                    title: 'Master Data',
-                    description: 'Doctors & Polyclinics',
+                    title: 'Konfigurasi Sistem',
+                    description: 'App Settings',
                     icon: <Database size={32} />,
-                    path: '/admin/master-data',
+                    path: '/admin/settings',
                     roles: ['ADMIN'],
-                    color: 'bg-gray-600'
+                    color: 'bg-slate-800'
                 },
                 {
-                    title: 'Data Pasien',
-                    description: 'Patient Center',
+                    title: 'Database Pasien',
+                    description: 'Patient Registry',
                     icon: <FileText size={32} />,
                     path: '/admin/patients',
                     roles: ['ADMIN', 'STAFF'],
-                    color: 'bg-blue-600'
+                    color: 'bg-blue-700'
                 },
                 {
-                    title: 'Human Capital',
-                    description: 'HR & Roster',
+                    title: 'SDM & Kepegawaian',
+                    description: 'Human Capital Mgmt',
                     icon: <Briefcase size={32} />,
                     path: '/hr',
                     roles: ['ADMIN'],
-                    color: 'bg-purple-700'
+                    color: 'bg-purple-800'
                 },
                 {
-                    title: 'Finance & Billing',
-                    description: 'Cashier & Invoicing',
+                    title: 'Keuangan & Kasir',
+                    description: 'Billing & Revenue',
                     icon: <Receipt size={32} />,
                     path: '/finance',
                     roles: ['ADMIN', 'STAFF'],
-                    color: 'bg-pink-600'
+                    color: 'bg-pink-700'
                 },
                 {
-                    title: 'Cuti Dokter',
-                    description: 'Leave Calendar',
+                    title: 'Manajemen Cuti',
+                    description: 'Leave Management',
                     icon: <CalendarOff size={32} />,
                     path: '/admin/leave-calendar',
                     roles: ['ADMIN'],
-                    color: 'bg-red-500'
+                    color: 'bg-red-600'
                 }
             ]
         },
@@ -196,43 +252,59 @@ const MainMenu = () => {
             category: "Intelligence & AI",
             items: [
                 {
-                    title: 'AI Chronology',
-                    description: 'Auto Report Generator',
+                    title: 'AI Medical Chronology',
+                    description: 'Automated Clinical Report',
                     icon: <Sparkles size={32} />,
                     path: '/chronology',
                     roles: ['ADMIN', 'STAFF'],
-                    color: 'bg-violet-600'
+                    color: 'bg-violet-700'
                 }
             ]
         }
     ];
 
+
+
+    // Explicit Tailwind safelist for dynamic gradients
+    const gradientMap = {
+        'bg-blue-600': 'from-blue-600',
+        'bg-red-600': 'from-red-600',
+        'bg-orange-600': 'from-orange-600',
+        'bg-cyan-600': 'from-cyan-600',
+        'bg-indigo-600': 'from-indigo-600',
+        'bg-purple-600': 'from-purple-600',
+        'bg-emerald-700': 'from-emerald-700',
+        'bg-cyan-700': 'from-cyan-700',
+        'bg-pink-600': 'from-pink-600',
+        'bg-emerald-600': 'from-emerald-600',
+        'bg-red-700': 'from-red-700',
+        'bg-teal-700': 'from-teal-700',
+        'bg-slate-600': 'from-slate-600',
+        'bg-teal-600': 'from-teal-600',
+        'bg-purple-700': 'from-purple-700',
+        'bg-indigo-700': 'from-indigo-700',
+        'bg-amber-600': 'from-amber-600',
+        'bg-gray-800': 'from-gray-800',
+        'bg-gray-700': 'from-gray-700',
+        'bg-slate-800': 'from-slate-800',
+        'bg-blue-700': 'from-blue-700',
+        'bg-purple-800': 'from-purple-800',
+        'bg-pink-700': 'from-pink-700',
+        'bg-violet-700': 'from-violet-700',
+    };
+
     return (
-        <div className="min-h-screen bg-gray-50 dark:bg-gray-900 p-8 transition-colors duration-300 relative font-sans">
+        <div className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors duration-300 relative font-sans">
+
             <ThemeToggle />
 
-            <div className="max-w-7xl mx-auto">
-                <header className="flex justify-between items-center mb-10 pb-6 border-b border-gray-200 dark:border-gray-700">
-                    <div>
-                        <h1 className="text-4xl font-extrabold tracking-tight text-gray-900 dark:text-white">
-                            <span className="text-transparent bg-clip-text bg-gradient-to-r from-purple-600 to-pink-600">Fallonava</span> Hospital
-                        </h1>
-                        <p className="text-gray-500 mt-1">Integrated Hospital Management System</p>
-                    </div>
-                    <div className="flex items-center gap-6">
-                        <div className="text-right hidden md:block">
-                            <div className="font-bold text-gray-900 dark:text-gray-100">{user?.username}</div>
-                            <div className="text-xs text-gray-400 uppercase tracking-wider">{user?.role}</div>
-                        </div>
-                        <button
-                            onClick={handleLogout}
-                            className="flex items-center gap-2 text-red-600 hover:text-red-700 font-bold px-4 py-2 rounded-xl bg-red-50 hover:bg-red-100 dark:bg-red-900/10 dark:hover:bg-red-900/30 transition-all"
-                        >
-                            <LogOut size={18} />
-                            Logout
-                        </button>
-                    </div>
-                </header>
+            <ModernHeader
+                title="Fallonava Hospital"
+                subtitle="Integrated Dashboard"
+                onBack={null} // No back button on main menu
+            />
+
+            <div className="max-w-[1920px] mx-auto p-8 pt-10">
 
                 <div className="space-y-12">
                     {menuGroups.map((group, groupIdx) => {
@@ -252,7 +324,7 @@ const MainMenu = () => {
                                             onClick={() => navigate(item.path)}
                                             className="bg-white dark:bg-gray-800 rounded-3xl p-6 shadow-sm hover:shadow-xl transition-all hover:-translate-y-1 group border border-gray-100 dark:border-gray-700 relative overflow-hidden text-left"
                                         >
-                                            <div className={`absolute top-0 right-0 w-24 h-24 bg-gradient-to-br ${item.color.replace('bg-', 'from-')} to-transparent opacity-10 rounded-bl-[100px] transition-all group-hover:scale-150 group-hover:opacity-20`}></div>
+                                            <div className={`absolute top-0 right-0 w-24 h-24 bg-gradient-to-br ${gradientMap[item.color] || 'from-blue-500'} to-transparent opacity-10 rounded-bl-[100px] transition-all duration-500 ease-out group-hover:scale-150 group-hover:opacity-30`}></div>
 
                                             <div className={`${item.color} w-14 h-14 rounded-2xl flex items-center justify-center text-white mb-4 shadow-lg group-hover:scale-110 transition-transform duration-300`}>
                                                 {item.icon}

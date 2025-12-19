@@ -214,3 +214,24 @@ exports.requestService = async (req, res) => {
         res.status(500).json({ error: 'Failed' });
     }
 };
+
+// GET Active Inpatients (For Nurse Station)
+exports.getActive = async (req, res) => {
+    try {
+        const admissions = await prisma.admission.findMany({
+            where: { status: 'ACTIVE' },
+            include: {
+                patient: true,
+                bed: {
+                    include: { room: true }
+                },
+                doctor: true
+            },
+            orderBy: { check_in: 'desc' }
+        });
+        res.json(admissions);
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ error: 'Failed to fetch active inpatients' });
+    }
+};

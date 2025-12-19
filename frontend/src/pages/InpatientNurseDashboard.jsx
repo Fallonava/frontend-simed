@@ -3,11 +3,14 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Bell, CheckCircle, Activity, User, Bed, Filter, Clock, AlertCircle } from 'lucide-react';
 import api from '../services/api';
 import toast, { Toaster } from 'react-hot-toast';
+import { useNavigate } from 'react-router-dom';
+import ModernHeader from '../components/ModernHeader';
 import PageLoader from '../components/PageLoader';
 import useAuthStore from '../store/useAuthStore';
 
 const InpatientNurseDashboard = () => {
     const { user } = useAuthStore();
+    const navigate = useNavigate();
     const [rooms, setRooms] = useState([]);
     const [loading, setLoading] = useState(true);
     const [filterAlerts, setFilterAlerts] = useState(false);
@@ -43,17 +46,10 @@ const InpatientNurseDashboard = () => {
 
     const handleClearRequest = async (bedId) => {
         try {
-            await api.post('/admission/bed-status', { bedId, status: 'OCCUPIED' }); // Reset Status (Wait, endpoint logic?)
-            // Actually we need to clear service_request. 
-            // The existing bed-status update might not clear service_request properly if not designed to.
-            // Let's use the explicit /bed-panel/request logic but from nurse side?
-            // Re-using the /bed-panel/request is safest as it directly sets service_request.
-
             await api.post('/bed-panel/request', {
                 bedId,
                 service: null // Clear request
             });
-
             toast.success('Panggilan diselesaikan');
             fetchRooms();
         } catch (error) {
@@ -68,70 +64,74 @@ const InpatientNurseDashboard = () => {
             <Toaster position="top-right" />
 
             {/* Header Stats */}
-            <header className="mb-8">
-                <div className="flex justify-between items-center mb-6">
-                    <div>
-                        <h1 className="text-3xl font-extrabold tracking-tight">Nurse Station Monitor</h1>
-                        <p className="text-gray-500">Real-time Inpatient Monitoring & Response</p>
+            <ModernHeader
+                title="Nurse Station Monitor"
+                subtitle="Real-time Inpatient Monitoring & Response"
+                onBack={() => navigate('/menu')}
+                className="mb-8"
+                actions={
+                    <div className="flex items-center gap-3 bg-white/60 dark:bg-gray-800/60 backdrop-blur-xl px-6 py-2 rounded-full border border-white/20 shadow-sm transition-all hover:bg-white/80">
+                        <span className="relative flex h-3 w-3">
+                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                            <span className="relative inline-flex rounded-full h-3 w-3 bg-emerald-500"></span>
+                        </span>
+                        <div className="flex flex-col text-right">
+                            <span className="text-[10px] font-black text-gray-800 dark:text-gray-200 tracking-widest uppercase">Live Monitoring</span>
+                            <span className="text-[9px] text-gray-500 font-mono">Real-time Sync</span>
+                        </div>
                     </div>
-                    <div className="flex items-center gap-4">
-                        <div className="text-right hidden md:block">
-                            <div className="text-2xl font-bold font-mono">{lastUpdated.toLocaleTimeString()}</div>
-                            <div className="text-xs text-gray-400">Live Sync Active</div>
+                }
+            />
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                {/* Active Calls Card - High Alert */}
+                <div className={`p-6 rounded-3xl border-2 transition-all ${activeCalls.length > 0 ? 'bg-red-500 text-white border-red-400 shadow-2xl shadow-red-500/30' : 'bg-white dark:bg-gray-800 border-transparent'}`}>
+                    <div className="flex justify-between items-center">
+                        <div>
+                            <h3 className={`text-sm font-bold uppercase tracking-wider ${activeCalls.length > 0 ? 'text-red-100' : 'text-gray-500'}`}>Active Calls</h3>
+                            <div className="text-4xl font-extrabold mt-2">{activeCalls.length}</div>
+                        </div>
+                        <div className={`p-4 rounded-2xl ${activeCalls.length > 0 ? 'bg-white/20' : 'bg-gray-100 dark:bg-gray-700'}`}>
+                            <Bell size={32} className={activeCalls.length > 0 ? 'animate-bounce' : 'text-gray-400'} fill={activeCalls.length > 0 ? "currentColor" : "none"} />
                         </div>
                     </div>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    {/* Active Calls Card - High Alert */}
-                    <div className={`p-6 rounded-3xl border-2 transition-all ${activeCalls.length > 0 ? 'bg-red-500 text-white border-red-400 shadow-2xl shadow-red-500/30' : 'bg-white dark:bg-gray-800 border-transparent'}`}>
-                        <div className="flex justify-between items-center">
-                            <div>
-                                <h3 className={`text-sm font-bold uppercase tracking-wider ${activeCalls.length > 0 ? 'text-red-100' : 'text-gray-500'}`}>Active Calls</h3>
-                                <div className="text-4xl font-extrabold mt-2">{activeCalls.length}</div>
-                            </div>
-                            <div className={`p-4 rounded-2xl ${activeCalls.length > 0 ? 'bg-white/20' : 'bg-gray-100 dark:bg-gray-700'}`}>
-                                <Bell size={32} className={activeCalls.length > 0 ? 'animate-bounce' : 'text-gray-400'} fill={activeCalls.length > 0 ? "currentColor" : "none"} />
-                            </div>
+                {/* Occupancy */}
+                <div className="bg-white dark:bg-gray-800 p-6 rounded-3xl border border-gray-100 dark:border-gray-700">
+                    <div className="flex justify-between items-center">
+                        <div>
+                            <h3 className="text-sm font-bold uppercase tracking-wider text-gray-500">Occupied Beds</h3>
+                            <div className="text-4xl font-extrabold mt-2 text-blue-600 dark:text-blue-400">{occupiedBeds.length} <span className="text-lg text-gray-400 font-medium">/ {allBeds.length}</span></div>
+                        </div>
+                        <div className="p-4 rounded-2xl bg-blue-50 dark:bg-blue-900/20 text-blue-500">
+                            <Bed size={32} />
                         </div>
                     </div>
+                </div>
 
-                    {/* Occupancy */}
-                    <div className="bg-white dark:bg-gray-800 p-6 rounded-3xl border border-gray-100 dark:border-gray-700">
-                        <div className="flex justify-between items-center">
-                            <div>
-                                <h3 className="text-sm font-bold uppercase tracking-wider text-gray-500">Occupied Beds</h3>
-                                <div className="text-4xl font-extrabold mt-2 text-blue-600 dark:text-blue-400">{occupiedBeds.length} <span className="text-lg text-gray-400 font-medium">/ {allBeds.length}</span></div>
-                            </div>
-                            <div className="p-4 rounded-2xl bg-blue-50 dark:bg-blue-900/20 text-blue-500">
-                                <Bed size={32} />
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* Filter Toggle */}
-                    <button
-                        onClick={() => setFilterAlerts(!filterAlerts)}
-                        className={`p-6 rounded-3xl border transition-all text-left flex flex-col justify-between group
+                {/* Filter Toggle */}
+                <button
+                    onClick={() => setFilterAlerts(!filterAlerts)}
+                    className={`p-6 rounded-3xl border transition-all text-left flex flex-col justify-between group
                             ${filterAlerts
-                                ? 'bg-indigo-600 text-white border-indigo-500 ring-4 ring-indigo-500/20'
-                                : 'bg-white dark:bg-gray-800 border-gray-100 dark:border-gray-700 hover:border-indigo-500'}`}
-                    >
-                        <div className="flex justify-between w-full">
-                            <h3 className={`text-sm font-bold uppercase tracking-wider ${filterAlerts ? 'text-indigo-200' : 'text-gray-500'}`}>Filter Mode</h3>
-                            <Filter size={24} className={filterAlerts ? 'text-white' : 'text-gray-400'} />
-                        </div>
-                        <div className="font-bold text-lg mt-2">
-                            {filterAlerts ? 'Showing Alerts Only' : 'Showing All Beds'}
-                        </div>
-                    </button>
-                </div>
-            </header>
+                            ? 'bg-indigo-600 text-white border-indigo-500 ring-4 ring-indigo-500/20'
+                            : 'bg-white dark:bg-gray-800 border-gray-100 dark:border-gray-700 hover:border-indigo-500'}`}
+                >
+                    <div className="flex justify-between w-full">
+                        <h3 className={`text-sm font-bold uppercase tracking-wider ${filterAlerts ? 'text-indigo-200' : 'text-gray-500'}`}>Filter Mode</h3>
+                        <Filter size={24} className={filterAlerts ? 'text-white' : 'text-gray-400'} />
+                    </div>
+                    <div className="font-bold text-lg mt-2">
+                        {filterAlerts ? 'Showing Alerts Only' : 'Showing All Beds'}
+                    </div>
+                </button>
+            </div>
 
             {/* Main Grid */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                 <AnimatePresence>
-                    {safeRooms.map(room => (
+                    {safeRooms.flatMap(room =>
                         (Array.isArray(room.beds) ? room.beds : [])
                             .filter(bed => !filterAlerts || (filterAlerts && bed.service_request === 'NURSE'))
                             .map(bed => {
@@ -221,12 +221,13 @@ const InpatientNurseDashboard = () => {
                                     </motion.div>
                                 );
                             })
-                    ))}
+                    )}
                 </AnimatePresence>
-                {safeRooms.every(r => (Array.isArray(r.beds) ? r.beds : []).filter(b => !filterAlerts || (filterAlerts && b.service_request === 'NURSE')).length === 0) && (
+
+                {activeCalls.length === 0 && occupiedBeds.length === 0 && (
                     <div className="col-span-full h-64 flex flex-col items-center justify-center text-gray-400">
                         <CheckCircle size={48} className="mb-4 text-green-500 opacity-50" />
-                        <p>No beds matching filter.</p>
+                        <p>No active alerts.</p>
                     </div>
                 )}
             </div>
@@ -237,7 +238,7 @@ const InpatientNurseDashboard = () => {
                     <PatientCareModal admissionId={patientModal.admissionId} onClose={() => setPatientModal({ open: false, admissionId: null })} />
                 )}
             </AnimatePresence>
-        </div >
+        </div>
     );
 };
 
@@ -414,3 +415,5 @@ const PatientCareModal = ({ admissionId, onClose }) => {
         </motion.div>
     );
 };
+
+export default InpatientNurseDashboard;

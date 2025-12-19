@@ -11,10 +11,10 @@ exports.create = async (req, res) => {
                 doctor_id: parseInt(doctor_id),
                 queue_id: queue_id ? parseInt(queue_id) : null,
                 visit_date: visit_date ? new Date(visit_date) : new Date(),
-                subjective,
-                objective,
-                assessment,
-                plan,
+                subjective: subjective || '',
+                objective: objective || '',
+                assessment: assessment || '',
+                plan: plan || '',
                 systolic: req.body.systolic ? parseInt(req.body.systolic) : null,
                 diastolic: req.body.diastolic ? parseInt(req.body.diastolic) : null,
                 heart_rate: req.body.heart_rate ? parseInt(req.body.heart_rate) : null,
@@ -28,15 +28,10 @@ exports.create = async (req, res) => {
             }
         });
 
-        // Optionally update queue status to SERVED if linked to a queue
-        if (queue_id) {
-            await prisma.queue.update({
-                where: { id: parseInt(queue_id) },
-                data: { status: 'SERVED' }
-            });
-            // Emit socket update
-            req.io.emit('queue_update');
-        }
+        // REMOVED: Do not auto-complete queue here. Let the frontend/doctor decide when to call /complete
+        // if (queue_id) {
+        //    await prisma.queue.update({ ... status: 'SERVED' });
+        // }
 
         res.status(201).json(record);
     } catch (error) {
@@ -84,5 +79,34 @@ exports.getHistory = async (req, res) => {
     } catch (error) {
         console.error(error);
         res.status(500).json({ error: 'Failed to fetch medical records' });
+    }
+};
+
+exports.getAll = async (req, res) => {
+    const { prisma } = req;
+    const { search } = req.query;
+
+    try {
+        const where = {};
+        if (search) {
+            where.OR = [
+                { patient: { name: { contains: search } } }, // Removed mode: 'insensitive' for compatibility if SQLite/MySQL differs, but usually fine.
+                { patient: { no_rm: { contains: search } } }
+            ];
+        }
+
+        const records = await prisma.medicalRecord.findMany({
+            where,
+            include: {
+                patient: true,
+                doctor: true
+            },
+            orderBy: { visit_date: 'desc' },
+            take: 100 // Limit for now
+        });
+        res.json(records);
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ error: 'Failed to fetch all records' });
     }
 };

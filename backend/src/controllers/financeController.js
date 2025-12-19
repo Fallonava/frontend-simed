@@ -3,29 +3,110 @@ const prisma = new PrismaClient();
 
 // POST /api/finance/generate
 // Manual Trigger or Auto-trigger on Dishcarge/Prescription
-exports.createInvoice = async (req, res) => {
-    const { patientId, admissionId, medicalRecordId, items } = req.body;
+// GET /api/finance/billables
+// Fetch completed medical records that haven't been invoiced yet
+exports.getBillableVisits = async (req, res) => {
     try {
-        const total = items.reduce((sum, item) => sum + (item.amount * item.quantity), 0);
+        const records = await prisma.medicalRecord.findMany({
+            where: {
+                assessment: { not: '' }, // Completed visit
+                invoices: { none: {} }   // No invoice generated yet
+            },
+            include: {
+                patient: true,
+                doctor: true,
+                prescriptions: { include: { items: { include: { medicine: true } } } },
+                service_orders: true
+            },
+            orderBy: { visit_date: 'desc' }
+        });
+        res.json({ success: true, data: records });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ error: 'Failed to fetch billable visits' });
+    }
+};
+
+// POST /api/finance/generate
+// Auto-generate invoice from Medical Record
+exports.createInvoice = async (req, res) => {
+    const { medicalRecordId } = req.body; // Only need MR ID now
+
+    try {
+        // Fetch full record details
+        const record = await prisma.medicalRecord.findUnique({
+            where: { id: parseInt(medicalRecordId) },
+            include: {
+                doctor: true,
+                patient: true,
+                prescriptions: { include: { items: { include: { medicine: true } } } },
+                service_orders: true
+            }
+        });
+
+        if (!record) return res.status(404).json({ error: 'Medical Record not found' });
+
+        // Check if invoice already exists
+        const existing = await prisma.invoice.findFirst({ where: { medical_record_id: parseInt(medicalRecordId) } });
+        if (existing) return res.status(400).json({ error: 'Invoice already exists for this visit' });
+
+        // Calculate Bill
+        let total = 0;
+        const items = [];
+
+        // 1. Registration / Admin Fee
+        const adminFee = 15000;
+        total += adminFee;
+        items.push({ description: 'Biaya Administrasi RS', amount: adminFee, quantity: 1 });
+
+        // 2. Doctor Fee
+        const docFee = record.doctor.specialist.includes('Umum') ? 35000 : 75000; // GP vs Specialist
+        total += docFee;
+        items.push({ description: `Jasa Dokter (${record.doctor.name})`, amount: docFee, quantity: 1 });
+
+        // 3. Medicines
+        if (record.prescriptions?.length > 0) {
+            record.prescriptions.forEach(p => {
+                p.items.forEach(item => {
+                    const cost = item.medicine.price * item.quantity;
+                    total += cost;
+                    items.push({
+                        description: `Obat: ${item.medicine.name}`,
+                        amount: item.medicine.price,
+                        quantity: item.quantity
+                    });
+                });
+            });
+        }
+
+        // 4. Lab/Rad Service Orders
+        if (record.service_orders?.length > 0) {
+            record.service_orders.forEach(order => {
+                const cost = order.type === 'LAB' ? 150000 : 200000; // Mock prices
+                total += cost;
+                items.push({
+                    description: `Layanan Penunjang: ${order.type}`,
+                    amount: cost,
+                    quantity: 1
+                });
+            });
+        }
 
         const invoice = await prisma.invoice.create({
             data: {
-                patient_id: parseInt(patientId),
-                admission_id: admissionId ? parseInt(admissionId) : null,
-                medical_record_id: medicalRecordId ? parseInt(medicalRecordId) : null,
+                patient_id: record.patient_id,
+                medical_record_id: record.id,
                 total_amount: total,
                 status: 'PENDING',
                 items: {
-                    create: items.map(i => ({
-                        description: i.description,
-                        amount: i.amount,
-                        quantity: i.quantity
-                    }))
+                    create: items
                 }
             },
-            include: { items: true }
+            include: { items: true, patient: true }
         });
+
         res.json({ success: true, data: invoice });
+
     } catch (error) {
         console.error(error);
         res.status(500).json({ error: 'Failed to create invoice' });

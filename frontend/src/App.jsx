@@ -28,7 +28,9 @@ const PharmacyDashboard = React.lazy(() => import('./pages/PharmacyDashboard'));
 const CashierDashboard = React.lazy(() => import('./pages/CashierDashboard'));
 const PublicSchedule = React.lazy(() => import('./pages/PublicSchedule'));
 const ChronologyGenerator = React.lazy(() => import('./pages/ChronologyGenerator'));
-const NurseDashboard = React.lazy(() => import('./pages/NurseDashboard')); // New
+const NurseDashboard = React.lazy(() => import('./pages/NurseDashboard'));
+const CentralPharmacy = React.lazy(() => import('./pages/CentralPharmacy'));
+const GeneralAssets = React.lazy(() => import('./pages/GeneralAssets')); // New
 const LabDashboard = React.lazy(() => import('./pages/LabDashboard'));
 const RadiologyDashboard = React.lazy(() => import('./pages/RadiologyDashboard')); // New
 const AdmissionDashboard = React.lazy(() => import('./pages/AdmissionDashboard')); // Inpatient Module
@@ -37,6 +39,14 @@ const InpatientNurseDashboard = React.lazy(() => import('./pages/InpatientNurseD
 const NutritionKitchen = React.lazy(() => import('./pages/NutritionKitchen')); // Phase 6
 const HRDashboard = React.lazy(() => import('./pages/HRDashboard')); // Phase 8
 const FinanceDashboard = React.lazy(() => import('./pages/FinanceDashboard')); // Phase 9
+const InventoryDashboard = React.lazy(() => import('./pages/InventoryDashboard')); // Phase 2: Logistics
+const RevenueAnalytics = React.lazy(() => import('./pages/RevenueAnalytics')); // Phase 2: COGS
+const CasemixDashboard = React.lazy(() => import('./pages/CasemixDashboard')); // Phase 2b: Claims
+const BedManagement = React.lazy(() => import('./pages/BedManagement')); // Phase 2b: Inpatient
+const NurseStation = React.lazy(() => import('./pages/NurseStation')); // Phase 2b: CPPT
+const DischargeDashboard = React.lazy(() => import('./pages/DischargeDashboard')); // Phase 2b: Discharge
+const MedicalRecords = React.lazy(() => import('./pages/MedicalRecords')); // Phase 1: Archive
+const DocumentCenter = React.lazy(() => import('./pages/DocumentCenter')); // Phase 2: Smart Docs
 
 function AnimatedRoutes() {
   const location = useLocation();
@@ -98,6 +108,8 @@ function AnimatedRoutes() {
 
             {/* Nurse Module */}
             <Route path="/nurse" element={<PageWrapper><NurseDashboard /></PageWrapper>} />
+            <Route path="/nurse/inpatient" element={<PageWrapper><InpatientNurseDashboard /></PageWrapper>} />
+            {/* <Route path="/nurse/inpatient" element={<PageWrapper><div className="p-10 font-bold text-red-500">DEBUGGING DASHBOARD</div></PageWrapper>} /> */}
 
             {/* Lab & Radiology (Separated) */}
             <Route path="/lab" element={<PageWrapper><LabDashboard /></PageWrapper>} />
@@ -107,10 +119,23 @@ function AnimatedRoutes() {
             <Route path="/admission" element={<PageWrapper><AdmissionDashboard /></PageWrapper>} />
 
             {/* Phase 6: Nurse Monitoring */}
-            <Route path="/nurse/inpatient" element={<PageWrapper><InpatientNurseDashboard /></PageWrapper>} />
+            <Route path="/inpatient/beds" element={<PageWrapper><BedManagement /></PageWrapper>} />
+            <Route path="/nurse/station" element={<PageWrapper><NurseStation /></PageWrapper>} />
+            <Route path="/nurse/discharge" element={<PageWrapper><DischargeDashboard /></PageWrapper>} />
             <Route path="/nutrition" element={<PageWrapper><NutritionKitchen /></PageWrapper>} />
             <Route path="/hr" element={<PageWrapper><HRDashboard /></PageWrapper>} />
             <Route path="/finance" element={<PageWrapper><FinanceDashboard /></PageWrapper>} />
+            <Route path="/finance/analytics" element={<PageWrapper><RevenueAnalytics /></PageWrapper>} />
+            <Route path="/casemix" element={<PageWrapper><CasemixDashboard /></PageWrapper>} />
+            <Route path="/medical-records" element={<PageWrapper><MedicalRecords /></PageWrapper>} />
+            <Route path="/documents/center" element={<PageWrapper><DocumentCenter /></PageWrapper>} />
+
+            {/* Logistics & Inventory */}
+            <Route path="/inventory/pharmacy" element={<PageWrapper><InventoryDashboard /></PageWrapper>} />
+            <Route path="/inventory/general" element={<PageWrapper><InventoryDashboard /></PageWrapper>} />
+            <Route path="/pharmacy/inventory" element={<PageWrapper><InventoryDashboard /></PageWrapper>} />
+            <Route path="/logistics/pharmacy" element={<PageWrapper><CentralPharmacy /></PageWrapper>} />
+            <Route path="/logistics/assets" element={<PageWrapper><GeneralAssets /></PageWrapper>} />
           </Route>
         </Routes>
       </Suspense>
@@ -121,7 +146,6 @@ function AnimatedRoutes() {
 function App() {
   return (
     <BrowserRouter>
-      <ThemeToggle />
       <CommandPalette />
       <AnimatedRoutes />
     </BrowserRouter>

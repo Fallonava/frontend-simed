@@ -251,6 +251,10 @@ exports.getWaiting = async (req, res) => {
                             include: { poliklinik: true }
                         }
                     }
+                },
+                medical_records: {
+                    orderBy: { created_at: 'desc' },
+                    take: 1
                 }
             },
             orderBy: { created_at: 'asc' }
@@ -296,6 +300,10 @@ exports.callNext = async (req, res) => {
                                 include: { poliklinik: true }
                             }
                         }
+                    },
+                    medical_records: {
+                        orderBy: { created_at: 'desc' },
+                        take: 1
                     }
                 }
             });
