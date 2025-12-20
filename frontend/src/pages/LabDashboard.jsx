@@ -79,6 +79,25 @@ const LabDashboard = () => {
         show: { opacity: 1, y: 0, scale: 1 }
     };
 
+    const [activeTab, setActiveTab] = useState('PENDING');
+    const [searchTerm, setSearchTerm] = useState('');
+
+    // Derived State: Stats
+    const stats = {
+        pending: orders.filter(o => o.status === 'PENDING').length,
+        completedToday: orders.filter(o => o.status === 'COMPLETED' && new Date(o.updated_at).getDate() === new Date().getDate()).length,
+        total: orders.length
+    };
+
+    // Derived State: Filtering
+    const filteredOrders = orders.filter(o => {
+        const matchesTab = (activeTab === 'PENDING') ? o.status === 'PENDING' : o.status === 'COMPLETED';
+        const matchesSearch = o.medical_record.patient.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            o.medical_record.patient.no_rm.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            o.medical_record.doctor.name.toLowerCase().includes(searchTerm.toLowerCase());
+        return matchesTab && matchesSearch;
+    });
+
     return (
         <PageWrapper title="Laboratory Unit">
             <Toaster position="top-center" toastOptions={{
@@ -101,94 +120,160 @@ const LabDashboard = () => {
             <div className="relative min-h-screen p-8 max-w-[1600px] mx-auto z-10 font-sans">
 
                 {/* Header Section */}
-                <ModernHeader
-                    title="Laboratorium"
-                    subtitle="Laboratory Unit & Diagnostics"
-                    onBack={() => navigate('/menu')}
-                    className="mb-12"
-                />
+                <div className="flex flex-col md:flex-row justify-between items-end mb-8 gap-6">
+                    <ModernHeader
+                        title="Laboratorium"
+                        subtitle="Laboratory Management System"
+                        onBack={() => navigate('/menu')}
+                        className="mb-0"
+                    />
 
-                {/* Orders Grid */}
-                <motion.div
-                    variants={containerVariants}
-                    initial="hidden"
-                    animate="show"
-                    className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"
-                >
-                    <AnimatePresence mode="popLayout">
-                        {orders.length === 0 ? (
-                            <motion.div
-                                initial={{ opacity: 0, y: 20 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                className="col-span-full py-40 flex flex-col items-center justify-center text-center"
+                    {/* Stats Cards */}
+                    <div className="flex gap-4">
+                        <div className="bg-white/60 dark:bg-gray-800/60 backdrop-blur-xl px-6 py-3 rounded-2xl border border-white/40 dark:border-gray-700 shadow-sm flex items-center gap-4">
+                            <div className="p-2 bg-purple-100 dark:bg-purple-900/30 text-purple-600 rounded-xl">
+                                <Clock size={20} />
+                            </div>
+                            <div>
+                                <p className="text-xs text-gray-500 font-bold uppercase tracking-wider">Pending</p>
+                                <p className="text-2xl font-bold text-gray-800 dark:text-white">{stats.pending}</p>
+                            </div>
+                        </div>
+                        <div className="bg-white/60 dark:bg-gray-800/60 backdrop-blur-xl px-6 py-3 rounded-2xl border border-white/40 dark:border-gray-700 shadow-sm flex items-center gap-4">
+                            <div className="p-2 bg-green-100 dark:bg-green-900/30 text-green-600 rounded-xl">
+                                <CheckCircle size={20} />
+                            </div>
+                            <div>
+                                <p className="text-xs text-gray-500 font-bold uppercase tracking-wider">Completed Today</p>
+                                <p className="text-2xl font-bold text-gray-800 dark:text-white">{stats.completedToday}</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Toolbar */}
+                <div className="bg-white/40 dark:bg-gray-800/40 backdrop-blur-2xl p-2 rounded-[24px] border border-white/20 dark:border-gray-700 flex flex-col md:flex-row gap-4 mb-4 shadow-sm">
+                    {/* Tabs */}
+                    <div className="flex p-1 bg-gray-100/50 dark:bg-gray-700/50 rounded-2xl">
+                        {['PENDING', 'COMPLETED'].map((tab) => (
+                            <button
+                                key={tab}
+                                onClick={() => setActiveTab(tab)}
+                                className={`px-6 py-2.5 rounded-xl text-sm font-bold transition-all duration-300 ${activeTab === tab
+                                    ? 'bg-white dark:bg-gray-800 text-purple-600 shadow-sm scale-100'
+                                    : 'text-gray-500 hover:text-purple-600 hover:bg-white/50'
+                                    }`}
                             >
-                                <div className="w-32 h-32 bg-white/40 backdrop-blur-xl rounded-full flex items-center justify-center mb-6 shadow-2xl shadow-purple-500/10 border border-white/50">
-                                    <CheckCircle size={64} className="text-purple-400 opacity-80" />
-                                </div>
-                                <h3 className="text-3xl font-bold text-gray-800 dark:text-white mb-2 tracking-tight">All Clear</h3>
-                                <p className="text-gray-500 text-lg">No pending lab orders at the moment.</p>
-                            </motion.div>
-                        ) : (
-                            orders.map((order) => (
+                                {tab === 'PENDING' ? 'Queue' : 'History'}
+                            </button>
+                        ))}
+                    </div>
+
+                    {/* Search Bar */}
+                    <div className="flex-1 relative group">
+                        <div className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-purple-500 transition-colors">
+                            <Microscope size={20} />
+                        </div>
+                        <input
+                            type="text"
+                            placeholder="Search by Patient Name, MR Number, or Doctor..."
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                            className="w-full h-full bg-white/50 dark:bg-gray-900/50 backdrop-blur-sm pl-12 pr-4 rounded-xl border-2 border-transparent focus:border-purple-500/50 focus:bg-white dark:focus:bg-gray-800 transition-all outline-none font-medium placeholder:text-gray-400"
+                        />
+                    </div>
+                </div>
+
+                {/* Table View */}
+                <div className="bg-white/60 dark:bg-gray-800/60 backdrop-blur-3xl rounded-[32px] border border-white/40 dark:border-gray-700 shadow-xl overflow-hidden min-h-[500px] flex flex-col">
+                    {/* Table Header */}
+                    <div className="grid grid-cols-12 gap-4 px-8 py-5 border-b border-gray-200/50 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-800/30 text-xs font-bold text-gray-400 uppercase tracking-widest">
+                        <div className="col-span-1 text-center">No</div>
+                        <div className="col-span-3">Patient Info</div>
+                        <div className="col-span-4">Request Detail</div>
+                        <div className="col-span-2">Doctor & Time</div>
+                        <div className="col-span-2 text-center">Status / Action</div>
+                    </div>
+
+                    {/* Table Body */}
+                    <div className="flex-1 overflow-y-auto max-h-[600px] custom-scrollbar">
+                        <AnimatePresence mode="popLayout">
+                            {filteredOrders.length === 0 ? (
                                 <motion.div
-                                    key={order.id}
-                                    variants={itemVariants}
-                                    layoutId={order.id}
-                                    className="group relative bg-white/60 dark:bg-gray-800/60 backdrop-blur-2xl p-6 rounded-[32px] border border-white/40 dark:border-gray-700 hover:border-purple-300 hover:shadow-2xl hover:shadow-purple-500/20 transition-all duration-500 hover:-translate-y-2 cursor-default overflow-hidden"
+                                    initial={{ opacity: 0 }} animate={{ opacity: 1 }}
+                                    className="h-full flex flex-col items-center justify-center p-12 opacity-50 space-y-4"
                                 >
-                                    {/* Glass Shine Effect */}
-                                    <div className="absolute inset-0 bg-gradient-to-tr from-white/0 via-white/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none" />
-
-                                    {/* Patient Info */}
-                                    <div className="relative z-10">
-                                        <div className="flex justify-between items-start mb-6">
-                                            <div>
-                                                <h3 className="text-2xl font-bold text-gray-900 dark:text-white leading-tight mb-1 tracking-tight">
-                                                    {order.medical_record.patient.name}
-                                                </h3>
-                                                <p className="text-xs font-bold text-purple-600 uppercase tracking-widest bg-purple-100 dark:bg-purple-900/30 px-2 py-1 rounded-lg inline-block mt-1">
-                                                    {order.medical_record.patient.gender === 'L' ? 'Male' : 'Female'}
-                                                </p>
-                                            </div>
-                                            <div className="w-10 h-10 rounded-full bg-purple-50 dark:bg-gray-700 flex items-center justify-center text-purple-600 font-bold border border-purple-100 shadow-inner">
-                                                {order.medical_record.patient.name.charAt(0)}
-                                            </div>
-                                        </div>
-
-                                        <div className="flex items-center gap-3 text-sm text-gray-500 font-medium mb-6">
-                                            <span className="flex items-center gap-1.5 bg-gray-100/80 px-3 py-1.5 rounded-full backdrop-blur-sm">
-                                                <Clock size={14} className="text-gray-400" />
-                                                {new Date(order.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                                            </span>
-                                            <span className="truncate max-w-[120px]">Dr. {order.medical_record.doctor.name}</span>
-                                        </div>
-
-                                        <div className="bg-gradient-to-br from-white/80 to-purple-50/50 dark:from-gray-900/50 dark:to-gray-800 p-5 rounded-3xl border border-white/60 dark:border-gray-600/50 shadow-sm relative overflow-hidden">
-                                            <div className="flex items-start gap-4 relaitve z-10">
-                                                <div className="p-3 bg-white dark:bg-gray-800 rounded-2xl shadow-sm text-purple-500">
-                                                    <Microscope size={20} />
-                                                </div>
-                                                <div>
-                                                    <span className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">REQUEST</span>
-                                                    <p className="text-gray-800 dark:text-gray-200 font-semibold leading-relaxed text-sm">
-                                                        {order.notes}
-                                                    </p>
-                                                </div>
-                                            </div>
-                                        </div>
-
-                                        <button
-                                            onClick={() => openModal(order)}
-                                            className="mt-6 w-full py-4 rounded-2xl font-bold text-white shadow-xl shadow-purple-500/30 active:scale-95 transition-all flex items-center justify-center gap-2 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 group-hover:shadow-2xl group-hover:shadow-purple-500/40 relative overflow-hidden"
-                                        >
-                                            <span className="relative z-10 flex items-center gap-2">Process Sample <TestTube size={18} /></span>
-                                        </button>
+                                    <div className="p-6 bg-gray-100/50 rounded-full">
+                                        <Microscope size={48} className="text-gray-400" />
                                     </div>
+                                    <p className="text-lg font-medium text-gray-500">No matching orders found.</p>
                                 </motion.div>
-                            ))
-                        )}
-                    </AnimatePresence>
-                </motion.div>
+                            ) : (
+                                filteredOrders.map((order, index) => (
+                                    <motion.div
+                                        key={order.id}
+                                        layoutId={order.id}
+                                        initial={{ opacity: 0, x: -20 }}
+                                        animate={{ opacity: 1, x: 0 }}
+                                        exit={{ opacity: 0, x: 20 }}
+                                        transition={{ duration: 0.2 }}
+                                        className="grid grid-cols-12 gap-4 px-8 py-5 items-center border-b border-gray-100 dark:border-gray-700/50 hover:bg-white/80 dark:hover:bg-gray-800/80 transition-colors group cursor-default"
+                                    >
+                                        <div className="col-span-1 text-center font-bold text-gray-300 group-hover:text-purple-500 transition-colors">
+                                            #{index + 1}
+                                        </div>
+
+                                        <div className="col-span-3">
+                                            <p className="font-bold text-gray-900 dark:text-white text-lg leading-tight mb-1">{order.medical_record.patient.name}</p>
+                                            <div className="flex gap-2">
+                                                <span className="text-xs font-semibold px-2 py-0.5 bg-gray-200/50 text-gray-600 rounded text-[10px] tracking-wide">{order.medical_record.patient.no_rm}</span>
+                                                <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded uppercase ${order.medical_record.patient.gender === 'L' ? 'bg-blue-100 text-blue-600' : 'bg-pink-100 text-pink-600'}`}>
+                                                    {order.medical_record.patient.gender === 'L' ? 'M' : 'F'}
+                                                </span>
+                                            </div>
+                                        </div>
+
+                                        <div className="col-span-4">
+                                            <p className="text-sm font-semibold text-gray-700 dark:text-gray-300 line-clamp-2 leading-relaxed">
+                                                {order.notes}
+                                            </p>
+                                            {order.status === 'COMPLETED' && order.result && (
+                                                <p className="text-xs text-green-600 mt-1 font-mono flex items-center gap-1">
+                                                    <CheckCircle size={10} /> Result Available
+                                                </p>
+                                            )}
+                                        </div>
+
+                                        <div className="col-span-2">
+                                            <p className="text-sm font-medium text-gray-800 dark:text-gray-200">Dr. {order.medical_record.doctor.name}</p>
+                                            <p className="text-xs text-gray-400 mt-0.5 flex items-center gap-1">
+                                                <Clock size={10} /> {new Date(order.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                            </p>
+                                        </div>
+
+                                        <div className="col-span-2 flex justify-center">
+                                            {order.status === 'PENDING' ? (
+                                                <button
+                                                    onClick={() => openModal(order)}
+                                                    className="opacity-0 group-hover:opacity-100 translate-y-2 group-hover:translate-y-0 transition-all duration-300 py-2.5 px-6 rounded-xl font-bold text-white shadow-lg shadow-purple-500/20 active:scale-95 flex items-center gap-2 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-sm"
+                                                >
+                                                    Process <TestTube size={16} />
+                                                </button>
+                                            ) : (
+                                                <div className="flex flex-col items-center gap-1">
+                                                    <div className="h-8 w-8 bg-green-100 dark:bg-green-900/20 rounded-full flex items-center justify-center text-green-600">
+                                                        <CheckCircle size={16} />
+                                                    </div>
+                                                    <span className="text-[10px] font-bold text-green-600 uppercase">Completed</span>
+                                                </div>
+                                            )}
+                                        </div>
+                                    </motion.div>
+                                ))
+                            )}
+                        </AnimatePresence>
+                    </div>
+                </div>
 
                 {/* Modern Modal */}
                 <AnimatePresence>

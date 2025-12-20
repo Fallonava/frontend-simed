@@ -212,7 +212,9 @@ app.get('/api/finance/unpaid', authMiddleware, financeController.getUnpaidInvoic
 app.post('/api/finance/pay/:id', authMiddleware, financeController.payInvoice);
 app.get('/api/finance/billables', authMiddleware, financeController.getBillableVisits);
 app.get('/api/finance/report', authMiddleware, financeController.getDailyReport);
-app.get('/api/finance/analytics', authMiddleware, financeController.getAnalytics); // NEW
+app.get('/api/finance/analytics', authMiddleware, financeController.getAnalytics); // Legacy/Simple
+app.get('/api/finance/reports', authMiddleware, financeController.getFinancialReport); // Detailed P&L
+app.post('/api/finance/expenses', authMiddleware, financeController.createExpense);
 
 // Bed Head Unit Routes (Tablet)
 app.get('/api/bed-panel/:bedId', admissionController.getBedPanel); // Public/Kiosk for demo

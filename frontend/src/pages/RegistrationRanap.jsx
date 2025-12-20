@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
     User, Calendar, Clock, MapPin, ChevronRight, Search, Filter,
     Activity, CreditCard, CheckCircle, Bed, AlertCircle, RefreshCcw,
-    FileText, Printer, ArrowRight
+    FileText, Printer, ArrowRight, X
 } from 'lucide-react';
 import toast, { Toaster } from 'react-hot-toast';
 import { useNavigate } from 'react-router-dom';
@@ -124,12 +124,48 @@ const RegistrationRanap = () => {
         room.beds.filter(bed => bed.status === 'AVAILABLE').map(bed => ({ ...bed, roomName: room.name, roomClass: room.class }))
     );
 
+    // Direct Admission State
+    const [showDirectModal, setShowDirectModal] = useState(false);
+    const [searchTerm, setSearchTerm] = useState('');
+    const [patientSearchResults, setPatientSearchResults] = useState([]);
+    const [directPatient, setDirectPatient] = useState(null);
+
+    const handleSearchPatient = async () => {
+        if (!searchTerm) return;
+        try {
+            const res = await api.get(`/patients/search?q=${searchTerm}`);
+            setPatientSearchResults(res.data);
+        } catch (error) {
+            toast.error('Search failed');
+        }
+    };
+
+    const handleSelectDirectPatient = (patient) => {
+        setDirectPatient(patient);
+        // Create a mock "selectedPatient" object structure to reuse the Process Modal
+        setSelectedPatient({
+            patient: patient,
+            assessment: 'Direct Admission (Walk-in)',
+            doctor: { name: 'Admitting Physician' }
+        });
+        setShowDirectModal(false);
+        setShowProcessModal(true);
+    };
+
     return (
         <PageWrapper title="Inpatient Registration">
             <Toaster position="top-center" />
             <ModernHeader
                 title="Inpatient Admission Worklist"
                 subtitle="Manage Pending Admissions & Bed Allocation"
+                actions={
+                    <button
+                        onClick={() => setShowDirectModal(true)}
+                        className="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2 rounded-xl font-bold text-sm shadow-lg shadow-blue-500/30 transition-all flex items-center gap-2"
+                    >
+                        <User size={18} /> Direct Admission
+                    </button>
+                }
             />
 
             <div className="p-6 max-w-[1600px] mx-auto">
@@ -169,6 +205,12 @@ const RegistrationRanap = () => {
                         <CheckCircle size={48} className="mx-auto text-green-200 mb-4" />
                         <h3 className="text-xl font-bold text-gray-400">All caught up!</h3>
                         <p className="text-gray-400">No pending admissions found.</p>
+                        <button
+                            onClick={() => setShowDirectModal(true)}
+                            className="mt-4 text-blue-500 font-bold text-sm hover:underline"
+                        >
+                            Or create Direct Admission
+                        </button>
                     </div>
                 ) : (
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -224,6 +266,60 @@ const RegistrationRanap = () => {
                     </div>
                 )}
             </div>
+
+            {/* DIRECT ADMISSION MODAL */}
+            <AnimatePresence>
+                {showDirectModal && (
+                    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+                        <motion.div
+                            initial={{ scale: 0.95, opacity: 0 }}
+                            animate={{ scale: 1, opacity: 1 }}
+                            exit={{ scale: 0.95, opacity: 0 }}
+                            className="bg-white dark:bg-gray-800 w-full max-w-lg rounded-[32px] shadow-2xl overflow-hidden p-8"
+                        >
+                            <div className="flex justify-between items-center mb-6">
+                                <h3 className="text-xl font-bold">Direct Admission</h3>
+                                <button onClick={() => setShowDirectModal(false)} className="p-2 hover:bg-gray-100 rounded-full"><X size={20} /></button>
+                            </div>
+
+                            <div className="space-y-4">
+                                <div className="relative">
+                                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+                                    <input
+                                        autoFocus
+                                        className="w-full pl-12 pr-4 py-3 bg-gray-50 rounded-xl border-none focus:ring-2 focus:ring-blue-500 font-bold"
+                                        placeholder="Search Patient Name / RM..."
+                                        value={searchTerm}
+                                        onChange={e => setSearchTerm(e.target.value)}
+                                        onKeyDown={e => e.key === 'Enter' && handleSearchPatient()}
+                                    />
+                                </div>
+
+                                <div className="max-h-60 overflow-y-auto space-y-2">
+                                    {patientSearchResults.map(p => (
+                                        <div
+                                            key={p.id}
+                                            onClick={() => handleSelectDirectPatient(p)}
+                                            className="p-3 hover:bg-blue-50 rounded-xl cursor-pointer flex justify-between items-center group"
+                                        >
+                                            <div>
+                                                <div className="font-bold">{p.name}</div>
+                                                <div className="text-xs text-gray-500">{p.no_rm}</div>
+                                            </div>
+                                            <ChevronRight className="text-gray-300 group-hover:text-blue-500" size={18} />
+                                        </div>
+                                    ))}
+                                    {patientSearchResults.length === 0 && searchTerm && (
+                                        <div className="text-center text-gray-400 text-sm py-4">
+                                            No patients found. Press Enter to search.
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        </motion.div>
+                    </div>
+                )}
+            </AnimatePresence>
 
             {/* PROCESS MODAL */}
             <AnimatePresence>

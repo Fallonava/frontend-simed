@@ -122,3 +122,5 @@ Unique constraint failed on the fields: (`nik`)
 [2025-12-20T07:10:10.339Z] Request Body: {"name":"ServicePatient_1766214610291","nik":"32091766214610291","address":"Jalan Tes Lab 1","birth_date":"1995-05-05","gender":"P","phone":"081999888777"}
 [2025-12-20T07:10:42.889Z] Request Body: {"name":"ServicePatient_1766214642842","nik":"32091766214642842","address":"Jalan Tes Lab 1","birth_date":"1995-05-05","gender":"P","phone":"081999888777"}
 [2025-12-20T07:23:29.432Z] Request Body: {"name":"PendingPat_1766215409322","nik":"9991766215409322","address":"Test Address","birth_date":"1990-01-01","gender":"L","phone":"08123456789"}
+[2025-12-20T12:49:50.573Z] Request Body: {"name":"ServicePatient_1766234990477","nik":"32091766234990477","address":"Jalan Tes Lab 1","birth_date":"1995-05-05","gender":"P","phone":"081999888777"}
+[2025-12-20T12:50:12.337Z] Request Body: {"name":"Demo Patient 2285","nik":"32091766235012285","address":"Jalan Demo UI","birth_date":"1990-01-01","gender":"L","phone":"08123456789"}

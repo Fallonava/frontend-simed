@@ -1,98 +1,111 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import {
     Activity, Clipboard, Clock, Heart, Plus, Search, User,
     Thermometer, Droplet, Wind, FileText, ChevronRight,
     AlertCircle, CheckCircle, Stethoscope, Pill, ShieldAlert,
-    Timer, MapPin, Gauge, LayoutDashboard, Calendar
+    Timer, MapPin, Gauge, LayoutDashboard, Calendar, Filter,
+    RefreshCw, Siren, Bed, Zap
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import api from '../services/api';
 import toast, { Toaster } from 'react-hot-toast';
 import PageWrapper from '../components/PageWrapper';
 import ModernHeader from '../components/ModernHeader';
+import useQueueStore from '../store/useQueueStore';
 
 const NurseStation = () => {
+    const { socket } = useQueueStore();
+
     // Shared State
-    const [allPatients, setAllPatients] = useState([]); // Combined Queue + Admissions
+    const [allPatients, setAllPatients] = useState([]);
     const [filteredPatients, setFilteredPatients] = useState([]);
     const [selectedPatient, setSelectedPatient] = useState(null);
     const [clinicalData, setClinicalData] = useState(null);
-    const [activeAction, setActiveAction] = useState('cppt'); // cppt, mar, triage
-    const [viewUnit, setViewUnit] = useState('IGD'); // 'IGD', 'POLI', 'WARD', 'ICU'
+    const [activeAction, setActiveAction] = useState('cppt');
+    const [viewUnit, setViewUnit] = useState('POLI'); // Default to Outpatient
     const [searchTerm, setSearchTerm] = useState('');
     const [isLoading, setIsLoading] = useState(true);
+    const [lastUpdated, setLastUpdated] = useState(new Date());
 
-    useEffect(() => {
-        fetchData();
-        const interval = setInterval(fetchData, 30000); // 30s refresh
-        return () => clearInterval(interval);
-    }, []);
+    // Count helpers
+    const getCount = (unitId) => {
+        if (!allPatients) return 0;
+        if (unitId === 'IGD') {
+            return allPatients.filter(p => p._isQueue && (p.poliklinik?.name?.toLowerCase().includes('igd') || p.poliklinik?.name?.toLowerCase().includes('emergency') || p.poliklinik?.name?.toLowerCase().includes('gawat'))).length;
+        }
+        if (unitId === 'POLI') {
+            return allPatients.filter(p => p._isQueue && !(p.poliklinik?.name?.toLowerCase().includes('igd') || p.poliklinik?.name?.toLowerCase().includes('emergency') || p.poliklinik?.name?.toLowerCase().includes('gawat'))).length;
+        }
+        if (unitId === 'ICU') {
+            return allPatients.filter(p => p._isAdmitted && (p.bed?.room?.name?.toLowerCase().includes('icu') || p.bed?.room?.type === 'ICU')).length;
+        }
+        // WARD
+        return allPatients.filter(p => p._isAdmitted && !p.bed?.room?.name?.toLowerCase().includes('igd') && !p.bed?.room?.name?.toLowerCase().includes('icu')).length;
+    };
 
-    useEffect(() => {
-        filterAndCategorize();
-    }, [allPatients, viewUnit, searchTerm]);
-
-    const fetchData = async () => {
-        setIsLoading(true);
+    // --- Data Sync Logic ---
+    const fetchData = useCallback(async () => {
+        setIsLoading(prev => prev && allPatients.length === 0); // Only show spinner on first load
         try {
             const [queueRes, admissionRes] = await Promise.all([
                 api.get('/triage/queue'),
                 api.get('/nurse/active-inpatients')
             ]);
 
-            // tag data sources
             const queueItems = queueRes.data.map(q => ({ ...q, _isQueue: true }));
             const admittedItems = admissionRes.data.map(a => ({ ...a, _isAdmitted: true }));
 
             setAllPatients([...queueItems, ...admittedItems]);
+            setLastUpdated(new Date());
         } catch (error) {
-            toast.error('Failed to sync clinical data');
+            console.error('Sync failed', error);
         } finally {
             setIsLoading(false);
         }
-    };
+    }, [allPatients.length]);
 
-    const filterAndCategorize = () => {
-        let filtered = allPatients;
+    useEffect(() => {
+        fetchData();
 
-        // 1. UNIT LOGIC
-        if (viewUnit === 'IGD') {
-            // IGD: Show queue (where doctor/poli is IGD) AND admitted patients in IGD rooms
-            filtered = filtered.filter(p => {
-                if (p._isQueue) {
-                    return p.poliklinik?.name?.toLowerCase().includes('igd') ||
-                        p.poliklinik?.name?.toLowerCase().includes('emergency') ||
-                        p.doctor?.specialist?.toLowerCase().includes('igd');
-                }
-                return p.bed?.room?.name?.toLowerCase().includes('igd') ||
-                    p.bed?.room?.name?.toLowerCase().includes('emergency') ||
-                    p.bed?.room?.type === 'IGD';
-            });
-        } else if (viewUnit === 'POLI') {
-            // POLI: Only show queue for non-IGD clinics
-            filtered = filtered.filter(p =>
-                p._isQueue &&
-                !p.poliklinik?.name?.toLowerCase().includes('igd') &&
-                !p.poliklinik?.name?.toLowerCase().includes('emergency')
-            );
-        } else if (viewUnit === 'ICU') {
-            filtered = filtered.filter(p =>
-                p._isAdmitted && (
-                    p.bed?.room?.name?.toLowerCase().includes('icu') ||
-                    p.bed?.room?.type === 'ICU'
-                )
-            );
-        } else {
-            // WARD (General Ranap)
-            filtered = filtered.filter(p =>
-                p._isAdmitted &&
-                !p.bed?.room?.name?.toLowerCase().includes('igd') &&
-                !p.bed?.room?.name?.toLowerCase().includes('emergency') &&
-                !p.bed?.room?.name?.toLowerCase().includes('icu')
-            );
+        // Safety Strategy: Socket + Polling Backup
+        const interval = setInterval(fetchData, 60000); // 60s backup poll
+
+        if (socket) {
+            socket.on('queue_update', fetchData);
+            socket.on('admission_update', fetchData);
+            socket.on('triage_new', () => { toast('New Patient in Triage', { icon: '🚨' }); fetchData(); });
         }
 
-        // 2. SEARCH
+        return () => {
+            clearInterval(interval);
+            if (socket) {
+                socket.off('queue_update', fetchData);
+                socket.off('admission_update', fetchData);
+                socket.off('triage_new');
+            }
+        };
+    }, [socket, fetchData]);
+
+    // --- Filtering Logic ---
+    useEffect(() => {
+        let filtered = allPatients;
+
+        // Unit Filter
+        if (viewUnit === 'IGD') {
+            filtered = filtered.filter(p => {
+                if (p._isQueue) return p.poliklinik?.name?.toLowerCase().includes('igd') || p.poliklinik?.name?.toLowerCase().includes('emergency') || p.poliklinik?.name?.toLowerCase().includes('gawat');
+                return p.bed?.room?.name?.toLowerCase().includes('igd') || p.bed?.room?.type === 'IGD' || p.bed?.room?.name?.toLowerCase().includes('gawat');
+            });
+        } else if (viewUnit === 'POLI') {
+            filtered = filtered.filter(p => p._isQueue && !p.poliklinik?.name?.toLowerCase().includes('igd') && !p.poliklinik?.name?.toLowerCase().includes('emergency') && !p.poliklinik?.name?.toLowerCase().includes('gawat'));
+        } else if (viewUnit === 'ICU') {
+            filtered = filtered.filter(p => p._isAdmitted && (p.bed?.room?.name?.toLowerCase().includes('icu') || p.bed?.room?.type === 'ICU'));
+        } else {
+            // WARD
+            filtered = filtered.filter(p => p._isAdmitted && !p.bed?.room?.name?.toLowerCase().includes('igd') && !p.bed?.room?.name?.toLowerCase().includes('icu'));
+        }
+
+        // Search
         if (searchTerm) {
             const low = searchTerm.toLowerCase();
             filtered = filtered.filter(p =>
@@ -102,8 +115,9 @@ const NurseStation = () => {
         }
 
         setFilteredPatients(filtered);
-    };
+    }, [allPatients, viewUnit, searchTerm]);
 
+    // --- Selection Logic ---
     const handleSelectPatient = async (p) => {
         setSelectedPatient(p);
         if (p._isAdmitted) {
@@ -116,264 +130,276 @@ const NurseStation = () => {
             }
         } else {
             setActiveAction('triage');
-            setClinicalData(null); // Triage form handles its own logic
+            setClinicalData(null);
         }
     };
 
     return (
         <PageWrapper title="Nurse Clinical Hub">
-            <Toaster position="top-right" />
+            <Toaster position="top-right" toastOptions={{
+                style: { background: '#333', color: '#fff', borderRadius: '12px' }
+            }} />
 
-            <div className="flex flex-col h-[calc(100vh-80px)] max-w-[1920px] mx-auto p-6 gap-6 overflow-hidden">
+            <div className="flex flex-col h-[calc(100vh-80px)] max-w-[1920px] mx-auto p-4 md:p-6 gap-6 overflow-hidden">
 
-                {/* HEADER AREA */}
+                {/* Header & Controls */}
                 <div className="flex flex-col xl:flex-row justify-between items-start xl:items-end gap-6 shrink-0">
-                    <ModernHeader
-                        title="Clinical Hub"
-                        subtitle={`Managing active arrivals and inpatient care for ${viewUnit}`}
-                        className="mb-0"
-                    />
+                    <div>
+                        <ModernHeader
+                            title="Clinical Station"
+                            subtitle="Real-time Patient Monitoring & Care"
+                            className="mb-2"
+                        />
+                        <div className="flex items-center gap-2 text-xs font-bold text-gray-400">
+                            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                            Live Sync Active • Last updated: {lastUpdated.toLocaleTimeString()}
+                        </div>
+                    </div>
 
-                    {/* APPLE STYLE UNIT SELECTOR */}
-                    <div className="bg-gray-100 dark:bg-black/20 backdrop-blur-md p-1.5 rounded-[22px] flex items-center border border-white/10 shadow-sm">
-                        {[
-                            { id: 'IGD', label: 'Emergency', icon: <Timer size={16} /> },
-                            { id: 'POLI', label: 'Polyclinic', icon: <Stethoscope size={16} /> },
-                            { id: 'WARD', label: 'Wards', icon: <User size={16} /> },
-                            { id: 'ICU', label: 'ICU', icon: <Activity size={16} /> }
-                        ].map(unit => (
-                            <button
-                                key={unit.id}
-                                onClick={() => { setViewUnit(unit.id); setSelectedPatient(null); }}
-                                className={`px-6 py-3 rounded-2xl flex items-center gap-2 transition-all duration-500 font-bold text-sm
-                                    ${viewUnit === unit.id
-                                        ? 'bg-white dark:bg-gray-800 text-black dark:text-white shadow-[0_8px_20px_-5px_rgba(0,0,0,0.1)] scale-100'
-                                        : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-200'}`}
-                            >
-                                {unit.icon} {unit.label}
-                            </button>
-                        ))}
+                    <div className="flex gap-4">
+                        {/* Unit Selector */}
+                        <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-md p-1.5 rounded-[20px] flex items-center border border-white/20 shadow-lg">
+                            {[
+                                { id: 'IGD', label: 'Emergency', icon: Siren, color: 'text-red-500' },
+                                { id: 'POLI', label: 'Outpatient', icon: Stethoscope, color: 'text-blue-500' },
+                                { id: 'WARD', label: 'Inpatient', icon: Bed, color: 'text-orange-500' },
+                                { id: 'ICU', label: 'ICU', icon: Activity, color: 'text-purple-500' }
+                            ].map(unit => (
+                                <button
+                                    key={unit.id}
+                                    onClick={() => { setViewUnit(unit.id); setSelectedPatient(null); }}
+                                    className={`px-5 py-2.5 rounded-xl flex items-center gap-2 transition-all duration-300 font-bold text-sm
+                                        ${viewUnit === unit.id
+                                            ? 'bg-gray-900 dark:bg-white text-white dark:text-gray-900 shadow-md transform scale-100'
+                                            : 'text-gray-500 hover:bg-gray-100 dark:hover:bg-white/5'}`}
+                                >
+                                    <unit.icon size={16} className={viewUnit === unit.id ? 'text-current' : unit.color} />
+                                    <span>{unit.label}</span>
+                                    {getCount(unit.id) > 0 && (
+                                        <span className={`ml-1 px-1.5 py-0.5 rounded-md text-[10px] ${viewUnit === unit.id ? 'bg-white/20 text-white' : 'bg-gray-200 text-gray-600'}`}>
+                                            {getCount(unit.id)}
+                                        </span>
+                                    )}
+                                </button>
+                            ))}
+                        </div>
                     </div>
                 </div>
 
-                <div className="flex flex-col md:flex-row gap-8 flex-1 min-h-0">
+                {/* Main Workspace */}
+                <div className="flex flex-col md:flex-row gap-6 flex-1 min-h-0">
 
-                    {/* LEFT: PATIENT DIRECTORY */}
-                    <div className="w-full md:w-[380px] lg:w-[420px] flex flex-col gap-5 shrink-0">
-                        {/* Search & Filter Bar */}
-                        <div className="relative group">
-                            <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                                <Search className="h-5 w-5 text-gray-400 group-focus-within:text-blue-500 transition-colors" />
-                            </div>
+                    {/* LEFT PANEL: Patient List */}
+                    <div className="w-full md:w-[380px] lg:w-[420px] flex flex-col gap-4 shrink-0">
+                        {/* Search */}
+                        <div className="relative">
+                            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5" />
                             <input
                                 type="text"
-                                className="block w-full pl-12 pr-4 py-4 border-none rounded-[24px] bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-400 focus:ring-2 focus:ring-blue-500 shadow-[0_10px_30px_-15px_rgba(0,0,0,0.05)] transition-all"
-                                placeholder="Patient Name or RM#"
+                                placeholder="Search Name or RM..."
                                 value={searchTerm}
                                 onChange={(e) => setSearchTerm(e.target.value)}
+                                className="w-full pl-12 pr-4 py-4 rounded-[24px] bg-white dark:bg-gray-800 border border-transparent focus:border-blue-500/30 focus:ring-4 focus:ring-blue-500/10 outline-none shadow-sm transition-all font-medium text-gray-900 dark:text-white"
                             />
                         </div>
 
-                        {/* Combined List Panel */}
-                        <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar space-y-3 pb-10">
-                            {isLoading && allPatients.length === 0 ? (
-                                <div className="flex flex-col items-center justify-center py-20 opacity-30">
-                                    <div className="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mb-4" />
-                                    <p className="font-bold">Syncing Hub...</p>
-                                </div>
-                            ) : filteredPatients.length === 0 ? (
-                                <div className="text-center py-24 px-10 border-2 border-dashed border-gray-100 dark:border-gray-800 rounded-[40px]">
-                                    <User size={48} className="mx-auto mb-4 text-gray-200" />
-                                    <p className="text-gray-400 font-bold leading-tight">No active patients in {viewUnit}</p>
-                                </div>
-                            ) : (
-                                filteredPatients.map(p => (
-                                    <motion.div
-                                        layoutId={`pat-${p.id}-${p._isQueue ? 'q' : 'a'}`}
-                                        key={`${p.id}-${p._isQueue ? 'q' : 'a'}`}
-                                        onClick={() => handleSelectPatient(p)}
-                                        className={`p-5 rounded-[28px] cursor-pointer border-2 transition-all duration-500 group relative overflow-hidden
-                                            ${selectedPatient?.id === p.id && selectedPatient?._isQueue === p._isQueue
-                                                ? 'bg-blue-600 border-blue-600 text-white shadow-2xl shadow-blue-500/40 scale-[1.02] z-10'
-                                                : 'bg-white dark:bg-gray-800 border-transparent hover:border-blue-100 dark:hover:border-gray-700 hover:shadow-xl'
-                                            }`}
-                                    >
-                                        <div className="flex justify-between items-start mb-3 relative z-10">
-                                            <div className="flex-1">
-                                                <h4 className={`font-black text-lg leading-tight tracking-tight ${selectedPatient?.id === p.id ? 'text-white' : 'text-gray-900 dark:text-white'}`}>
-                                                    {p.patient?.name}
-                                                </h4>
-                                                <div className={`flex items-center gap-2 text-[10px] font-bold mt-1 uppercase tracking-widest ${selectedPatient?.id === p.id ? 'text-blue-200' : 'text-gray-400'}`}>
-                                                    <span>RM: {p.patient?.no_rm}</span>
-                                                    <span>•</span>
-                                                    <span>{p.patient?.gender === 'L' ? 'Male' : 'Female'}</span>
-                                                </div>
-                                            </div>
-
-                                            {/* Status Badge */}
-                                            <div className={`px-2.5 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-wider
-                                                ${p._isQueue
-                                                    ? 'bg-orange-100 text-orange-600 dark:bg-orange-500/20 dark:text-orange-400'
-                                                    : 'bg-emerald-100 text-emerald-600 dark:bg-emerald-500/20 dark:text-emerald-400'}`}>
-                                                {p._isQueue ? 'Arrival' : 'Admitted'}
-                                            </div>
-                                        </div>
-
-                                        <div className={`flex items-center gap-3 p-3 rounded-2xl transition-all duration-300
-                                            ${selectedPatient?.id === p.id ? 'bg-white/10' : 'bg-gray-50 dark:bg-gray-700/50'}`}>
-                                            <div className={`p-2 rounded-xl ${selectedPatient?.id === p.id ? 'bg-white/20' : 'bg-white dark:bg-gray-600 shadow-sm'}`}>
-                                                {p._isQueue ? <Timer size={14} /> : <MapPin size={14} />}
-                                            </div>
-                                            <div className="flex-1 min-w-0">
-                                                <p className={`text-[10px] font-bold uppercase tracking-widest ${selectedPatient?.id === p.id ? 'text-blue-100' : 'text-gray-400 underline decoration-dotted'}`}>
-                                                    {p._isQueue ? 'Requested Clinic' : 'Room & Bed'}
-                                                </p>
-                                                <p className={`text-xs font-bold truncate ${selectedPatient?.id === p.id ? 'text-white' : 'text-gray-700 dark:text-gray-200'}`}>
-                                                    {p._isQueue ? (p.poliklinik?.name || 'Emergency') : `${p.bed?.room?.name} • ${p.bed?.code}`}
-                                                </p>
-                                            </div>
-                                        </div>
+                        {/* List */}
+                        <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar space-y-3 pb-20">
+                            <AnimatePresence mode="popLayout">
+                                {isLoading && allPatients.length === 0 ? (
+                                    <div className="flex flex-col items-center justify-center py-20 opacity-50 space-y-4">
+                                        <div className="w-10 h-10 border-4 border-blue-500 border-t-transparent rounded-full animate-spin" />
+                                        <p className="font-bold text-sm">Syncing Data...</p>
+                                    </div>
+                                ) : filteredPatients.length === 0 ? (
+                                    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-center py-20 px-8 border-2 border-dashed border-gray-200 dark:border-gray-700 rounded-[32px]">
+                                        <User size={40} className="mx-auto mb-3 text-gray-300" />
+                                        <p className="text-gray-400 font-bold">No patients found in {viewUnit}</p>
                                     </motion.div>
-                                ))
-                            )}
+                                ) : (
+                                    filteredPatients.map(p => (
+                                        <PatientCard
+                                            key={p.id}
+                                            patient={p}
+                                            isSelected={selectedPatient?.id === p.id}
+                                            onClick={() => handleSelectPatient(p)}
+                                        />
+                                    ))
+                                )}
+                            </AnimatePresence>
                         </div>
                     </div>
 
-                    {/* RIGHT: DYNAMIC CLINICAL WORKSPACE */}
-                    <div className="flex-1 bg-white dark:bg-gray-800 rounded-[44px] shadow-2xl shadow-black/5 border border-white/40 dark:border-gray-700 overflow-hidden flex flex-col relative transition-all duration-700">
+                    {/* RIGHT PANEL: Workspace */}
+                    <div className="flex-1 bg-white/60 dark:bg-gray-800/60 backdrop-blur-xl rounded-[40px] border border-white/40 dark:border-white/5 shadow-2xl relative overflow-hidden flex flex-col">
                         <AnimatePresence mode="wait">
                             {selectedPatient ? (
                                 <motion.div
-                                    key={selectedPatient.id + (selectedPatient._isQueue ? 'q' : 'a')}
+                                    key={selectedPatient.id}
                                     initial={{ opacity: 0, x: 20 }}
                                     animate={{ opacity: 1, x: 0 }}
                                     exit={{ opacity: 0, x: -20 }}
-                                    className="flex flex-col h-full overflow-hidden"
+                                    className="flex flex-col h-full"
                                 >
-                                    {/* Workspace Navigation Header */}
-                                    <div className="p-10 pb-6 border-b border-gray-100 dark:border-gray-800 bg-white/50 dark:bg-gray-900/50 backdrop-blur-3xl sticky top-0 z-20">
-                                        <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6">
-                                            <div className="flex items-center gap-6">
-                                                <div className="relative">
-                                                    <div className="w-20 h-20 bg-gradient-to-tr from-blue-600 to-indigo-400 rounded-3xl flex items-center justify-center text-white shadow-xl rotate-3 group-hover:rotate-0 transition-transform">
-                                                        <User size={36} strokeWidth={2.5} />
-                                                    </div>
-                                                    <div className={`absolute -bottom-2 -right-2 w-8 h-8 rounded-2xl flex items-center justify-center shadow-lg border-4 border-white dark:border-gray-900
-                                                    ${selectedPatient._isQueue ? 'bg-orange-500' : 'bg-emerald-500'}`}>
-                                                        {selectedPatient._isQueue ? <Timer size={14} className="text-white" /> : <CheckCircle size={14} className="text-white" />}
-                                                    </div>
-                                                </div>
-                                                <div>
-                                                    <div className="flex items-center gap-3 mb-1">
-                                                        <h1 className="text-4xl font-black text-gray-900 dark:text-white tracking-tighter">{selectedPatient.patient?.name}</h1>
-                                                    </div>
-                                                    <div className="flex flex-wrap gap-4 text-xs font-bold text-gray-400 tracking-widest uppercase">
-                                                        <span className="flex items-center gap-2"><MapPin size={12} className="text-blue-500" /> {selectedPatient._isQueue ? 'Reception' : selectedPatient.bed?.room?.name}</span>
-                                                        <span className="flex items-center gap-2"><Calendar size={12} className="text-indigo-500" /> {new Date(selectedPatient.patient?.birth_date).toLocaleDateString()}</span>
-                                                        <span className="flex items-center gap-2"><FileText size={12} className="text-gray-400" /> {selectedPatient.patient?.no_rm}</span>
-                                                        {selectedPatient.patient?.allergies && <span className="flex items-center gap-2 text-red-500"><ShieldAlert size={12} /> {selectedPatient.patient.allergies}</span>}
-                                                    </div>
-                                                </div>
-                                            </div>
+                                    <WorkspaceHeader
+                                        patient={selectedPatient}
+                                        activeAction={activeAction}
+                                        setActiveAction={setActiveAction}
+                                    />
 
-                                            {/* Contextual Action Toggles */}
-                                            <div className="bg-gray-100 dark:bg-gray-700/50 p-1.5 rounded-[22px] flex items-center gap-1">
-                                                {selectedPatient._isQueue ? (
-                                                    <div className="px-6 py-2.5 rounded-2xl bg-white dark:bg-gray-800 text-black dark:text-white shadow-sm font-black text-sm flex items-center gap-2">
-                                                        <Gauge size={16} /> Triage Assessment
-                                                    </div>
-                                                ) : (
-                                                    <>
-                                                        {[
-                                                            { id: 'cppt', label: 'CPPT / Vitals', icon: <Activity size={16} /> },
-                                                            { id: 'mar', label: 'e-MAR / Meds', icon: <Pill size={16} /> }
-                                                        ].map(tab => (
-                                                            <button
-                                                                key={tab.id}
-                                                                onClick={() => setActiveAction(tab.id)}
-                                                                className={`px-6 py-2.5 rounded-2xl text-xs font-black uppercase tracking-wider flex items-center gap-2 transition-all duration-300
-                                                                ${activeAction === tab.id
-                                                                        ? 'bg-white dark:bg-gray-800 text-black dark:text-white shadow-sm scale-100'
-                                                                        : 'text-gray-400 hover:text-gray-600'}`}
-                                                            >
-                                                                {tab.icon} {tab.label}
-                                                            </button>
-                                                        ))}
-                                                    </>
-                                                )}
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    {/* Main Clinical Console */}
-                                    <div className="flex-1 overflow-y-auto p-10 custom-scrollbar bg-gray-50/20 dark:bg-black/5">
-                                        <div className="max-w-6xl mx-auto">
-                                            <AnimatePresence mode="wait">
-                                                {selectedPatient._isQueue ? (
-                                                    <TriageAssessmentForm
-                                                        patientRecord={selectedPatient}
-                                                        onSuccess={() => { setSelectedPatient(null); fetchData(); }}
-                                                    />
-                                                ) : (
-                                                    <motion.div
-                                                        key={activeAction}
-                                                        initial={{ opacity: 0, y: 15 }}
-                                                        animate={{ opacity: 1, y: 0 }}
-                                                        exit={{ opacity: 0, y: -15 }}
-                                                        transition={{ duration: 0.4 }}
-                                                    >
-                                                        {clinicalData ? (
-                                                            activeAction === 'cppt' ? (
-                                                                <CPPTView admissionId={selectedPatient.id} observations={clinicalData.admission.observations} refresh={() => handleSelectPatient(selectedPatient)} />
-                                                            ) : (
-                                                                <MARView admissionId={selectedPatient.id} logs={clinicalData.admission.medication_logs} prescriptions={clinicalData.prescriptions} refresh={() => handleSelectPatient(selectedPatient)} />
-                                                            )
-                                                        ) : (
-                                                            <div className="flex flex-col items-center justify-center py-40 opacity-20">
-                                                                <LoaderCircle className="animate-spin mb-4" />
-                                                                <p className="font-bold">Accessing Patient Chart...</p>
-                                                            </div>
-                                                        )}
-                                                    </motion.div>
-                                                )}
-                                            </AnimatePresence>
-                                        </div>
+                                    <div className="flex-1 overflow-y-auto p-8 custom-scrollbar">
+                                        {selectedPatient._isQueue ? (
+                                            <TriageAssessmentForm
+                                                patientRecord={selectedPatient}
+                                                onSuccess={() => { setSelectedPatient(null); fetchData(); }}
+                                            />
+                                        ) : (
+                                            activeAction === 'cppt' ? (
+                                                <CPPTView
+                                                    admissionId={selectedPatient.id}
+                                                    observations={clinicalData?.admission?.observations || []}
+                                                    refresh={() => handleSelectPatient(selectedPatient)}
+                                                />
+                                            ) : (
+                                                <MARView
+                                                    admissionId={selectedPatient.id}
+                                                    logs={clinicalData?.admission?.medication_logs || []}
+                                                    prescriptions={clinicalData?.prescriptions || []}
+                                                    refresh={() => handleSelectPatient(selectedPatient)}
+                                                />
+                                            )
+                                        )}
                                     </div>
                                 </motion.div>
                             ) : (
-                                <div className="flex-1 flex flex-col items-center justify-center text-center p-20 bg-white/50 dark:bg-gray-900/50">
-                                    <motion.div
-                                        animate={{
-                                            y: [0, -10, 0],
-                                            rotate: [0, -2, 2, 0]
-                                        }}
-                                        transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
-                                        className="w-40 h-40 bg-gray-50 dark:bg-gray-800 rounded-[50px] shadow-2xl flex items-center justify-center mb-10 relative"
-                                    >
-                                        <div className="absolute inset-0 bg-blue-500/5 blur-[50px] rounded-full animate-pulse" />
-                                        <LayoutDashboard size={80} className="text-blue-100 dark:text-gray-700" />
-                                    </motion.div>
-                                    <h1 className="text-4xl font-black text-gray-900 dark:text-white tracking-tighter mb-4">Patient Control Centre</h1>
-                                    <p className="text-gray-400 max-w-sm font-medium leading-relaxed">
-                                        Select a patient from the {viewUnit} directory to access their real-time clinical workspace, triage status, and ongoing care plan.
-                                    </p>
-                                </div>
+                                <EmptyStatePlaceholder />
                             )}
                         </AnimatePresence>
                     </div>
+
                 </div>
             </div>
         </PageWrapper>
     );
 };
 
-// --- SUBSYSTEM: TRIAGE ASSESSMENT (FORM) ---
+// --- Sub Components ---
+
+const PatientCard = ({ patient, isSelected, onClick }) => (
+    <motion.div
+        layoutId={`card-${patient.id}`}
+        onClick={onClick}
+        whileHover={{ scale: 1.02 }}
+        whileTap={{ scale: 0.98 }}
+        className={`p-5 rounded-[24px] cursor-pointer border-2 transition-all duration-300 relative overflow-hidden group
+            ${isSelected
+                ? 'bg-gradient-to-br from-gray-900 to-gray-800 dark:from-blue-600 dark:to-blue-800 border-transparent text-white shadow-xl'
+                : 'bg-white dark:bg-gray-800 border-transparent hover:border-blue-200 dark:hover:border-gray-700 shadow-sm hover:shadow-lg'
+            }`}
+    >
+        <div className="flex justify-between items-start mb-3 relative z-10">
+            <div>
+                <h4 className={`font-black text-base leading-tight ${isSelected ? 'text-white' : 'text-gray-900 dark:text-white'}`}>
+                    {patient.patient?.name}
+                </h4>
+                <div className={`flex items-center gap-2 text-[10px] font-bold mt-1 uppercase tracking-widest ${isSelected ? 'text-gray-400' : 'text-gray-400'}`}>
+                    <span>RM: {patient.patient?.no_rm}</span>
+                </div>
+            </div>
+            <div className={`px-2 py-1 rounded-lg text-[10px] font-black uppercase tracking-wider
+                ${patient._isQueue
+                    ? (patient.triage_status === 'COMPLETED' ? 'bg-emerald-100 text-emerald-600' : 'bg-orange-100 text-orange-600')
+                    : 'bg-emerald-100 text-emerald-600'}`}>
+                {patient._isQueue ? (patient.triage_status === 'COMPLETED' ? 'DONE' : 'TRIAGE') : 'ADMIT'}
+            </div>
+        </div>
+
+        <div className={`flex items-center gap-3 p-2.5 rounded-xl ${isSelected ? 'bg-white/10' : 'bg-gray-50 dark:bg-gray-700/50'}`}>
+            <div className={`p-1.5 rounded-lg ${isSelected ? 'bg-white/20' : 'bg-white dark:bg-gray-600 shadow-sm'}`}>
+                {patient._isQueue ? <Timer size={14} /> : <MapPin size={14} />}
+            </div>
+            <div className="flex-1 min-w-0">
+                <p className={`text-[10px] font-bold truncate ${isSelected ? 'text-white' : 'text-gray-700 dark:text-gray-200'}`}>
+                    {patient._isQueue ? (patient.poliklinik?.name || 'Emergency') : `${patient.bed?.room?.name || 'Room'} • ${patient.bed?.code || 'Bed'}`}
+                </p>
+            </div>
+        </div>
+    </motion.div>
+);
+
+const WorkspaceHeader = ({ patient, activeAction, setActiveAction }) => (
+    <div className="p-8 border-b border-gray-100 dark:border-gray-700/50 bg-white/50 dark:bg-gray-900/50 backdrop-blur-md sticky top-0 z-20">
+        <div className="flex flex-col xl:flex-row justify-between items-start xl:items-center gap-6">
+            <div className="flex items-center gap-5">
+                <div className={`w-16 h-16 rounded-2xl flex items-center justify-center text-white shadow-lg
+                    ${patient._isQueue ? 'bg-gradient-to-br from-orange-400 to-red-500' : 'bg-gradient-to-br from-blue-400 to-indigo-600'}`}>
+                    <User size={32} strokeWidth={2.5} />
+                </div>
+                <div>
+                    <h2 className="text-3xl font-black text-gray-900 dark:text-white tracking-tight leading-none mb-2">{patient.patient?.name}</h2>
+                    <div className="flex gap-4 text-xs font-bold text-gray-500 uppercase tracking-widest">
+                        <span>{new Date().getFullYear() - new Date(patient.patient?.birth_date).getFullYear()} Y.O</span>
+                        <span>{patient.patient?.gender === 'L' ? 'Male' : 'Female'}</span>
+                        {patient.patient?.allergies && <span className="text-red-500 flex items-center gap-1"><ShieldAlert size={12} /> {patient.patient.allergies}</span>}
+                    </div>
+                </div>
+            </div>
+
+            {!patient._isQueue && (
+                <div className="flex p-1 bg-gray-100 dark:bg-gray-700/50 rounded-xl">
+                    {[
+                        { id: 'cppt', label: 'Clinical Notes', icon: Activity },
+                        { id: 'mar', label: 'Medications', icon: Pill }
+                    ].map(tab => (
+                        <button
+                            key={tab.id}
+                            onClick={() => setActiveAction(tab.id)}
+                            className={`px-5 py-2.5 rounded-lg text-xs font-black uppercase tracking-wider flex items-center gap-2 transition-all
+                                ${activeAction === tab.id
+                                    ? 'bg-white dark:bg-gray-800 text-black dark:text-white shadow-sm'
+                                    : 'text-gray-400 hover:text-gray-600'}`}
+                        >
+                            <tab.icon size={14} /> {tab.label}
+                        </button>
+                    ))}
+                </div>
+            )}
+        </div>
+    </div>
+);
+
+const EmptyStatePlaceholder = () => (
+    <div className="flex-1 flex flex-col items-center justify-center text-center p-10 opacity-60">
+        <div className="w-32 h-32 bg-gray-100 dark:bg-gray-700 rounded-full flex items-center justify-center mb-6 animate-pulse">
+            <LayoutDashboard size={48} className="text-gray-300 dark:text-gray-500" />
+        </div>
+        <h3 className="text-2xl font-black text-gray-900 dark:text-white">Clinical Workspace</h3>
+        <p className="text-gray-400 dark:text-gray-500 max-w-sm mt-2 font-medium">Select a patient to view real-time vitals, triage forms, and medication logs.</p>
+    </div>
+);
+
+// --- Triage Form ---
 const TriageAssessmentForm = ({ patientRecord, onSuccess }) => {
-    const [loading, setLoading] = useState(false);
-    const [triageLevel, setTriageLevel] = useState(3);
+    // Detect context: Is this IGD/Emergency or Poliklinik?
+    const isEmergency = patientRecord.poliklinik?.name?.toLowerCase().includes('igd') ||
+        patientRecord.poliklinik?.name?.toLowerCase().includes('emergency') ||
+        patientRecord.poliklinik?.name?.toLowerCase().includes('gawat');
+
+    // Pre-fill if data exists
+    const existing = patientRecord.vitals || {};
+
+    const [triageLevel, setTriageLevel] = useState(existing.triage_level || (isEmergency ? 3 : 5)); // Default ATS 3 for IGD, 5 for Poli
     const [form, setForm] = useState({
-        systolic: '', diastolic: '', hr: '', temp: '', weight: '', height: '', complaint: '', allergies: patientRecord.patient?.allergies || ''
+        systolic: existing.systolic || '',
+        diastolic: existing.diastolic || '',
+        hr: existing.heart_rate || '',
+        temp: existing.temperature || '',
+        weight: existing.weight || '',
+        height: existing.height || '',
+        complaint: existing.chief_complaint || '',
+        allergies: existing.allergies || patientRecord.patient?.allergies || ''
     });
+    const [loading, setLoading] = useState(false);
 
     const handleSubmit = async (e) => {
         e.preventDefault();
@@ -392,284 +418,186 @@ const TriageAssessmentForm = ({ patientRecord, onSuccess }) => {
                 triage_level: triageLevel,
                 chief_complaint: form.complaint
             });
-            toast.success('Patient advanced to Doctor Queue');
+            toast.success(isEmergency ? 'Triage Saved' : 'Vitals Recorded');
             onSuccess();
-        } catch (error) {
-            toast.error('Submission failed');
-        } finally { setLoading(false); }
+        } catch (e) { toast.error('Submit Failed'); }
+        finally { setLoading(false); }
     };
 
     return (
-        <form onSubmit={handleSubmit} className="space-y-10 animate-fade-in">
-            {/* ATS Triage Scale Selector */}
-            <div className="grid grid-cols-1 lg:grid-cols-5 gap-4">
-                {[
-                    { l: 1, c: 'bg-red-600', t: 'Resuscitation', d: 'Immediate life saving' },
-                    { l: 2, c: 'bg-orange-500', t: 'Emergency', d: 'Assessment within 10m' },
-                    { l: 3, c: 'bg-yellow-400 text-black', t: 'Urgent', d: 'Assessment within 30m' },
-                    { l: 4, c: 'bg-green-500', t: 'Less Urgent', d: 'Assessment within 60m' },
-                    { l: 5, c: 'bg-blue-500', t: 'Non Urgent', d: 'Assessment within 120m' }
-                ].map(item => (
-                    <button
-                        key={item.l} type="button" onClick={() => setTriageLevel(item.l)}
-                        className={`p-5 rounded-[28px] text-left transition-all duration-500 border-4 flex flex-col gap-2
-                            ${triageLevel === item.l
-                                ? `${item.c} border-${item.c.split('-')[1]}-200 text-white shadow-2xl shadow-black/20 scale-[1.05]`
-                                : 'bg-white dark:bg-gray-800 border-transparent hover:border-gray-100 text-gray-400 opacity-60'}`}
-                    >
-                        <span className="text-3xl font-black">ATS {item.l}</span>
-                        <div className="mt-auto">
-                            <p className="font-black text-[10px] uppercase tracking-widest leading-none mb-1">{item.t}</p>
-                            <p className="text-[9px] font-bold opacity-70 leading-tight">{item.d}</p>
-                        </div>
-                    </button>
-                ))}
-            </div>
+        <form onSubmit={handleSubmit} className="space-y-10 max-w-5xl mx-auto">
+            {/* Context Banner */}
+            {patientRecord.triage_status === 'COMPLETED' && (
+                <div className="bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 p-4 rounded-xl flex items-center gap-2 font-bold mb-4">
+                    <CheckCircle size={20} />
+                    {isEmergency ? 'Triage Completed' : 'Vitals Recorded'} - You can update the values below
+                </div>
+            )}
 
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-10">
-                {/* Physical Assessment */}
-                <div className="space-y-8">
-                    <h3 className="text-xs font-black uppercase tracking-[0.2em] text-blue-500 flex items-center gap-3">
-                        <Activity size={14} /> Physical Assessment
+            {/* Only show ATS Selection for Emergency Context */}
+            {isEmergency && (
+                <div className="grid grid-cols-1 lg:grid-cols-5 gap-3">
+                    {[1, 2, 3, 4, 5].map(level => (
+                        <button
+                            key={level} type="button" onClick={() => setTriageLevel(level)}
+                            className={`p-4 rounded-2xl border-2 transition-all flex flex-col items-center gap-1
+                                ${triageLevel === level
+                                    ? 'border-current bg-gray-50 dark:bg-white/5 scale-105 shadow-lg'
+                                    : 'border-transparent bg-gray-50 dark:bg-gray-800 text-gray-400 opacity-60 hover:opacity-100'
+                                }
+                                ${level === 1 ? 'text-red-600' : level === 2 ? 'text-orange-500' : level === 3 ? 'text-yellow-500' : level === 4 ? 'text-green-500' : 'text-blue-500'}
+                            `}
+                        >
+                            <span className="text-2xl font-black">ATS {level}</span>
+                            <span className="text-[10px] font-bold uppercase tracking-widest">{level === 1 ? 'Resuscitation' : level === 2 ? 'Emergency' : level === 3 ? 'Urgent' : level === 4 ? 'Less Urgent' : 'Non Urgent'}</span>
+                        </button>
+                    ))}
+                </div>
+            )}
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <div className="glass-panel p-6 rounded-[32px] border border-gray-100 dark:border-gray-700/50">
+                    <h3 className="font-bold text-gray-400 uppercase tracking-widest text-xs mb-6 flex items-center gap-2">
+                        <Activity size={14} /> {isEmergency ? 'Triage Vitals' : 'Initial Assessment'}
                     </h3>
-                    <div className="grid grid-cols-2 gap-6">
-                        <InputGroup label="Systolic (mmHg)" value={form.systolic} onChange={v => setForm({ ...form, systolic: v })} />
-                        <InputGroup label="Diastolic (mmHg)" value={form.diastolic} onChange={v => setForm({ ...form, diastolic: v })} />
-                        <InputGroup label="Heart Rate (bpm)" value={form.hr} onChange={v => setForm({ ...form, hr: v })} />
-                        <InputGroup label="Temp (°C)" value={form.temp} onChange={v => setForm({ ...form, temp: v })} />
-                        <InputGroup label="Weight (kg)" value={form.weight} onChange={v => setForm({ ...form, weight: v })} />
-                        <InputGroup label="Height (cm)" value={form.height} onChange={v => setForm({ ...form, height: v })} />
+                    <div className="grid grid-cols-2 gap-4">
+                        <InputBox label="Systolic" value={form.systolic} onChange={v => setForm({ ...form, systolic: v })} />
+                        <InputBox label="Diastolic" value={form.diastolic} onChange={v => setForm({ ...form, diastolic: v })} />
+                        <InputBox label="HR (bpm)" value={form.hr} onChange={v => setForm({ ...form, hr: v })} />
+                        <InputBox label="Temp (°C)" value={form.temp} onChange={v => setForm({ ...form, temp: v })} />
+                        <InputBox label="Weight (kg)" value={form.weight} onChange={v => setForm({ ...form, weight: v })} />
+                        <InputBox label="Height (cm)" value={form.height} onChange={v => setForm({ ...form, height: v })} />
                     </div>
                 </div>
 
-                {/* Clinical Notes */}
-                <div className="space-y-8">
-                    <h3 className="text-xs font-black uppercase tracking-[0.2em] text-indigo-500 flex items-center gap-3">
-                        <FileText size={14} /> Clinical Findings
-                    </h3>
-                    <div className="space-y-6">
-                        <div className="space-y-2">
-                            <label className="text-[10px] font-black uppercase tracking-widest text-gray-400 ml-2">Chief Complaint</label>
-                            <textarea
-                                required className="w-full p-6 bg-white dark:bg-gray-800 rounded-[32px] border-none focus:ring-4 focus:ring-blue-500/10 shadow-sm min-h-[140px] font-medium"
-                                placeholder="Patient's primary reason for visit..."
-                                value={form.complaint} onChange={e => setForm({ ...form, complaint: e.target.value })}
-                            />
-                        </div>
-                        <div className="space-y-2">
-                            <label className="text-[10px] font-black uppercase tracking-widest text-red-500 ml-2">Allergies & Alerts</label>
-                            <textarea
-                                className="w-full p-6 bg-red-50/50 dark:bg-red-500/5 rounded-[32px] border-none focus:ring-4 focus:ring-red-500/10 shadow-sm min-h-[100px] font-bold text-red-600 placeholder-red-200"
-                                placeholder="Known allergies..."
-                                value={form.allergies} onChange={e => setForm({ ...form, allergies: e.target.value })}
-                            />
-                        </div>
-                    </div>
+                <div className="glass-panel p-6 rounded-[32px] border border-gray-100 dark:border-gray-700/50">
+                    <h3 className="font-bold text-gray-400 uppercase tracking-widest text-xs mb-6 flex items-center gap-2"><FileText size={14} /> Clinical Findings</h3>
+                    <textarea
+                        className="w-full h-32 p-4 bg-gray-50 dark:bg-gray-800 rounded-2xl border-none focus:ring-2 focus:ring-blue-500 mb-4 font-medium"
+                        placeholder="Chief Complaint..."
+                        value={form.complaint} onChange={e => setForm({ ...form, complaint: e.target.value })}
+                    />
+                    <textarea
+                        className="w-full h-24 p-4 bg-red-50 dark:bg-red-900/10 text-red-600 rounded-2xl border-none focus:ring-2 focus:ring-red-500 font-medium placeholder-red-300"
+                        placeholder="Allergies..."
+                        value={form.allergies} onChange={e => setForm({ ...form, allergies: e.target.value })}
+                    />
                 </div>
             </div>
 
-            <div className="flex justify-end pt-10 border-t border-gray-100 dark:border-gray-800">
-                <button
-                    type="submit" disabled={loading}
-                    className="px-14 py-6 bg-black dark:bg-white text-white dark:text-black rounded-[28px] font-black text-lg shadow-2xl hover:scale-105 active:scale-95 transition-all flex items-center gap-3"
-                >
-                    {loading ? 'Processing...' : <><CheckCircle size={22} strokeWidth={3} /> Complete Triage</>}
+            <div className="flex justify-end">
+                <button disabled={loading} className="px-10 py-4 bg-black dark:bg-white text-white dark:text-black rounded-2xl font-black shadow-xl hover:scale-105 transition-all flex items-center gap-2">
+                    {loading ? 'Saving...' : <><CheckCircle size={20} /> {patientRecord.triage_status === 'COMPLETED' ? 'Update & Save' : (isEmergency ? 'Complete Triage' : 'Save Vitals')}</>}
                 </button>
             </div>
         </form>
     );
-};
+}
 
-const InputGroup = ({ label, value, onChange, placeholder = "0" }) => (
-    <div className="space-y-2 group">
-        <label className="text-[10px] font-black uppercase tracking-widest text-gray-400 ml-2 group-focus-within:text-blue-500 transition-colors">{label}</label>
-        <input
-            required type="number" step="any" placeholder={placeholder}
-            className="w-full p-5 bg-white dark:bg-gray-800 rounded-[22px] border-none font-black text-xl shadow-sm focus:ring-4 focus:ring-blue-500/10 transition-all text-center lg:text-left"
-            value={value} onChange={e => onChange(e.target.value)}
-        />
+const InputBox = ({ label, value, onChange }) => (
+    <div className="space-y-1">
+        <label className="text-[10px] font-bold uppercase text-gray-400 ml-1">{label}</label>
+        <input type="number" className="w-full p-3 bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 font-bold focus:ring-2 focus:ring-blue-500 outline-none transition-all" value={value} onChange={e => onChange(e.target.value)} />
     </div>
 );
 
-// --- SUBSYSTEM: CPPT (INPATIENT OBSERVATION) ---
+// --- CPPT View ---
 const CPPTView = ({ admissionId, observations, refresh }) => {
-    const [form, setForm] = useState({ systolic: '', diastolic: '', temperature: '', heart_rate: '', notes: '' });
+    const [note, setNote] = useState('');
+    const [vitals, setVitals] = useState({ sys: '', dia: '', hr: '', temp: '' });
 
     const handleSubmit = async (e) => {
         e.preventDefault();
         try {
             await api.post(`/inpatient/${admissionId}/observation`, {
-                nurse_name: 'Nurse Joyce',
-                vitals: {
-                    systolic: parseInt(form.systolic),
-                    diastolic: parseInt(form.diastolic),
-                    temperature: parseFloat(form.temperature),
-                    heart_rate: parseInt(form.heart_rate)
-                },
-                notes: form.notes
+                nurse_name: 'Nurse On Duty',
+                vitals: { systolic: parseInt(vitals.sys), diastolic: parseInt(vitals.dia), temperature: parseFloat(vitals.temp), heart_rate: parseInt(vitals.hr) },
+                notes: note
             });
-            toast.success('Vitals recorded successfully');
-            setForm({ systolic: '', diastolic: '', temperature: '', heart_rate: '', notes: '' });
-            refresh();
-        } catch (error) { toast.error('Failed to save'); }
+            toast.success('Saved'); refresh(); setNote(''); setVitals({ sys: '', dia: '', hr: '', temp: '' });
+        } catch (e) { toast.error('Error'); }
     };
 
     return (
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-12">
-            {/* Input Form */}
-            <div className="bg-white dark:bg-gray-800 p-8 rounded-[40px] shadow-[0_20px_60px_-15px_rgba(0,0,0,0.08)] border border-white/40 dark:border-gray-700 h-fit space-y-8">
-                <h3 className="font-black text-xl tracking-tight flex items-center gap-3">
-                    <div className="p-3 bg-blue-100 text-blue-600 rounded-2xl"><Plus size={24} /></div>
-                    Daily Vitals
-                </h3>
-                <form onSubmit={handleSubmit} className="space-y-6">
-                    <div className="grid grid-cols-2 gap-4">
-                        <input required type="number" placeholder="Sys" className="p-4 bg-gray-50 border-none rounded-2xl font-bold" value={form.systolic} onChange={e => setForm({ ...form, systolic: e.target.value })} />
-                        <input required type="number" placeholder="Dia" className="p-4 bg-gray-50 border-none rounded-2xl font-bold" value={form.diastolic} onChange={e => setForm({ ...form, diastolic: e.target.value })} />
-                        <input required type="number" step="0.1" placeholder="Temp" className="p-4 bg-gray-50 border-none rounded-2xl font-bold text-orange-600" value={form.temperature} onChange={e => setForm({ ...form, temperature: e.target.value })} />
-                        <input required type="number" placeholder="HR" className="p-4 bg-gray-50 border-none rounded-2xl font-bold text-red-600" value={form.heart_rate} onChange={e => setForm({ ...form, heart_rate: e.target.value })} />
-                    </div>
-                    <textarea className="w-full p-5 bg-gray-50 border-none rounded-2xl focus:ring-2 focus:ring-blue-500 min-h-[140px] font-medium" placeholder="Clinical Progress Note..." value={form.notes} onChange={e => setForm({ ...form, notes: e.target.value })} />
-                    <button type="submit" className="w-full py-5 bg-blue-600 text-white rounded-2xl font-black text-lg shadow-xl shadow-blue-500/30 hover:scale-[1.02] active:scale-[0.98] transition-all">
-                        Record Progress
-                    </button>
-                </form>
-            </div>
-
-            {/* Timeline */}
-            <div className="lg:col-span-2 space-y-6">
-                <div className="flex justify-between items-center px-4 mb-4">
-                    <h3 className="text-sm font-black uppercase tracking-[0.25em] text-gray-400">Clinical Timeline</h3>
+        <div className="flex flex-col lg:flex-row gap-8">
+            <div className="w-full lg:w-1/3 space-y-6">
+                <div className="bg-blue-50 dark:bg-blue-900/10 p-6 rounded-[32px] border border-blue-100 dark:border-blue-800">
+                    <h3 className="font-bold text-blue-600 dark:text-blue-400 mb-4 flex items-center gap-2"><Plus size={18} /> New Entry</h3>
+                    <form onSubmit={handleSubmit} className="space-y-4">
+                        <div className="grid grid-cols-2 gap-2">
+                            <input placeholder="Sys" required type="number" className="p-3 rounded-xl border-none font-bold" value={vitals.sys} onChange={e => setVitals({ ...vitals, sys: e.target.value })} />
+                            <input placeholder="Dia" required type="number" className="p-3 rounded-xl border-none font-bold" value={vitals.dia} onChange={e => setVitals({ ...vitals, dia: e.target.value })} />
+                            <input placeholder="Temp" required type="number" step="0.1" className="p-3 rounded-xl border-none font-bold" value={vitals.temp} onChange={e => setVitals({ ...vitals, temp: e.target.value })} />
+                            <input placeholder="bpm" required type="number" className="p-3 rounded-xl border-none font-bold" value={vitals.hr} onChange={e => setVitals({ ...vitals, hr: e.target.value })} />
+                        </div>
+                        <textarea required placeholder="Progress Note..." className="w-full p-3 rounded-xl border-none font-medium h-32" value={note} onChange={e => setNote(e.target.value)} />
+                        <button className="w-full py-3 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700 transition">Record</button>
+                    </form>
                 </div>
-                {observations.length === 0 ? (
-                    <div className="bg-white/40 dark:bg-gray-800/40 p-10 rounded-[40px] text-center border-2 border-dashed border-gray-100 dark:border-gray-800 font-bold text-gray-300">
-                        No history available for this admission cycle.
-                    </div>
-                ) : (
-                    <div className="space-y-4">
-                        {observations.map((obs, idx) => (
-                            <div key={idx} className="bg-white dark:bg-gray-800 p-6 rounded-[32px] shadow-sm border border-gray-100 dark:border-gray-700 flex gap-6 hover:shadow-xl transition-all group overflow-hidden">
-                                <div className="flex flex-col items-center">
-                                    <div className="text-[10px] font-black text-gray-400 uppercase tracking-tighter mb-1">{new Date(obs.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
-                                    <div className="h-full w-0.5 bg-gray-100 dark:bg-gray-700 my-2 rounded-full group-hover:bg-blue-300 transition-colors" />
-                                </div>
-                                <div className="flex-1">
-                                    <div className="flex flex-wrap gap-2 mb-4">
-                                        <MiniBadge icon={<Gauge size={12} />} label={`${obs.systolic}/${obs.diastolic}`} color="blue" />
-                                        <MiniBadge icon={<Thermometer size={12} />} label={`${obs.temperature}°C`} color="orange" />
-                                        <MiniBadge icon={<Heart size={12} />} label={`${obs.heart_rate}`} color="red" />
-                                    </div>
-                                    <p className="text-gray-600 dark:text-gray-300 font-bold text-base leading-relaxed">{obs.notes}</p>
-                                    <div className="mt-4 flex items-center justify-between">
-                                        <div className="flex items-center gap-2 text-[10px] font-black text-gray-400 uppercase tracking-wider">
-                                            <div className="w-5 h-5 rounded-full bg-gray-100 flex items-center justify-center text-[10px]">J</div>
-                                            {obs.nurse_name} • {new Date(obs.timestamp).toLocaleDateString()}
-                                        </div>
-                                    </div>
-                                </div>
+            </div>
+            <div className="flex-1 space-y-4">
+                <h3 className="font-bold text-gray-400 text-xs uppercase tracking-widest px-2">History</h3>
+                {observations.length === 0 ? <p className="text-gray-400 px-2 italic">No observations recorded.</p> : observations.map((obs, i) => (
+                    <div key={i} className="bg-white dark:bg-gray-800/50 p-5 rounded-2xl border border-gray-100 dark:border-gray-700 flex gap-4">
+                        <div className="text-xs font-bold text-gray-400 w-16 pt-1">{new Date(obs.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
+                        <div className="flex-1">
+                            <div className="flex gap-2 mb-2">
+                                <span className="px-2 py-0.5 bg-blue-100 text-blue-700 rounded text-[10px] font-bold">{obs.systolic}/{obs.diastolic}</span>
+                                <span className="px-2 py-0.5 bg-orange-100 text-orange-700 rounded text-[10px] font-bold">{obs.temperature}°C</span>
                             </div>
-                        ))}
+                            <p className="text-gray-800 dark:text-gray-200 text-sm">{obs.notes}</p>
+                        </div>
                     </div>
-                )}
+                ))}
             </div>
         </div>
     );
 };
 
-// --- SUBSYSTEM: E-MAR (MEDICATION LOG) ---
+// --- MAR View ---
 const MARView = ({ admissionId, logs, prescriptions, refresh }) => {
-    const medicines = prescriptions?.flatMap(p => p.items.map(i => ({ ...i, rx_id: p.id, doctor: p.doctor }))) || [];
-
-    const handleGive = async (med) => {
+    const handleGive = async (id, name) => {
         try {
             await api.post(`/inpatient/${admissionId}/mar`, {
-                prescription_item_id: med.id,
-                medicine_name: med.medicine.name,
-                status: 'GIVEN',
-                nurse_name: 'Nurse Joyce',
-                notes: 'Standard administration'
+                prescription_item_id: id, medicine_name: name, status: 'GIVEN', nurse_name: 'Nurse On Duty', notes: 'Routine'
             });
-            toast.success(`${med.medicine.name} Administered`);
-            refresh();
-        } catch (error) { toast.error('Failed to log administration'); }
+            toast.success('Administered'); refresh();
+        } catch (e) { toast.error('Error'); }
     };
 
-    return (
-        <div className="space-y-12">
-            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-8">
-                {medicines.map((med, idx) => (
-                    <div key={idx} className="bg-white dark:bg-gray-800 p-8 rounded-[40px] shadow-sm border border-gray-100 dark:border-gray-700 flex flex-col hover:shadow-2xl transition-all group overflow-hidden relative">
-                        <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-500/5 blur-[40px] rounded-full" />
-                        <div className="flex items-start justify-between mb-6 relative z-10">
-                            <div className="p-4 bg-emerald-100 text-emerald-600 rounded-[20px] shadow-inner shadow-emerald-500/10"><Pill size={28} /></div>
-                            <span className="text-xs font-black bg-gray-50 dark:bg-gray-700 px-3 py-1.5 rounded-xl text-gray-500 tracking-tight">{med.dosage}</span>
-                        </div>
-                        <h4 className="font-black text-xl text-gray-900 dark:text-white leading-tight mb-2 relative z-10">{med.medicine.name}</h4>
-                        <p className="text-sm font-bold text-gray-400 mb-8 flex-1">Order by Dr. {med.doctor.name}</p>
+    const medicines = prescriptions?.flatMap(p => p.items.map(i => ({ ...i, doctor: p.doctor }))) || [];
 
-                        <button onClick={() => handleGive(med)} className="w-full py-5 bg-emerald-600 text-white rounded-[24px] font-black text-lg shadow-xl shadow-emerald-500/20 hover:bg-emerald-700 active:scale-95 transition-all flex items-center justify-center gap-3">
-                            <CheckCircle size={20} strokeWidth={3} /> Record Dose
+    return (
+        <div className="space-y-8">
+            <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
+                {medicines.map((m, i) => (
+                    <div key={i} className="bg-white dark:bg-gray-800 p-5 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm flex items-center justify-between">
+                        <div>
+                            <h4 className="font-bold text-gray-900 dark:text-white">{m.medicine.name}</h4>
+                            <p className="text-xs text-gray-500">{m.dosage} • {m.frequency}</p>
+                        </div>
+                        <button onClick={() => handleGive(m.id, m.medicine.name)} className="px-4 py-2 bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-400 rounded-lg text-xs font-black uppercase hover:bg-emerald-200 transition">
+                            Administer
                         </button>
                     </div>
                 ))}
             </div>
-
-            <div className="space-y-6">
-                <h3 className="text-sm font-black uppercase tracking-[0.25em] text-gray-400 px-4">Administration Log</h3>
-                <div className="bg-white dark:bg-gray-800 rounded-[44px] border border-gray-100 dark:border-gray-700 overflow-hidden shadow-[0_30px_60px_-15px_rgba(0,0,0,0.05)]">
-                    <table className="w-full text-left">
-                        <thead className="bg-gray-50/50 dark:bg-black/20 text-[10px] uppercase text-gray-400 font-black tracking-widest">
-                            <tr>
-                                <th className="p-8">Timestamp</th>
-                                <th className="p-8">Medication</th>
-                                <th className="p-8">Assigned Nurse</th>
-                                <th className="p-8 text-right">Confirmation</th>
-                            </tr>
-                        </thead>
-                        <tbody className="divide-y divide-gray-50 dark:divide-gray-800">
-                            {logs.map(log => (
-                                <tr key={log.id} className="hover:bg-blue-50/30 dark:hover:bg-gray-700/30 transition-all group">
-                                    <td className="p-8">
-                                        <div className="text-sm font-black text-gray-900 dark:text-white">{new Date(log.given_at).toLocaleTimeString()}</div>
-                                        <div className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">{new Date(log.given_at).toLocaleDateString()}</div>
-                                    </td>
-                                    <td className="p-8">
-                                        <div className="flex items-center gap-3">
-                                            <div className="w-2 h-8 bg-emerald-500 rounded-full scale-y-50 group-hover:scale-y-100 transition-transform" />
-                                            <span className="font-black text-lg tracking-tight text-gray-900 dark:text-white">{log.medicine_name}</span>
-                                        </div>
-                                    </td>
-                                    <td className="p-8">
-                                        <span className="text-sm font-bold text-gray-600 dark:text-gray-300">{log.given_by}</span>
-                                    </td>
-                                    <td className="p-8 text-right">
-                                        <span className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-emerald-100 text-emerald-700 text-[10px] font-black uppercase tracking-widest">
-                                            <CheckCircle size={10} strokeWidth={3} /> Administered
-                                        </span>
-                                    </td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
+            <div>
+                <h3 className="font-bold text-gray-400 text-xs uppercase tracking-widest mb-4">Administration Log</h3>
+                <div className="space-y-2">
+                    {logs.map((log, i) => (
+                        <div key={i} className="flex justify-between items-center py-3 border-b border-gray-100 dark:border-gray-800">
+                            <div className="flex items-center gap-3">
+                                <div className="w-2 h-2 bg-emerald-500 rounded-full" />
+                                <span className="font-bold text-sm dark:text-white">{log.medicine_name}</span>
+                            </div>
+                            <span className="text-xs text-gray-400">{new Date(log.given_at).toLocaleTimeString()}</span>
+                        </div>
+                    ))}
                 </div>
             </div>
         </div>
     );
 };
-
-const MiniBadge = ({ icon, label, color }) => {
-    const s = {
-        blue: 'bg-blue-50 text-blue-700 dark:bg-blue-500/10 dark:text-blue-400',
-        orange: 'bg-orange-50 text-orange-700 dark:bg-orange-500/10 dark:text-orange-400',
-        red: 'bg-red-50 text-red-700 dark:bg-red-500/10 dark:text-red-400',
-    };
-    return (
-        <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest ${s[color]}`}>
-            {icon} {label}
-        </span>
-    );
-};
-
-const LoaderCircle = ({ className }) => <div className={`w-10 h-10 border-4 border-blue-500 border-t-transparent rounded-full ${className}`} />;
 
 export default NurseStation;

@@ -234,7 +234,14 @@ const DoctorDashboard = () => {
                 const res = await api.get(`/queues/waiting?poli_id=${selectedDoctor.poliklinik_id}`);
                 // Filter for this specific doctor if needed, but endpoint might return all for poli
                 // Client side filter:
-                const myQueue = res.data.filter(q => q.daily_quota.doctor_id === selectedDoctor.id);
+                // Client side filter:
+                // 1. Must match Doctor ID
+                // 2. MUST have passed Nurse Station (Triage Completed)
+                const myQueue = res.data.filter(q => {
+                    const isMyDoc = q.daily_quota.doctor_id === selectedDoctor.id;
+                    const hasTriage = q.medical_records && q.medical_records.length > 0 && q.medical_records[0].triage_status === 'COMPLETED';
+                    return isMyDoc && hasTriage;
+                });
                 setQueues(myQueue);
             } catch (error) {
                 console.error("Failed to load queue", error);
@@ -809,8 +816,8 @@ const DoctorDashboard = () => {
                                                                 type="button"
                                                                 onClick={() => setSoap({ ...soap, disposition: opt })}
                                                                 className={`px-4 py-2 rounded-lg text-xs font-bold transition-all ${soap.disposition === opt
-                                                                        ? 'bg-blue-600 text-white shadow-md'
-                                                                        : 'text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-600'
+                                                                    ? 'bg-blue-600 text-white shadow-md'
+                                                                    : 'text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-600'
                                                                     }`}
                                                             >
                                                                 {opt.replace('_', ' ')}

@@ -124,6 +124,9 @@ exports.checkIn = async (req, res) => {
             });
         });
 
+        // SOCKET EMIT
+        req.io.emit('admission_update', { type: 'CHECKIN', patientId, bedId });
+
         res.json({ status: 'success', message: 'Patient admitted successfully' });
     } catch (error) {
         console.error('Check-in Error:', error);
@@ -172,6 +175,9 @@ exports.checkOut = async (req, res) => {
             });
         });
 
+        // SOCKET EMIT
+        req.io.emit('admission_update', { type: 'CHECKOUT', bedId });
+
         res.json({ status: 'success', message: 'Patient discharged. Bed is now CLEANING.' });
     } catch (error) {
         console.error('Check-out Error:', error);
@@ -188,6 +194,10 @@ exports.updateBedStatus = async (req, res) => {
             where: { id: parseInt(bedId) },
             data: { status }
         });
+
+        // SOCKET EMIT
+        req.io.emit('admission_update', { type: 'BED_STATUS', bedId, status });
+
         res.json({ status: 'success', message: `Bed status updated to ${status}` });
     } catch (error) {
         res.status(500).json({ error: 'Failed to update bed status' });
@@ -262,8 +272,7 @@ exports.getActive = async (req, res) => {
                 patient: true,
                 bed: {
                     include: { room: true }
-                },
-                doctor: true
+                }
             },
             orderBy: { check_in: 'desc' }
         });

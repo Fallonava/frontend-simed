@@ -27,7 +27,7 @@ exports.getAll = async (req, res) => {
         const orders = await prisma.serviceOrder.findMany({
             where: {
                 type: type ? type : undefined,
-                status: 'PENDING' // Default dashboard view usually pending
+                status: req.query.status ? req.query.status : undefined // Optional status filter
             },
             include: {
                 medical_record: {

@@ -618,7 +618,16 @@ model StockTransferItem {
   transfer_id Int
   transfer    StockTransfer @relation(fields: [transfer_id], references: [id])
   
-  stock_batch_id Int?  // Optional: if specific batch is picked
   item_name   String
   quantity    Int
+}
+
+model Expense {
+  id          Int      @id @default(autoincrement())
+  description String
+  amount      Float
+  category    String   // OPERATIONAL, SALARY, PURCHASE, MAINTENANCE, MARKETING
+  date        DateTime @default(now())
+  created_at  DateTime @default(now())
+  updated_at  DateTime @updatedAt
 }

@@ -5,7 +5,8 @@ import useAuthStore from '../store/useAuthStore';
 import {
     LayoutDashboard, Users, Database, Calendar, Activity, FileText, Pill,
     Receipt, Monitor, ClipboardPlus, Microscope, Sparkles, LogOut, Bed,
-    Bell, Utensils, Briefcase, CalendarOff, Siren, Archive, Package, Printer, Box
+    Bell, Utensils, Briefcase, CalendarOff, Siren, Archive, Package, Printer, Box,
+    Stethoscope, DollarSign, PieChart as PieChartIcon
 } from 'lucide-react';
 import ThemeToggle from '../components/ThemeToggle';
 
@@ -19,20 +20,21 @@ const MainMenu = () => {
             category: "Front Office & Admission",
             items: [
                 {
-                    title: 'Admisi Rawat Jalan',
-                    description: 'Outpatient Admission',
-                    icon: <ClipboardPlus size={32} />,
-                    path: '/registration',
-                    roles: ['ADMIN', 'STAFF'],
-                    color: 'bg-blue-600'
-                },
-                {
                     title: 'Instalasi Gawat Darurat',
                     description: 'Emergency Department',
                     icon: <Siren size={32} />,
                     path: '/registration/igd',
                     roles: ['ADMIN', 'STAFF'],
                     color: 'bg-red-600'
+                },
+                // Triage System Removed (Merged into Nurse Station)
+                {
+                    title: 'Admisi Rawat Jalan',
+                    description: 'Outpatient Admission',
+                    icon: <ClipboardPlus size={32} />,
+                    path: '/registration',
+                    roles: ['ADMIN', 'STAFF'],
+                    color: 'bg-blue-600'
                 },
                 {
                     title: 'Admisi Rawat Inap',
@@ -71,34 +73,13 @@ const MainMenu = () => {
             ]
         },
         {
-            category: "Medical Records (Rekam Medis)",
-            items: [
-                {
-                    title: 'Manajemen Rekam Medis',
-                    description: 'Coding & Archiving',
-                    icon: <Archive size={32} />,
-                    path: '/medical-records',
-                    roles: ['ADMIN', 'STAFF'],
-                    color: 'bg-emerald-700'
-                },
-                {
-                    title: 'Sentra Dokumen',
-                    description: 'Medical Documents Center',
-                    icon: <Printer size={32} />,
-                    path: '/documents/center',
-                    roles: ['ADMIN', 'STAFF'],
-                    color: 'bg-cyan-700'
-                }
-            ]
-        },
-        {
             category: "Clinical Care Services",
             items: [
                 {
-                    title: 'Nurse Station',
-                    description: 'Triage & Vital Signs',
-                    icon: <ClipboardPlus size={32} />,
-                    path: '/nurse',
+                    title: 'Nurse Station (Hub)',
+                    description: 'Unified Clinical Dashboard',
+                    icon: <LayoutDashboard size={32} />,
+                    path: '/nurse/station',
                     roles: ['ADMIN', 'STAFF'],
                     color: 'bg-pink-600'
                 },
@@ -125,28 +106,35 @@ const MainMenu = () => {
                     path: '/nurse/inpatient',
                     roles: ['ADMIN', 'STAFF'],
                     color: 'bg-red-700'
+                },
+                {
+                    title: 'Discharge Planning',
+                    description: 'Patient Discharge',
+                    icon: <LogOut size={32} />,
+                    path: '/nurse/discharge',
+                    roles: ['ADMIN', 'STAFF'],
+                    color: 'bg-slate-600'
                 }
             ]
         },
         {
-            category: "Logistics & Supply Chain",
+            category: "Medical Records (Rekam Medis)",
             items: [
-
                 {
-                    title: 'Gudang Farmasi',
-                    description: 'Central Pharmacy Warehouse',
-                    icon: <Package size={32} />,
-                    path: '/logistics/pharmacy',
+                    title: 'Manajemen Rekam Medis',
+                    description: 'Coding & Archiving',
+                    icon: <Archive size={32} />,
+                    path: '/medical-records',
                     roles: ['ADMIN', 'STAFF'],
-                    color: 'bg-teal-600'
+                    color: 'bg-emerald-700'
                 },
                 {
-                    title: 'Aset & Umum',
-                    description: 'General Assets Inventory',
-                    icon: <Box size={32} />,
-                    path: '/logistics/assets',
-                    roles: ['ADMIN'],
-                    color: 'bg-blue-600'
+                    title: 'Sentra Dokumen',
+                    description: 'Medical Documents Center',
+                    icon: <Printer size={32} />,
+                    path: '/documents/center',
+                    roles: ['ADMIN', 'STAFF'],
+                    color: 'bg-cyan-700'
                 }
             ]
         },
@@ -155,7 +143,7 @@ const MainMenu = () => {
             items: [
                 {
                     title: 'Apotek Rawat Jalan',
-                    description: 'Outpatient Pharmacy (Depo)',
+                    description: 'Outpatient Pharmacy',
                     icon: <Pill size={32} />,
                     path: '/pharmacy',
                     roles: ['ADMIN', 'STAFF'],
@@ -184,11 +172,48 @@ const MainMenu = () => {
                     path: '/nutrition',
                     roles: ['ADMIN', 'STAFF'],
                     color: 'bg-amber-600'
+                },
+                {
+                    title: 'Pemesanan Gizi',
+                    description: 'Dietary Orders (Nurse)',
+                    icon: <Utensils size={32} />,
+                    path: '/nurse/diet',
+                    roles: ['ADMIN', 'STAFF'],
+                    color: 'bg-orange-500'
                 }
             ]
         },
         {
-            category: "Executive & Back Office",
+            category: "Logistics & Supply Chain",
+            items: [
+                {
+                    title: 'Gudang Farmasi',
+                    description: 'Central Pharmacy Warehouse',
+                    icon: <Package size={32} />,
+                    path: '/logistics/pharmacy',
+                    roles: ['ADMIN', 'STAFF'],
+                    color: 'bg-teal-600'
+                },
+                {
+                    title: 'Inventaris Umum',
+                    description: 'General Inventory',
+                    icon: <Box size={32} />,
+                    path: '/inventory/general',
+                    roles: ['ADMIN'],
+                    color: 'bg-blue-600'
+                },
+                {
+                    title: 'Manajemen Aset',
+                    description: 'General Assets',
+                    icon: <Box size={32} />,
+                    path: '/logistics/assets',
+                    roles: ['ADMIN'],
+                    color: 'bg-slate-700'
+                }
+            ]
+        },
+        {
+            category: "Finance & Back Office",
             items: [
                 {
                     title: 'Executive Dashboard',
@@ -199,28 +224,28 @@ const MainMenu = () => {
                     color: 'bg-gray-800'
                 },
                 {
-                    title: 'Data Induk (Master)',
-                    description: 'Hospital Master Data',
-                    icon: <Database size={32} />,
-                    path: '/admin/master-data',
-                    roles: ['ADMIN'],
-                    color: 'bg-gray-700'
-                },
-                {
-                    title: 'Konfigurasi Sistem',
-                    description: 'App Settings',
-                    icon: <Database size={32} />,
-                    path: '/admin/settings',
-                    roles: ['ADMIN'],
-                    color: 'bg-slate-800'
-                },
-                {
-                    title: 'Database Pasien',
-                    description: 'Patient Registry',
-                    icon: <FileText size={32} />,
-                    path: '/admin/patients',
+                    title: 'Kasir & Billing',
+                    description: 'Cashier Dashboard',
+                    icon: <Receipt size={32} />,
+                    path: '/cashier',
                     roles: ['ADMIN', 'STAFF'],
-                    color: 'bg-blue-700'
+                    color: 'bg-teal-500'
+                },
+                {
+                    title: 'Keuangan & Revenue',
+                    description: 'Financial Overview',
+                    icon: <DollarSign size={32} />,
+                    path: '/finance',
+                    roles: ['ADMIN', 'STAFF'],
+                    color: 'bg-pink-700'
+                },
+                {
+                    title: 'Casemix (BPJS)',
+                    description: 'Claims & Grouper',
+                    icon: <FileText size={32} />,
+                    path: '/casemix',
+                    roles: ['ADMIN'],
+                    color: 'bg-green-600'
                 },
                 {
                     title: 'SDM & Kepegawaian',
@@ -231,12 +256,20 @@ const MainMenu = () => {
                     color: 'bg-purple-800'
                 },
                 {
-                    title: 'Keuangan & Kasir',
-                    description: 'Billing & Revenue',
-                    icon: <Receipt size={32} />,
-                    path: '/finance',
+                    title: 'Data Induk (Master)',
+                    description: 'Hospital Master Data',
+                    icon: <Database size={32} />,
+                    path: '/admin/master-data',
+                    roles: ['ADMIN'],
+                    color: 'bg-gray-700'
+                },
+                {
+                    title: 'Database Pasien',
+                    description: 'Patient Registry',
+                    icon: <FileText size={32} />,
+                    path: '/admin/patients',
                     roles: ['ADMIN', 'STAFF'],
-                    color: 'bg-pink-700'
+                    color: 'bg-blue-700'
                 },
                 {
                     title: 'Manajemen Cuti',

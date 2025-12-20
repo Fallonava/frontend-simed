@@ -9,7 +9,10 @@ export const injectStore = (_store) => {
 };
 
 const getBaseUrl = () => {
-    return import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
+    if (import.meta.env.VITE_API_URL) return import.meta.env.VITE_API_URL;
+    // Dynamic fallback for local network development
+    const hostname = window.location.hostname;
+    return `http://${hostname}:3000/api`;
 };
 
 const api = axios.create({
