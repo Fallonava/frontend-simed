@@ -92,15 +92,28 @@ exports.submitTriage = async (req, res) => {
             where: { queue_id: parseInt(queueId) }
         });
 
+        // Filter valid vitals for Schema
+        const { systolic, diastolic, heart_rate, temperature, weight, height, respiratory_rate, oxygen_saturation } = vitals || {};
+
+        let extraNotes = '';
+        if (respiratory_rate) extraNotes += `RR: ${respiratory_rate} x/m. `;
+        if (oxygen_saturation) extraNotes += `SpO2: ${oxygen_saturation}%. `;
+
         let mr;
         if (existingMR) {
             mr = await prisma.medicalRecord.update({
                 where: { id: existingMR.id },
                 data: {
-                    ...vitals, // Spread systolic, temp, etc.
+                    systolic: systolic ? parseInt(systolic) : undefined,
+                    diastolic: diastolic ? parseInt(diastolic) : undefined,
+                    heart_rate: heart_rate ? parseInt(heart_rate) : undefined,
+                    temperature: temperature ? parseFloat(temperature) : undefined,
+                    weight: weight ? parseFloat(weight) : undefined,
+                    height: height ? parseFloat(height) : undefined,
                     triage_level: parseInt(triage_level),
                     chief_complaint: chief_complaint,
-                    triage_status: 'COMPLETED'
+                    triage_status: 'COMPLETED',
+                    objective: (existingMR.objective || '') + (extraNotes ? '\n[Triage] ' + extraNotes : '')
                 }
             });
         } else {
@@ -109,12 +122,17 @@ exports.submitTriage = async (req, res) => {
                     patient_id: queueItem.patient_id,
                     doctor_id: queueItem.daily_quota.doctor_id,
                     queue_id: parseInt(queueId),
-                    ...vitals,
+                    systolic: systolic ? parseInt(systolic) : undefined,
+                    diastolic: diastolic ? parseInt(diastolic) : undefined,
+                    heart_rate: heart_rate ? parseInt(heart_rate) : undefined,
+                    temperature: temperature ? parseFloat(temperature) : undefined,
+                    weight: weight ? parseFloat(weight) : undefined,
+                    height: height ? parseFloat(height) : undefined,
                     triage_level: parseInt(triage_level),
                     chief_complaint: chief_complaint,
                     triage_status: 'COMPLETED',
                     subjective: '', // Placeholder SOAP
-                    objective: '',
+                    objective: extraNotes ? '[Triage] ' + extraNotes : '',
                     assessment: '',
                     plan: ''
                 }

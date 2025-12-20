@@ -173,6 +173,7 @@ model MedicalRecord {
   triage_status   String   @default("PENDING") // PENDING, COMPLETED, SKIPPED
   triage_level    Int?     // 1 (Resus) to 5 (Non-Urgent)
   chief_complaint String?  @db.Text
+  disposition     String?  // PULANG, RAWAT_INAP, RUJUK_RS_LAIN, MENINGGAL, KONTROL_ULANG
   icd10_code      String?
   icd10         ICD10?   @relation(fields: [icd10_code], references: [code])
 

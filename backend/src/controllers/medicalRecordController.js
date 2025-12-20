@@ -20,7 +20,9 @@ exports.create = async (req, res) => {
                 heart_rate: req.body.heart_rate ? parseInt(req.body.heart_rate) : null,
                 temperature: req.body.temperature ? parseFloat(req.body.temperature) : null,
                 weight: req.body.weight ? parseFloat(req.body.weight) : null,
-                height: req.body.height ? parseFloat(req.body.height) : null
+                height: req.body.height ? parseFloat(req.body.height) : null,
+                disposition: req.body.disposition || null,
+                icd10_code: req.body.icd10_code || null
             },
             include: {
                 patient: true,
@@ -90,7 +92,7 @@ exports.getAll = async (req, res) => {
         const where = {};
         if (search) {
             where.OR = [
-                { patient: { name: { contains: search } } }, // Removed mode: 'insensitive' for compatibility if SQLite/MySQL differs, but usually fine.
+                { patient: { name: { contains: search } } },
                 { patient: { no_rm: { contains: search } } }
             ];
         }
@@ -99,10 +101,13 @@ exports.getAll = async (req, res) => {
             where,
             include: {
                 patient: true,
-                doctor: true
+                doctor: true,
+                prescriptions: { include: { items: { include: { medicine: true } } } },
+                service_orders: true,
+                casemix: true
             },
             orderBy: { visit_date: 'desc' },
-            take: 100 // Limit for now
+            take: 100
         });
         res.json(records);
     } catch (error) {

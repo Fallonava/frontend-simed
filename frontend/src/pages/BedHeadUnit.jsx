@@ -11,6 +11,7 @@ const BedHeadUnit = () => {
     const [data, setData] = useState(null);
     const [loading, setLoading] = useState(true);
     const [callingNurse, setCallingNurse] = useState(false);
+    const [requestingCleaning, setRequestingCleaning] = useState(false);
 
     // Simulate real-time clock
     const [time, setTime] = useState(new Date());
@@ -35,8 +36,13 @@ const BedHeadUnit = () => {
                 setData(res.data.data);
                 if (res.data.data.service_request === 'NURSE') {
                     setCallingNurse(true);
+                    setRequestingCleaning(false);
+                } else if (res.data.data.service_request === 'CLEANING') {
+                    setRequestingCleaning(true);
+                    setCallingNurse(false);
                 } else {
                     setCallingNurse(false);
+                    setRequestingCleaning(false);
                 }
             }
         } catch (error) {
@@ -49,6 +55,7 @@ const BedHeadUnit = () => {
     const toggleNurseCall = async () => {
         const newStatus = callingNurse ? null : 'NURSE';
         setCallingNurse(!callingNurse); // Optimistic update
+        if (newStatus) setRequestingCleaning(false);
         try {
             await api.post('/bed-panel/request', {
                 bedId: bedId || 1, // Default to 1 if testing without params
@@ -60,6 +67,24 @@ const BedHeadUnit = () => {
         } catch (e) {
             toast.error('Gagal memproses panggilan');
             setCallingNurse(!newStatus); // Revert
+        }
+    };
+
+    const toggleCleaning = async () => {
+        const newStatus = requestingCleaning ? null : 'CLEANING';
+        setRequestingCleaning(!requestingCleaning); // Optimistic
+        if (newStatus) setCallingNurse(false);
+        try {
+            await api.post('/bed-panel/request', {
+                bedId: bedId || 1,
+                service: newStatus
+            });
+            if (newStatus) toast.success('Meminta Layanan Kebersihan...');
+            else toast.success('Permintaan Dibatalkan');
+            fetchData();
+        } catch (e) {
+            toast.error('Gagal memproses');
+            setRequestingCleaning(!newStatus);
         }
     };
 
@@ -153,20 +178,45 @@ const BedHeadUnit = () => {
                             backgroundColor: ["#7f1d1d", "#991b1b", "#7f1d1d"]
                         } : {}}
                         transition={callingNurse ? { repeat: Infinity, duration: 2 } : {}}
-                        className={`col-span-2 rounded-[40px] flex flex-col items-center justify-center gap-6 transition-all duration-300 border-4
+                        className={`col-span-1 rounded-[40px] flex flex-col items-center justify-center gap-6 transition-all duration-300 border-4
                             ${callingNurse
                                 ? 'bg-red-900 border-red-500 text-white'
                                 : 'bg-gradient-to-br from-red-500 to-pink-600 border-transparent shadow-2xl shadow-red-900/50 hover:scale-[1.02]'
                             }`}
                     >
-                        <div className={`p-8 rounded-full ${callingNurse ? 'bg-white/10' : 'bg-white/20'}`}>
-                            <Bell size={80} className={callingNurse ? 'animate-bounce' : ''} fill={callingNurse ? "currentColor" : "none"} />
+                        <div className={`p-6 rounded-full ${callingNurse ? 'bg-white/10' : 'bg-white/20'}`}>
+                            <Bell size={60} className={callingNurse ? 'animate-bounce' : ''} fill={callingNurse ? "currentColor" : "none"} />
                         </div>
                         <div className="text-center">
-                            <h2 className="text-4xl font-bold uppercase tracking-widest">{callingNurse ? 'MEMANGGIL PERAWAT...' : 'PANGGIL PERAWAT'}</h2>
-                            <p className="text-white/70 mt-2 text-lg">{callingNurse ? 'Mohon tunggu, perawat sedang menuju kamar Anda' : 'Tekan tombol ini jika Anda membutuhkan bantuan'}</p>
+                            <h2 className="text-2xl font-bold uppercase tracking-widest">{callingNurse ? 'MEMANGGIL...' : 'PERAWAT'}</h2>
+                            <p className="text-white/70 mt-1 text-sm">{callingNurse ? 'Mohon Tunggu' : 'Bantuan Medis'}</p>
                         </div>
                     </motion.button>
+
+                    {/* CALL CLEANING BUTTON */}
+                    <motion.button
+                        onClick={toggleCleaning}
+                        whileTap={{ scale: 0.95 }}
+                        animate={requestingCleaning ? {
+                            boxShadow: ["0 0 0px rgba(234, 179, 8, 0)", "0 0 50px rgba(234, 179, 8, 0.5)", "0 0 0px rgba(234, 179, 8, 0)"],
+                            backgroundColor: ["#713f12", "#854d0e", "#713f12"]
+                        } : {}}
+                        transition={requestingCleaning ? { repeat: Infinity, duration: 2 } : {}}
+                        className={`col-span-1 rounded-[40px] flex flex-col items-center justify-center gap-6 transition-all duration-300 border-4
+                            ${requestingCleaning
+                                ? 'bg-yellow-900 border-yellow-500 text-white'
+                                : 'bg-gradient-to-br from-yellow-500 to-orange-600 border-transparent shadow-2xl shadow-yellow-900/50 hover:scale-[1.02]'
+                            }`}
+                    >
+                        <div className={`p-6 rounded-full ${requestingCleaning ? 'bg-white/10' : 'bg-white/20'}`}>
+                            <Activity size={60} className={requestingCleaning ? 'animate-spin' : ''} />
+                        </div>
+                        <div className="text-center">
+                            <h2 className="text-2xl font-bold uppercase tracking-widest">{requestingCleaning ? 'DIPROSES...' : 'BERSIHKAN'}</h2>
+                            <p className="text-white/70 mt-1 text-sm">{requestingCleaning ? 'Housekeeping OTW' : 'Layanan Kamar'}</p>
+                        </div>
+                    </motion.button>
+
 
                     {/* SCHEDULE & BILLING */}
                     <button className="bg-gray-800/50 hover:bg-gray-800 border border-white/10 rounded-[32px] p-8 flex flex-col items-center justify-center text-center gap-4 backdrop-blur-md group transition-all">

@@ -1,39 +1,79 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Play, Volume2, Clock, MapPin, User, Activity } from 'lucide-react';
-import ModernHeader from '../components/ModernHeader'; // We might hide this for TV mode, but keeping imports standard
+import ModernHeader from '../components/ModernHeader';
 import PageWrapper from '../components/PageWrapper';
+import api from '../utils/axiosConfig';
+import { io } from 'socket.io-client';
 
 const QueueDisplay = () => {
     const [currentCall, setCurrentCall] = useState(null);
     const [queueList, setQueueList] = useState([]);
     const [currentTime, setCurrentTime] = useState(new Date());
 
-    // Mock Data & Simulation
+    // Clock
     useEffect(() => {
-        // Clock
         const timer = setInterval(() => setCurrentTime(new Date()), 1000);
-
-        // Initial Data
-        setQueueList([
-            { id: 1, no: 'A-002', poli: 'Poli Umum', doctor: 'Dr. Sarah Johnson', status: 'WAITING' },
-            { id: 2, no: 'B-005', poli: 'Poli Gigi', doctor: 'Dr. Budi Santoso', status: 'WAITING' },
-            { id: 3, no: 'A-003', poli: 'Poli Umum', doctor: 'Dr. Sarah Johnson', status: 'WAITING' },
-            { id: 4, no: 'C-001', poli: 'Poli Anak', doctor: 'Dr. Emily Chen', status: 'WAITING' },
-        ]);
-
-        setCurrentCall({ no: 'A-001', poli: 'Poli Umum', doctor: 'Dr. Sarah Johnson', room: 'Ruang 1' });
-
         return () => clearInterval(timer);
+    }, []);
+
+    // Socket & Data
+    useEffect(() => {
+        const fetchWaiting = async () => {
+            try {
+                const res = await api.get('/queues/waiting');
+                if (Array.isArray(res.data)) {
+                    const list = res.data.slice(0, 5).map(q => ({
+                        id: q.id,
+                        no: q.queue_code,
+                        poli: q.daily_quota.doctor.poliklinik.name,
+                        doctor: q.daily_quota.doctor.name,
+                        status: q.status
+                    }));
+                    setQueueList(list);
+                }
+            } catch (e) {
+                console.error("Failed to fetch queue list", e);
+            }
+        };
+
+        fetchWaiting();
+
+        const socket = io(import.meta.env.VITE_API_URL || 'http://localhost:3000');
+
+        socket.on('connect', () => {
+            console.log('TV Connected to Socket');
+        });
+
+        socket.on('call_patient', (data) => {
+            console.log('Call Received:', data);
+            setCurrentCall({
+                no: data.ticket.queue_code,
+                poli: data.poli_name,
+                doctor: data.ticket.daily_quota?.doctor?.name || data.poli_name, // Fallback if doctor info missing in payload, usually in daily_quota
+                room: data.counter_name
+            });
+            fetchWaiting(); // Update list to remove the called one
+        });
+
+        socket.on('queue_update', () => {
+            fetchWaiting();
+        });
+
+        return () => socket.disconnect();
     }, []);
 
     // Speech Synthesis
     useEffect(() => {
         if (currentCall) {
-            const text = `Nomor Antrean, ${currentCall.no}, Silakan menuju ${currentCall.poli}, ${currentCall.room}`;
+            // Cancel previous speech
+            window.speechSynthesis.cancel();
+
+            const text = `Nomor Antrean, ${currentCall.split ? currentCall.no.split('').join(' ') : currentCall.no}, Silakan menuju ${currentCall.room}`;
             const utterance = new SpeechSynthesisUtterance(text);
             utterance.lang = 'id-ID';
-            utterance.rate = 0.9;
+            utterance.rate = 0.8;
+            utterance.pitch = 1;
             window.speechSynthesis.speak(utterance);
         }
     }, [currentCall]);
@@ -81,17 +121,17 @@ const QueueDisplay = () => {
                             </span>
 
                             <h2 className="text-[12rem] leading-none font-black text-white drop-shadow-[0_0_30px_rgba(59,130,246,0.5)]">
-                                {currentCall?.no}
+                                {currentCall?.no || '--'}
                             </h2>
 
                             <div className="mt-12 space-y-4">
                                 <h3 className="text-5xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-teal-200 to-blue-200">
-                                    {currentCall?.poli}
+                                    {currentCall?.poli || 'Menunggu antrean...'}
                                 </h3>
                                 <div className="flex items-center justify-center gap-4 text-2xl text-gray-300">
-                                    <span className="flex items-center gap-2"><User size={24} className="text-teal-400" /> {currentCall?.doctor}</span>
+                                    <span className="flex items-center gap-2"><User size={24} className="text-teal-400" /> {currentCall?.doctor || '-'}</span>
                                     <span className="w-2 h-2 rounded-full bg-gray-600"></span>
-                                    <span className="flex items-center gap-2"><MapPin size={24} className="text-teal-400" /> {currentCall?.room}</span>
+                                    <span className="flex items-center gap-2"><MapPin size={24} className="text-teal-400" /> {currentCall?.room || '-'}</span>
                                 </div>
                             </div>
                         </div>
@@ -121,7 +161,9 @@ const QueueDisplay = () => {
 
                     <div className="space-y-4 flex-1 overflow-y-auto pr-2 custom-scrollbar">
                         <AnimatePresence>
-                            {queueList.map((item, idx) => (
+                            {queueList.length === 0 ? (
+                                <p className="text-center text-gray-500 py-10">Tidak ada antrean</p>
+                            ) : queueList.map((item, idx) => (
                                 <motion.div
                                     key={item.id}
                                     initial={{ opacity: 0, x: 20 }}

@@ -12,22 +12,26 @@ import ModernHeader from '../components/ModernHeader';
 
 const AdmissionDashboard = () => {
     const navigate = useNavigate();
-    const [rooms, setRooms] = useState([]);
-    const [stats, setStats] = useState({ total: 0, available: 0, occupied: 0, cleaning: 0 });
-    const [loading, setLoading] = useState(true);
+    const [pendingAdmissions, setPendingAdmissions] = useState([]);
+    const [showPendingDrawer, setShowPendingDrawer] = useState(false);
+    const [selectedPendingPatient, setSelectedPendingPatient] = useState(null);
 
-    // Modals
-    const [selectedBed, setSelectedBed] = useState(null);
-    const [showAdmitModal, setShowAdmitModal] = useState(false);
-    const [showDetailModal, setShowDetailModal] = useState(false);
-
-    // Admit Form
+    // Admit Form State
     const [patientSearch, setPatientSearch] = useState('');
     const [foundPatient, setFoundPatient] = useState(null);
     const [diagnosa, setDiagnosa] = useState('');
 
+    // Dashboard State
+    const [rooms, setRooms] = useState([]);
+    const [stats, setStats] = useState({ total: 0, available: 0, occupied: 0, cleaning: 0 });
+    const [loading, setLoading] = useState(true);
+    const [selectedBed, setSelectedBed] = useState(null);
+    const [showAdmitModal, setShowAdmitModal] = useState(false);
+    const [showDetailModal, setShowDetailModal] = useState(false);
+
     useEffect(() => {
         fetchRooms();
+        fetchPending();
     }, []);
 
     const fetchRooms = async () => {
@@ -45,6 +49,17 @@ const AdmissionDashboard = () => {
         }
     };
 
+    const fetchPending = async () => {
+        try {
+            const res = await api.get('/admission/pending');
+            if (res.data.status === 'success') {
+                setPendingAdmissions(res.data.data);
+            }
+        } catch (error) {
+            console.error("Failed to load pending", error);
+        }
+    };
+
     const handleBedClick = (bed) => {
         setSelectedBed(bed);
         if (bed.status === 'AVAILABLE') {
@@ -54,47 +69,11 @@ const AdmissionDashboard = () => {
         } else if (bed.status === 'OCCUPIED') {
             setShowDetailModal(true);
         } else if (bed.status === 'CLEANING') {
-            // Quick action to clean
             handleUpdateStatus(bed.id, 'AVAILABLE');
         }
     };
 
-    const handleSearchPatient = async (e) => {
-        e.preventDefault();
-        try {
-            // Reusing existing patient search logic if available or mocking
-            // Assuming we have an endpoint for simple search
-            // For now, let's use the one from Registration or mock it?
-            // Let's assume we can search by NIK
-            // If API doesn't exist, we can't easily find. 
-            // Workaround: Use the patient check API we made for BPJS? No.
-            // Let's implement a quick mock search logic or assume user enters ID directly for simulation?
-            // Better: Create a quick "Search Patient" logic using existing APIs or just simulating
-            // Actually, best to just fetch 'recent patients' and pick one or search DB.
-            // Let's try searching by NIK using the existing patient route if any.
-            // Wait, we have /api/patients/search usually.
-            // I'll try calling the BPJS check route? No.
-            // Let's build a simple "Find Patient by NIK" in the modal.
-            toast.loading('Searching...', { id: 'search' });
-            // Mocking for now to avoid blocking:
-            // "If NIK starts with 1, found."
-            if (patientSearch.length > 5) {
-                // Try to check database (using the BPJS check route as a hack to find patient info?)
-                // Or /api/patients?nik=...
-                // Let's implementing a real search is tedious without a dedicated endpoint.
-                // I'll assume we input PATIENT ID for this simulation or use a hardcoded list.
-                // BETTER: Add a "Search Patient" endpoint to `patientController` later.
-                // For now, I'll alert the user to "Enter Patient ID (Integer)" for simulation.
-                const simulatedId = parseInt(patientSearch);
-                if (!isNaN(simulatedId)) {
-                    setFoundPatient({ id: simulatedId, name: `Patient #${simulatedId} (Simulated)`, nik: '1234567890123456' });
-                    toast.success('Patient found (Simulated)', { id: 'search' });
-                } else {
-                    toast.error('Enter a numeric Patient ID', { id: 'search' });
-                }
-            }
-        } catch (e) { toast.error('Error', { id: 'search' }); }
-    };
+    // ... handleSearchPatient ...
 
     const handleAdmit = async () => {
         if (!foundPatient || !selectedBed) return;
@@ -106,10 +85,33 @@ const AdmissionDashboard = () => {
             });
             toast.success('Patient Admitted!');
             setShowAdmitModal(false);
+            setFoundPatient(null);
+            setSelectedPendingPatient(null); // Clear pending selection
             fetchRooms();
+            fetchPending(); // Refresh pending list
         } catch (error) {
             toast.error('Admission failed');
         }
+    };
+
+    const handleSearchPatient = async (e) => {
+        e.preventDefault();
+        try {
+            toast.loading('Searching...', { id: 'search' });
+            // Mocking for now to avoid blocking:
+            if (patientSearch.length > 0) {
+                const simulatedId = parseInt(patientSearch);
+                if (!isNaN(simulatedId)) {
+                    // In real app, call API. For now simulation or find from pending list is encouraged.
+                    setFoundPatient({ id: simulatedId, name: `Patient #${simulatedId} (Simulated)`, nik: '1234567890123456' });
+                    toast.success('Patient found (Simulated)', { id: 'search' });
+                } else {
+                    // Try to find in pending list by string match?
+                    // For now just error
+                    toast.error('Enter a numeric Patient ID', { id: 'search' });
+                }
+            }
+        } catch (e) { toast.error('Error', { id: 'search' }); }
     };
 
     const handleDischarge = async () => {
@@ -142,13 +144,39 @@ const AdmissionDashboard = () => {
                 className="mb-8"
             />
 
+            {/* PENDING BAR */}
+            <div className="flex justify-end mb-4">
+                <button
+                    onClick={() => navigate('/registration/ranap')}
+                    className="relative px-6 py-3 bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 font-bold text-gray-700 dark:text-gray-200 flex items-center gap-3 hover:bg-gray-50 transition-all"
+                >
+                    <div className="relative">
+                        <User size={20} />
+                        {pendingAdmissions.length > 0 && (
+                            <span className="absolute -top-2 -right-2 bg-red-500 text-white text-[10px] w-5 h-5 rounded-full flex items-center justify-center border-2 border-white">
+                                {pendingAdmissions.length}
+                            </span>
+                        )}
+                    </div>
+                    Process Pending Admissions
+                    <div className="ml-2 bg-blue-100 text-blue-600 px-2 py-0.5 rounded text-xs font-bold">
+                        Go to Registration
+                    </div>
+                </button>
+            </div>
+
             {/* STATS HEADER */}
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+                {/* ... existing stats ... */}
                 <StatCard label="Total Beds" value={stats.total} icon={<Bed size={24} />} color="bg-blue-500" />
                 <StatCard label="Available" value={stats.available} icon={<CheckCircle size={24} />} color="bg-green-500" />
                 <StatCard label="Occupied" value={stats.occupied} icon={<User size={24} />} color="bg-red-500" />
                 <StatCard label="Cleaning" value={stats.cleaning} icon={<Activity size={24} />} color="bg-yellow-500" />
             </div>
+
+
+
+
 
             {/* MAIN CONTENT - ROOM GRID */}
             {loading ? (
@@ -283,6 +311,9 @@ const AdmissionDashboard = () => {
 
                             <div className="flex gap-2 mt-8">
                                 <button type="button" onClick={() => setShowDetailModal(false)} className="flex-1 py-3 font-bold text-gray-500 hover:bg-gray-100 rounded-xl">Close</button>
+                                <button type="button" onClick={() => navigate('/nurse/inpatient')} className="flex-[2] py-3 font-bold bg-blue-600 text-white rounded-xl hover:bg-blue-700 shadow-lg shadow-blue-500/20 flex items-center justify-center gap-2">
+                                    <Activity size={18} /> Clinical Chart
+                                </button>
                                 <button type="button" onClick={handleDischarge} className="flex-[2] py-3 font-bold bg-red-500 text-white rounded-xl hover:bg-red-600 shadow-lg shadow-red-500/20 flex items-center justify-center gap-2">
                                     <LogOut size={18} /> Discharge Patient
                                 </button>

@@ -90,6 +90,12 @@ const DoctorDashboard = () => {
     const [showDocModal, setShowDocModal] = useState(false);
     const [selectedDocRecord, setSelectedDocRecord] = useState(null); // Which record to print for
 
+    // --- ADMISSION LOGIC ---
+    const [showAdmissionModal, setShowAdmissionModal] = useState(false);
+    const [availableBeds, setAvailableBeds] = useState([]);
+    const [selectedBed, setSelectedBed] = useState(null);
+    const [admissionDiagnosis, setAdmissionDiagnosis] = useState('');
+
     const handleGenerateDocument = async (type, data = {}) => {
         if (!selectedDocRecord) return;
         const toastId = toast.loading('Generating Document...');
@@ -117,6 +123,58 @@ const DoctorDashboard = () => {
     };
 
     // Fetch Doctors for the "View As" selector
+    const fetchAnyAvailableBed = async () => {
+        try {
+            const res = await api.get('/admission/rooms');
+            const beds = [];
+            // Handle various response structures safely
+            const roomData = Array.isArray(res.data) ? res.data : (res.data.data || []);
+
+            roomData.forEach(room => {
+                if (room.beds) {
+                    room.beds.forEach(bed => {
+                        if (bed.status === 'AVAILABLE') {
+                            beds.push({ ...bed, roomName: room.name });
+                        }
+                    });
+                }
+            });
+            setAvailableBeds(beds);
+        } catch (error) {
+            console.error("Failed to fetch beds", error);
+            toast.error("Could not fetch bed availability");
+        }
+    };
+
+    const handleOpenAdmission = () => {
+        if (!selectedQueue) return;
+        setAdmissionDiagnosis(soap.assessment || '');
+        fetchAnyAvailableBed();
+        setShowAdmissionModal(true);
+    };
+
+    const handleAdmitPatient = async () => {
+        if (!selectedBed || !admissionDiagnosis) {
+            toast.error("Select Bed & Enter Diagnosis");
+            return;
+        }
+        try {
+            await api.post('/admission/checkin', {
+                patientId: selectedQueue.patient_id,
+                bedId: selectedBed,
+                diagnosa: admissionDiagnosis
+            });
+            toast.success("Patient Admitted Successfully");
+            setShowAdmissionModal(false);
+            // Close session by clearing queue (Simulate finish)
+            setQueues(prev => prev.filter(q => q.id !== selectedQueue?.id));
+            setSelectedQueue(null);
+        } catch (error) {
+            toast.error("Admission Failed");
+            console.error(error);
+        }
+    };
+
     useEffect(() => {
         const fetchDoctors = async () => {
             try {
@@ -741,6 +799,27 @@ const DoctorDashboard = () => {
                                                     required
                                                 />
 
+                                                {/* DISPOSITION SELECTOR */}
+                                                <div className="bg-gray-50 dark:bg-gray-800 p-4 rounded-2xl flex items-center justify-between border border-gray-100 dark:border-gray-700">
+                                                    <label className="font-bold text-sm text-gray-500 uppercase">Outcome / Disposition</label>
+                                                    <div className="flex bg-white dark:bg-gray-700 rounded-xl p-1 shadow-sm">
+                                                        {['PULANG', 'RAWAT_INAP', 'RUJUK', 'KONTROL'].map(opt => (
+                                                            <button
+                                                                key={opt}
+                                                                type="button"
+                                                                onClick={() => setSoap({ ...soap, disposition: opt })}
+                                                                className={`px-4 py-2 rounded-lg text-xs font-bold transition-all ${soap.disposition === opt
+                                                                        ? 'bg-blue-600 text-white shadow-md'
+                                                                        : 'text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-600'
+                                                                    }`}
+                                                            >
+                                                                {opt.replace('_', ' ')}
+                                                            </button>
+                                                        ))}
+                                                    </div>
+                                                </div>
+
+
                                                 {/* E-PRESCRIPTION UI */}
                                                 <div className="bg-white dark:bg-gray-800 p-4 rounded-2xl border border-gray-100 dark:border-gray-700 space-y-3">
                                                     <div className="flex justify-between items-center">
@@ -845,10 +924,19 @@ const DoctorDashboard = () => {
                                             </div>
                                         </div>
 
-                                        <div className="pt-6 border-t border-gray-200 dark:border-gray-700 flex justify-end">
+                                        <div className="pt-6 border-t border-gray-200 dark:border-gray-700 flex gap-4">
+                                            {/* ADMIT BUTTON */}
+                                            <button
+                                                type="button"
+                                                onClick={handleOpenAdmission}
+                                                className="flex-1 py-4 bg-red-600 hover:bg-red-700 text-white rounded-[20px] font-bold text-lg shadow-xl shadow-red-500/20 transition-all hover:scale-105 active:scale-95 flex items-center justify-center gap-2"
+                                            >
+                                                <Home size={20} /> Rujuk Rawat Inap
+                                            </button>
+
                                             <button
                                                 type="submit"
-                                                className="bg-blue-600 hover:bg-blue-700 text-white px-10 py-4 rounded-[20px] font-bold text-lg shadow-xl shadow-blue-600/30 transition-all hover:scale-105 active:scale-95 flex items-center gap-3"
+                                                className="flex-[2] bg-blue-600 hover:bg-blue-700 text-white px-10 py-4 rounded-[20px] font-bold text-lg shadow-xl shadow-blue-600/30 transition-all hover:scale-105 active:scale-95 flex items-center justify-center gap-3"
                                             >
                                                 <Save size={20} /> Save Medical Record
                                             </button>
@@ -905,6 +993,77 @@ const DoctorDashboard = () => {
                     )}
                 </div>
             </div>
+            {/* ADMISSION MODAL */}
+            <AnimatePresence>
+                {showAdmissionModal && (
+                    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+                        <motion.div
+                            initial={{ scale: 0.9, opacity: 0 }}
+                            animate={{ scale: 1, opacity: 1 }}
+                            exit={{ scale: 0.9, opacity: 0 }}
+                            className="bg-white dark:bg-gray-800 w-full max-w-2xl rounded-[32px] p-6 shadow-2xl border border-white/20"
+                        >
+                            <h2 className="text-2xl font-bold mb-2 dark:text-white">Admit to Inpatient / Rawat Inap</h2>
+                            <p className="text-gray-500 mb-6">Select a bed for the patient.</p>
+
+                            <div className="mb-6">
+                                <label className="block text-sm font-bold text-gray-500 mb-2 uppercase">Diagnosis for Admission (Diagnosa Masuk)</label>
+                                <input
+                                    type="text"
+                                    className="w-full p-4 bg-gray-50 dark:bg-gray-700 rounded-xl font-bold dark:text-white border-none focus:ring-2 focus:ring-blue-500"
+                                    placeholder="Isi diagnosa awal..."
+                                    value={admissionDiagnosis}
+                                    onChange={e => setAdmissionDiagnosis(e.target.value)}
+                                />
+                            </div>
+
+                            <div className="mb-6">
+                                <label className="block text-sm font-bold text-gray-500 mb-2 uppercase">Available Beds</label>
+                                <div className="grid grid-cols-2 md:grid-cols-3 gap-3 max-h-[250px] overflow-y-auto pr-2">
+                                    {availableBeds.length === 0 ? (
+                                        <div className="col-span-full text-center py-10 text-gray-400 bg-gray-50 dark:bg-gray-700/50 rounded-2xl border-2 border-dashed border-gray-200 dark:border-gray-600">
+                                            <div className="font-bold">No Available Beds</div>
+                                            <div className="text-xs mt-1">Check Admission Dashboard</div>
+                                        </div>
+                                    ) : (
+                                        availableBeds.map(bed => (
+                                            <div
+                                                key={bed.id}
+                                                onClick={() => setSelectedBed(bed.id)}
+                                                className={`p-4 rounded-xl border-2 cursor-pointer transition-all ${selectedBed === bed.id
+                                                    ? 'border-green-500 bg-green-50 dark:bg-green-900/20 ring-2 ring-green-500 ring-offset-2 dark:ring-offset-gray-800'
+                                                    : 'bg-white dark:bg-gray-700 border-gray-100 dark:border-gray-600 hover:border-blue-400'
+                                                    }`}
+                                            >
+                                                <div className="font-bold text-lg dark:text-white">{bed.code}</div>
+                                                <div className="text-xs text-gray-500 dark:text-gray-400">{bed.roomName}</div>
+                                                <div className="text-[10px] font-bold text-green-600 mt-2 bg-green-100 dark:bg-green-900/40 w-fit px-2 py-0.5 rounded-full">AVAILABLE</div>
+                                            </div>
+                                        ))
+                                    )}
+                                </div>
+                            </div>
+
+                            <div className="flex gap-4">
+                                <button
+                                    onClick={() => setShowAdmissionModal(false)}
+                                    className="flex-1 py-4 font-bold text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-2xl transition"
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    onClick={handleAdmitPatient}
+                                    disabled={!selectedBed || !admissionDiagnosis}
+                                    className="flex-1 py-4 bg-green-600 hover:bg-green-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-white rounded-2xl font-bold shadow-lg shadow-green-600/30 transition transform hover:-translate-y-1"
+                                >
+                                    Confirm Admission
+                                </button>
+                            </div>
+                        </motion.div>
+                    </div>
+                )}
+            </AnimatePresence>
+
             {/* Service Order Modal */}
             <AnimatePresence>
                 {showOrderModal && (
@@ -1003,7 +1162,7 @@ const DoctorDashboard = () => {
                     </div>
                 )}
             </AnimatePresence>
-        </PageWrapper>
+        </PageWrapper >
     );
 };
 

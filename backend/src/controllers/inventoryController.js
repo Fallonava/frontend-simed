@@ -41,6 +41,26 @@ exports.getLowStock = async (req, res) => {
     }
 };
 
+// Get Locations
+exports.getLocations = async (req, res) => {
+    try {
+        const locations = await prisma.inventoryLocation.findMany();
+        res.json(locations);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+};
+
+// Get Suppliers (for PO Form)
+exports.getSuppliers = async (req, res) => {
+    try {
+        const suppliers = await prisma.supplier.findMany();
+        res.json(suppliers);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+};
+
 // Create Purchase Order (Draft)
 exports.createPO = async (req, res) => {
     try {

@@ -24,7 +24,6 @@ const RegistrationIGD = () => {
     const [doctors, setDoctors] = useState([]);
     const [selectedClinic, setSelectedClinic] = useState(null);
     const [selectedDoctor, setSelectedDoctor] = useState(null);
-    const [paymentMethod, setPaymentMethod] = useState(null);
     const [showNewPatientModal, setShowNewPatientModal] = useState(false);
     const [showCardModal, setShowCardModal] = useState(false); // New State
 
@@ -413,14 +412,14 @@ const RegistrationIGD = () => {
         setPatientFound(null);
         setSelectedClinic(null);
         setSelectedDoctor(null);
-        setPaymentMethod(null);
+        setPaymentType('UMUM'); // Reset to default
         setTicketData(null);
         setIsSearching(false);
         toast('Form Reset', { icon: '🔄' });
     };
 
     const handleRegister = async () => {
-        if (!patientFound || !selectedDoctor || !selectedClinic || !paymentMethod) {
+        if (!patientFound || !selectedDoctor || !selectedClinic || !paymentType) {
             toast.error("Please complete all steps");
             return;
         }
@@ -464,8 +463,15 @@ const RegistrationIGD = () => {
     // or routing to a print page. For simplicity here, we assume the user views the card modal then prints.
 
     const filteredDoctors = selectedClinic
-        ? doctors.filter(d => d.poliklinik_id === selectedClinic)
+        ? doctors.filter(d => d.poliklinik_id == selectedClinic)
         : [];
+
+    // Auto-select doctor if only one exists in the filtered list
+    useEffect(() => {
+        if (filteredDoctors.length === 1 && !selectedDoctor) {
+            setSelectedDoctor(filteredDoctors[0].id);
+        }
+    }, [filteredDoctors, selectedDoctor]);
 
     return (
         <PageWrapper title="Registration">
@@ -929,7 +935,7 @@ const RegistrationIGD = () => {
                             if (paymentType === 'BPJS' && !sepData) {
                                 setShowSEPModal(true);
                             } else {
-                                handleCreateTicket();
+                                handleRegister();
                             }
                         }}
                         disabled={!patientFound || !selectedDoctor}
@@ -1515,7 +1521,7 @@ const RegistrationIGD = () => {
                                                     toast.success('SEP Berhasil Terbit!');
                                                     setShowSEPModal(false);
                                                     // Continue to Create Ticket
-                                                    handleCreateTicket();
+                                                    handleRegister();
                                                 }
                                             } catch (e) {
                                                 toast.error('Gagal terbit SEP');

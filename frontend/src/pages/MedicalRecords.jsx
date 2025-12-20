@@ -180,6 +180,57 @@ const MedicalRecords = () => {
                                         <p className="text-gray-700 dark:text-gray-300 whitespace-pre-wrap text-lg leading-relaxed">{selectedRecord.plan || '-'}</p>
                                     </div>
 
+                                    {/* Clinical Orders Grid */}
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                        {/* Prescriptions */}
+                                        <div className="bg-purple-50 dark:bg-purple-900/10 p-6 rounded-3xl border border-purple-100 dark:border-purple-800/30">
+                                            <h3 className="text-purple-700 dark:text-purple-400 font-bold mb-4 flex items-center gap-2">
+                                                <div className="p-1.5 bg-purple-100 rounded-lg"><ClipboardPlus size={16} /></div>
+                                                Prescriptions
+                                            </h3>
+                                            {selectedRecord.prescriptions?.length > 0 ? (
+                                                selectedRecord.prescriptions.map(p => (
+                                                    <div key={p.id} className="space-y-2">
+                                                        {p.items?.map((item, idx) => (
+                                                            <div key={idx} className="bg-white dark:bg-gray-800 p-3 rounded-xl border border-purple-100 dark:border-gray-700 text-sm">
+                                                                <div className="font-bold text-gray-800 dark:text-white">{item.medicine?.name || 'Unknown Drug'}</div>
+                                                                <div className="text-gray-500">{item.quantity} {item.medicine?.unit} • {item.dosage}</div>
+                                                                {item.notes && <div className="text-xs text-orange-500 mt-1">Note: {item.notes}</div>}
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                ))
+                                            ) : (
+                                                <div className="text-gray-400 text-sm italic">No prescriptions.</div>
+                                            )}
+                                        </div>
+
+                                        {/* Labs / Radiology */}
+                                        <div className="bg-cyan-50 dark:bg-cyan-900/10 p-6 rounded-3xl border border-cyan-100 dark:border-cyan-800/30">
+                                            <h3 className="text-cyan-700 dark:text-cyan-400 font-bold mb-4 flex items-center gap-2">
+                                                <div className="p-1.5 bg-cyan-100 rounded-lg"><Activity size={16} /></div>
+                                                Labs & Radiology
+                                            </h3>
+                                            {selectedRecord.service_orders?.length > 0 ? (
+                                                <div className="space-y-2">
+                                                    {selectedRecord.service_orders.map(order => (
+                                                        <div key={order.id} className="bg-white dark:bg-gray-800 p-3 rounded-xl border border-cyan-100 dark:border-gray-700 flex justify-between items-center">
+                                                            <div>
+                                                                <div className="font-bold text-gray-800 dark:text-white">{order.type} Order</div>
+                                                                <div className="text-xs text-gray-500 mt-0.5 whitespace-pre-line">{order.notes || 'No notes'}</div>
+                                                            </div>
+                                                            <div className={`text-[10px] font-bold px-2 py-1 rounded ${order.status === 'COMPLETED' ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'}`}>
+                                                                {order.status}
+                                                            </div>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            ) : (
+                                                <div className="text-gray-400 text-sm italic">No service orders.</div>
+                                            )}
+                                        </div>
+                                    </div>
+
                                     {/* Vitals Summary */}
                                     <div className="flex gap-4 overflow-x-auto py-4">
                                         {[

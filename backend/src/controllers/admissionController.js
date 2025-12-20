@@ -48,6 +48,44 @@ exports.getRooms = async (req, res) => {
     }
 };
 
+// GET Pending Admissions (Patients referred to Inpatient but not yet admitted)
+exports.getPendingAdmissions = async (req, res) => {
+    try {
+        // Find Medical Records from last 24h with disposition RAWAT_INAP
+        const yesterday = new Date();
+        yesterday.setDate(yesterday.getDate() - 1);
+
+        const pendingRecords = await prisma.medicalRecord.findMany({
+            where: {
+                disposition: 'RAWAT_INAP',
+                visit_date: { gte: yesterday }
+            },
+            include: {
+                patient: {
+                    include: {
+                        admissions: {
+                            where: { status: 'ACTIVE' }
+                        }
+                    }
+                },
+                doctor: true
+            },
+            orderBy: { visit_date: 'desc' }
+        });
+
+        // Filter out patients who are already admitted
+        const readyToAdmit = pendingRecords.filter(r => r.patient.admissions.length === 0);
+
+        res.json({
+            status: 'success',
+            data: readyToAdmit
+        });
+    } catch (error) {
+        console.error('Get Pending Admissions Error:', error);
+        res.status(500).json({ error: 'Failed to fetch pending admissions' });
+    }
+};
+
 // CHECK-IN (Admit Patient)
 exports.checkIn = async (req, res) => {
     const { patientId, bedId, diagnosa } = req.body;

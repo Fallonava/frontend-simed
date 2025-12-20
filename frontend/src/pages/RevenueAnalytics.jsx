@@ -15,38 +15,25 @@ const RevenueAnalytics = () => {
     const [topProducts, setTopProducts] = useState([]);
     const [chartData, setChartData] = useState([]);
 
+    const fetchAnalytics = async () => {
+        try {
+            const res = await api.get('/finance/analytics');
+            if (res.data) {
+                setStats(res.data.stats);
+                setChartData(res.data.chartData);
+                setTopProducts(res.data.topProducts);
+            }
+        } catch (error) {
+            console.error(error);
+            // Fallback needed? No, just log for now
+        }
+    };
+
     useEffect(() => {
-        // In a real app, we would fetch this from backend: api.get('/finance/analytics?type=revenue')
-        // For now, we mock it based on our seeded data + logic
-        mockData();
+        fetchAnalytics();
     }, []);
 
-    const mockData = () => {
-        setStats({
-            revenue: 250000000,
-            cogs: 180000000,
-            grossProfit: 70000000,
-            margin: 28 // 28%
-        });
-
-        setChartData([
-            { name: 'Mon', Revenue: 4000000, Cost: 2800000 },
-            { name: 'Tue', Revenue: 3000000, Cost: 2100000 },
-            { name: 'Wed', Revenue: 2000000, Cost: 1500000 },
-            { name: 'Thu', Revenue: 2780000, Cost: 1900000 },
-            { name: 'Fri', Revenue: 1890000, Cost: 1200000 },
-            { name: 'Sat', Revenue: 2390000, Cost: 1400000 },
-            { name: 'Sun', Revenue: 3490000, Cost: 2100000 },
-        ]);
-
-        setTopProducts([
-            { name: 'Paracetamol 500mg', revenue: 15000000, profit: 8000000, margin: 53 },
-            { name: 'Amoxicillin 500mg', revenue: 12000000, profit: 4000000, margin: 33 },
-            { name: 'Vitamin C', revenue: 5000000, profit: 2000000, margin: 40 },
-            { name: 'Saline Infusion', revenue: 8000000, profit: 2400000, margin: 30 },
-            { name: 'Masker Medis', revenue: 3000000, profit: -500000, margin: -16 }, // Loss Leader
-        ]);
-    };
+    // const mockData = () => { ... } // Removed
 
     return (
         <div className="p-8 max-w-7xl mx-auto space-y-8 animate-fade-in">
@@ -126,8 +113,8 @@ const RevenueAnalytics = () => {
                                 </td>
                                 <td className="p-4">
                                     <span className={`px-2 py-1 rounded-lg text-xs font-bold ${product.margin > 20 ? 'bg-emerald-100 text-emerald-700' :
-                                            product.margin > 0 ? 'bg-amber-100 text-amber-700' :
-                                                'bg-red-100 text-red-700'
+                                        product.margin > 0 ? 'bg-amber-100 text-amber-700' :
+                                            'bg-red-100 text-red-700'
                                         }`}>
                                         {product.margin}%
                                     </span>

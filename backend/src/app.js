@@ -177,6 +177,7 @@ app.post('/api/antrean/ambil', antreanController.ambilAntrean);
 
 // Inpatient / Admission Routes
 const admissionController = require('./controllers/admissionController');
+app.get('/api/admission/pending', authMiddleware, admissionController.getPendingAdmissions);
 app.get('/api/admission/rooms', authMiddleware, admissionController.getRooms);
 app.post('/api/admission/checkin', authMiddleware, admissionController.checkIn);
 app.post('/api/admission/checkout', authMiddleware, admissionController.checkOut);
@@ -251,12 +252,14 @@ app.put('/api/transactions/:id/pay', authMiddleware, transactionController.pay);
 // Inventory & Logistics Routes (Phase 2)
 const inventoryController = require('./controllers/inventoryController');
 app.get('/api/inventory/stocks', authMiddleware, inventoryController.getStock);
+app.get('/api/inventory/locations', authMiddleware, inventoryController.getLocations); // NEW
 app.get('/api/inventory/alerts', authMiddleware, inventoryController.getLowStock);
+app.get('/api/inventory/suppliers', authMiddleware, inventoryController.getSuppliers);
 app.post('/api/inventory/po', authMiddleware, inventoryController.createPO);
 app.get('/api/inventory/po/pending', authMiddleware, inventoryController.getPendingPOs);
 app.post('/api/inventory/receive', authMiddleware, inventoryController.receiveGoods);
 app.post('/api/inventory/transfer', authMiddleware, inventoryController.transferStock);
-app.post('/api/inventory/transfer', authMiddleware, inventoryController.transferStock);
+
 
 // Back Office: Casemix & Claims (Phase 2b)
 const casemixController = require('./controllers/casemixController');

@@ -60,8 +60,8 @@ const DischargeDashboard = () => {
                                     <td className="px-6 py-4 text-sm">{p.doctor.name}</td>
                                     <td className="px-6 py-4">
                                         <span className={`px-2 py-1 rounded text-xs font-bold ${p.status === 'DISCHARGE_INITIATED'
-                                                ? 'bg-amber-100 text-amber-700'
-                                                : 'bg-green-100 text-green-700'
+                                            ? 'bg-amber-100 text-amber-700'
+                                            : 'bg-green-100 text-green-700'
                                             }`}>
                                             {p.status.replace('_', ' ')}
                                         </span>
@@ -119,12 +119,27 @@ const DischargeForm = ({ patient, onBack }) => {
             toast.error('Please complete all checklist items');
             return;
         }
+
+        if (!window.confirm("Are you sure you want to finalize discharge? This will close the admission and generate the final bill.")) return;
+
         try {
-            await api.post(`/discharge/${patient.id}/finalize`, { type: 'PULANG' });
-            toast.success('Patient Discharged!');
+            const res = await api.post(`/discharge/${patient.id}/finalize`, { type: 'PULANG' });
+
+            // Show Success & Bill Info
+            toast.success(`Discharged! Invoice #${res.data.invoice_id} Generated.`);
+            alert(`
+                ✅ Patient Discharged
+                -------------------------
+                LOS: ${res.data.los} Days
+                Total Bill: Rp ${res.data.total_bill?.toLocaleString()}
+                
+                Please direct patient to Cashier.
+            `);
+
             onBack();
         } catch (error) {
-            toast.error('Failed to finalize');
+            console.error(error);
+            toast.error(error.response?.data?.error || 'Failed to finalize');
         }
     };
 
