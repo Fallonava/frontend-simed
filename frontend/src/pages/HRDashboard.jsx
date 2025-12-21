@@ -30,7 +30,10 @@ const PERFORMANCE_REVIEWS = [
 
 const COLORS = ['#8b5cf6', '#ec4899', '#3b82f6', '#10b981'];
 
+import { useNavigate } from 'react-router-dom';
+
 const HRDashboard = () => {
+    const navigate = useNavigate();
     const [activeTab, setActiveTab] = useState('overview'); // overview, directory, roster, leaves, performance
     const [employees, setEmployees] = useState([]);
     const [roster, setRoster] = useState([]);
@@ -165,39 +168,34 @@ const HRDashboard = () => {
 
             <div className="flex flex-col h-full">
                 {/* Header Section */}
-                <div className="px-8 pt-6 pb-2">
-                    <div className="flex justify-between items-end mb-6">
-                        <div>
-                            <h1 className="text-4xl font-black text-slate-800 tracking-tight mb-1 bg-gradient-to-r from-purple-600 to-indigo-600 bg-clip-text text-transparent">
-                                Human Capital
-                            </h1>
-                            <p className="text-slate-500 font-medium">Manage your organization's most valuable asset.</p>
-                        </div>
-
-                        {/* Tab Navigation */}
-                        <div className="flex bg-white p-1.5 rounded-2xl shadow-sm border border-slate-200">
-                            {[
-                                { id: 'overview', label: 'Overview', icon: PieChart },
-                                { id: 'directory', label: 'Directory', icon: Users },
-                                { id: 'roster', label: 'Roster', icon: Calendar },
-                                { id: 'leaves', label: 'Leaves', icon: Clock },
-                                { id: 'performance', label: 'Performance', icon: Award },
-                            ].map(tab => (
-                                <button
-                                    key={tab.id}
-                                    onClick={() => setActiveTab(tab.id)}
-                                    className={`relative px-5 py-2.5 rounded-xl text-sm font-bold flex items-center gap-2 transition-all duration-300
-                                        ${activeTab === tab.id
-                                            ? 'bg-gradient-to-tr from-purple-600 to-indigo-600 text-white shadow-lg shadow-purple-500/30'
-                                            : 'text-slate-500 hover:bg-slate-50 hover:text-slate-700'}`}
-                                >
-                                    <tab.icon size={18} />
-                                    {tab.label}
-                                </button>
-                            ))}
-                        </div>
+                <ModernHeader
+                    title="Human Capital"
+                    subtitle="Manage your organization's most valuable asset."
+                    onBack={() => navigate('/menu')}
+                >
+                    {/* Tab Navigation */}
+                    <div className="flex bg-white/50 backdrop-blur-md p-1.5 rounded-2xl shadow-sm border border-slate-200 dark:border-white/10 dark:bg-gray-800/50">
+                        {[
+                            { id: 'overview', label: 'Overview', icon: PieChart },
+                            { id: 'directory', label: 'Directory', icon: Users },
+                            { id: 'roster', label: 'Roster', icon: Calendar },
+                            { id: 'leaves', label: 'Leaves', icon: Clock },
+                            { id: 'performance', label: 'Performance', icon: Award },
+                        ].map(tab => (
+                            <button
+                                key={tab.id}
+                                onClick={() => setActiveTab(tab.id)}
+                                className={`relative px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-2 transition-all duration-300
+                                    ${activeTab === tab.id
+                                        ? 'bg-gradient-to-tr from-purple-600 to-indigo-600 text-white shadow-lg shadow-purple-500/30'
+                                        : 'text-slate-500 hover:bg-slate-50 dark:hover:bg-white/5 hover:text-slate-700 dark:text-slate-400 dark:hover:text-white'}`}
+                            >
+                                <tab.icon size={16} />
+                                <span className="hidden md:inline">{tab.label}</span>
+                            </button>
+                        ))}
                     </div>
-                </div>
+                </ModernHeader>
 
                 {/* Content Area */}
                 <div className="flex-1 px-8 pb-8 overflow-y-auto custom-scrollbar">

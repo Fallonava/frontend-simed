@@ -187,28 +187,12 @@ const MainMenu = () => {
             category: "Logistics & Supply Chain",
             items: [
                 {
-                    title: 'Gudang Farmasi',
-                    description: 'Central Pharmacy Warehouse',
+                    title: 'Logistics Command Center',
+                    description: 'Inventory, Assets & Pharmacy',
                     icon: <Package size={32} />,
-                    path: '/logistics/pharmacy',
+                    path: '/inventory/general', // This route maps to InventoryDashboard
                     roles: ['ADMIN', 'STAFF'],
                     color: 'bg-teal-600'
-                },
-                {
-                    title: 'Inventaris Umum',
-                    description: 'General Inventory',
-                    icon: <Box size={32} />,
-                    path: '/inventory/general',
-                    roles: ['ADMIN'],
-                    color: 'bg-blue-600'
-                },
-                {
-                    title: 'Manajemen Aset',
-                    description: 'General Assets',
-                    icon: <Box size={32} />,
-                    path: '/logistics/assets',
-                    roles: ['ADMIN'],
-                    color: 'bg-slate-700'
                 }
             ]
         },

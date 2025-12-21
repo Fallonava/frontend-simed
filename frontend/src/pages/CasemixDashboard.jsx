@@ -1,278 +1,349 @@
 import React, { useState, useEffect } from 'react';
 import {
-    FileText, CheckCircle, AlertCircle, Search, ExternalLink, Activity, DollarSign
+    FileText, CheckCircle, AlertCircle, Search, Activity, DollarSign,
+    Layers, BookOpen, User, Calendar, Save, Download, FileCheck
 } from 'lucide-react';
 import api from '../services/api';
-import toast from 'react-hot-toast';
+import toast, { Toaster } from 'react-hot-toast';
+import PageWrapper from '../components/PageWrapper';
+import ModernHeader from '../components/ModernHeader';
+import { motion, AnimatePresence } from 'framer-motion';
 
 const CasemixDashboard = () => {
-    const [activeTab, setActiveTab] = useState('coding');
-    const [pending, setPending] = useState([]);
-    const [processing, setProcessing] = useState([]);
-    const [selectedPatient, setSelectedPatient] = useState(null);
+    const [activeTab, setActiveTab] = useState('coding'); // coding, grouping, claims
+    const [queues, setQueues] = useState({ coding_queue: [], grouped_queue: [], claimed_history: [] });
+    const [selectedItem, setSelectedItem] = useState(null);
+    const [loading, setLoading] = useState(true);
 
-    // Form State
-    const [icd10, setIcd10] = useState('');
-    const [procedures, setProcedures] = useState('');
+    // Coding Form
+    const [formData, setFormData] = useState({
+        primary_icd10: '',
+        secondary_icd10s: '',
+        procedures: ''
+    });
 
     useEffect(() => {
-        fetchPending();
+        fetchQueues();
     }, []);
 
-    const fetchPending = () => {
-        api.get('/casemix/pending')
-            .then(res => {
-                setPending(res.data.new);
-                setProcessing(res.data.processing);
-            })
-            .catch(err => toast.error('Failed to load tasks'));
+    const fetchQueues = async () => {
+        setLoading(true);
+        try {
+            const res = await api.get('/casemix/pending');
+            setQueues(res.data);
+        } catch (error) {
+            toast.error('Failed to load tasks');
+        } finally {
+            setLoading(false);
+        }
     };
 
-    const handleSelect = (record) => {
-        setSelectedPatient(record);
-        setIcd10(
-            record.icd10?.code
-                ? `${record.icd10.code} - ${record.icd10.description}`
-                : record.icd10_code || ''
+    const handleSelectForCoding = (record) => {
+        setSelectedItem(record);
+        // Pre-fill if available
+        setFormData({
+            primary_icd10: record.icd10?.code || record.icd10_code || '',
+            secondary_icd10s: '',
+            procedures: ''
+        });
+    };
+
+    const runGrouper = async () => {
+        if (!selectedItem) return;
+        toast.promise(
+            api.post('/casemix/save', {
+                medical_record_id: selectedItem.id,
+                ...formData,
+                user_name: 'Coder Admin'
+            }).then(() => {
+                fetchQueues();
+                setSelectedItem(null);
+                setActiveTab('grouping');
+            }),
+            {
+                loading: 'Running Grouper Engine...',
+                success: 'Grouping Complete!',
+                error: 'Grouping Failed'
+            }
         );
-        setProcedures('');
     };
 
-    const handleCodingSubmit = async () => {
-        if (!selectedPatient) return;
-
-        try {
-            await api.post('/casemix/save', {
-                medical_record_id: selectedPatient.id || selectedPatient.medical_record_id,
-                primary_icd10: icd10, // In real app, parse code only
-                secondary_icd10s: '',
-                procedures: procedures,
-                user_name: 'Admin Coder'
-            });
-            toast.success('Coding Saved & Grouped!');
-            setSelectedPatient(null);
-            fetchPending();
-            setActiveTab('grouping'); // Switch to view result
-        } catch (error) {
-            toast.error('Grouping Failed');
-        }
+    const finalizeClaim = async (casemixId) => {
+        toast.promise(
+            api.post('/casemix/claim', { id: casemixId }).then(res => {
+                // Mock Download
+                const blob = new Blob([res.data.file_content], { type: 'text/plain' });
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = res.data.filename;
+                a.click();
+                fetchQueues();
+            }),
+            {
+                loading: 'Generating Claim File...',
+                success: 'Claim Finalized & Downloaded',
+                error: 'Failed'
+            }
+        );
     };
 
-    const handleGenerateClaim = async (id) => {
-        try {
-            const res = await api.post('/casemix/claim', { id });
-            toast.success(`File Generated: ${res.data.url}`);
-            fetchPending();
-        } catch (error) {
-            toast.error('Claim Generation Failed');
-        }
-    };
+    const tabs = [
+        { id: 'coding', label: 'Coding Queue', icon: BookOpen, count: queues.coding_queue.length },
+        { id: 'grouping', label: 'Grouping Results', icon: Layers, count: queues.grouped_queue.length },
+        { id: 'claims', label: 'Claims History', icon: FileCheck, count: queues.claimed_history.length },
+    ];
 
     return (
-        <div className="p-8 max-w-7xl mx-auto space-y-6 animate-fade-in">
-            {/* Header */}
-            <div className="flex justify-between items-center">
-                <div>
-                    <h1 className="text-3xl font-bold text-gray-900 dark:text-white flex items-center gap-3">
-                        <Activity className="w-8 h-8 text-indigo-600" />
-                        Casemix Integration (INA-CBG)
-                    </h1>
-                    <p className="text-gray-500 mt-1">Medical Coding, Grouping, and BPJS Claim Management</p>
-                </div>
-                <div className="flex gap-2">
-                    <button
-                        onClick={() => setActiveTab('coding')}
-                        className={`px-4 py-2 rounded-xl text-sm font-bold transition-colors ${activeTab === 'coding' ? 'bg-indigo-600 text-white' : 'bg-white dark:bg-gray-800 text-gray-600'}`}
-                    >
-                        Pending Coding ({pending.length})
-                    </button>
-                    <button
-                        onClick={() => setActiveTab('grouping')}
-                        className={`px-4 py-2 rounded-xl text-sm font-bold transition-colors ${activeTab === 'grouping' ? 'bg-indigo-600 text-white' : 'bg-white dark:bg-gray-800 text-gray-600'}`}
-                    >
-                        Grouped & Claims ({processing.length})
-                    </button>
-                </div>
-            </div>
+        <PageWrapper title="Casemix Center">
+            <Toaster position="top-right" />
+            <ModernHeader
+                title="Casemix Integration"
+                subtitle="INA-CBG Coding & Claim Management"
+            />
 
-            {/* Main Content */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <div className="p-6 max-w-[1920px] mx-auto min-h-[calc(100vh-140px)] flex flex-col gap-6">
 
-                {/* Left: Patient List */}
-                <div className="lg:col-span-1 bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden h-[600px] flex flex-col">
-                    <div className="p-4 border-b border-gray-100 dark:border-gray-700">
-                        <div className="relative">
-                            <Search className="absolute left-3 top-3 text-gray-400" size={18} />
-                            <input
-                                type="text"
-                                placeholder="Search RM / Name..."
-                                className="w-full pl-10 pr-4 py-2 bg-gray-50 dark:bg-gray-700 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                            />
-                        </div>
-                    </div>
-                    <div className="overflow-y-auto flex-1 p-2 space-y-2">
-                        {activeTab === 'coding' ? (
-                            pending.map(p => (
-                                <PatientCard key={p.id} patient={p.patient} record={p} onClick={() => handleSelect(p)} active={selectedPatient?.id === p.id} />
-                            ))
-                        ) : (
-                            processing.map(p => (
-                                <PatientCard key={p.id} patient={p.medical_record.patient} record={p} status={p.status} onClick={() => { }} />
-                            ))
-                        )}
-                        {pending.length === 0 && activeTab === 'coding' && (
-                            <div className="text-center py-10 text-gray-400 text-sm">No pending discharges to code.</div>
-                        )}
-                    </div>
+                {/* Tab Navigation */}
+                <div className="flex bg-white/50 dark:bg-gray-800/50 backdrop-blur p-1.5 rounded-2xl w-fit border border-white/20 shadow-sm">
+                    {tabs.map(tab => (
+                        <button
+                            key={tab.id}
+                            onClick={() => { setActiveTab(tab.id); setSelectedItem(null); }}
+                            className={`px-6 py-3 rounded-xl flex items-center gap-3 transition-all text-sm font-bold ${activeTab === tab.id
+                                    ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/30'
+                                    : 'text-gray-500 hover:text-gray-800 dark:hover:text-gray-200'
+                                }`}
+                        >
+                            <tab.icon size={18} />
+                            {tab.label}
+                            {tab.count > 0 && <span className="bg-white/20 px-2 py-0.5 rounded textxs">{tab.count}</span>}
+                        </button>
+                    ))}
                 </div>
 
-                {/* Right: Coding / Grouping Area */}
-                <div className="lg:col-span-2 bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 p-8 h-[600px] overflow-y-auto">
-                    {activeTab === 'coding' && selectedPatient ? (
-                        <div className="space-y-6">
-                            <div className="flex justify-between items-start">
-                                <div>
-                                    <h2 className="text-xl font-bold text-gray-900 dark:text-white">{selectedPatient.patient.name}</h2>
-                                    <p className="text-sm text-gray-500">RM: {selectedPatient.patient.rm_number} • Visit: {new Date(selectedPatient.visit_date).toLocaleDateString()}</p>
+                {/* CONTENT AREA */}
+                <div className="flex-1 grid grid-cols-12 gap-8">
+
+                    {/* LEFT LIST (Shared for Coding & Grouping Selection) */}
+                    {activeTab === 'coding' && (
+                        <div className="col-span-12 lg:col-span-4 flex flex-col gap-4">
+                            <div className="glass-panel p-4 rounded-[24px]">
+                                <div className="relative">
+                                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+                                    <input type="text" placeholder="Search Patient..." className="w-full pl-12 pr-4 py-3 bg-gray-50 dark:bg-gray-900/50 rounded-xl border-none focus:ring-2 focus:ring-indigo-500 font-bold text-sm" />
                                 </div>
-                                <span className="px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-xs font-bold">READY TO CODE</span>
                             </div>
-
-                            {/* Clinical Context (Read Only) */}
-                            <div className="bg-gray-50 dark:bg-gray-700/30 p-4 rounded-xl space-y-3">
-                                <div>
-                                    <label className="text-xs font-bold text-gray-400 uppercase">Doctor's Assessment</label>
-                                    <p className="text-gray-800 dark:text-gray-200 text-sm mt-1">{selectedPatient.assessment || '-'}</p>
-                                </div>
-                                <div className="grid grid-cols-2 gap-4">
-                                    <div>
-                                        <label className="text-xs font-bold text-gray-400 uppercase">Input Diagnosis (ICD-10)</label>
-                                        <div className="text-indigo-600 font-medium text-sm mt-1">
-                                            {selectedPatient.icd10 ? `${selectedPatient.icd10.code} - ${selectedPatient.icd10.description}` : 'Not Specified'}
+                            <div className="flex-1 overflow-y-auto space-y-3 custom-scrollbar">
+                                {queues.coding_queue.map(item => (
+                                    <div
+                                        key={item.id}
+                                        onClick={() => handleSelectForCoding(item)}
+                                        className={`p-5 rounded-[24px] cursor-pointer border transition-all ${selectedItem?.id === item.id
+                                                ? 'bg-indigo-600 text-white border-transparent shadow-lg shadow-indigo-500/30'
+                                                : 'bg-white dark:bg-gray-800 border-gray-100 dark:border-gray-700 hover:border-indigo-300'
+                                            }`}
+                                    >
+                                        <div className="flex justify-between items-start mb-2">
+                                            <h4 className="font-bold text-lg">{item.patient.name}</h4>
+                                            <span className="text-xs opacity-70 font-mono">{new Date(item.visit_date).toLocaleDateString()}</span>
                                         </div>
-                                    </div>
-                                    <div>
-                                        <label className="text-xs font-bold text-gray-400 uppercase">Doctor</label>
-                                        <p className="text-sm mt-1">{selectedPatient.doctor.name}</p>
-                                    </div>
-                                </div>
-                            </div>
-
-                            {/* Coder Input */}
-                            <div className="space-y-4 pt-4 border-t border-gray-100 dark:border-gray-700">
-                                <h3 className="font-bold text-gray-700 dark:text-gray-300">Coder Validation</h3>
-
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Primary Diagnosis (ICD-10)</label>
-                                    <input
-                                        type="text"
-                                        value={icd10}
-                                        onChange={(e) => setIcd10(e.target.value)}
-                                        className="w-full px-4 py-2 rounded-xl border border-gray-300 dark:border-gray-600 dark:bg-gray-700 focus:ring-2 focus:ring-indigo-500"
-                                    />
-                                </div>
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Procedures (ICD-9 CM)</label>
-                                    <input
-                                        type="text"
-                                        value={procedures}
-                                        onChange={(e) => setProcedures(e.target.value)}
-                                        placeholder="e.g. 89.03 (Consultation)"
-                                        className="w-full px-4 py-2 rounded-xl border border-gray-300 dark:border-gray-600 dark:bg-gray-700 focus:ring-2 focus:ring-indigo-500"
-                                    />
-                                </div>
-                            </div>
-
-                            <div className="pt-6 flex justify-end gap-3">
-                                <button className="px-6 py-2 rounded-xl text-gray-600 font-medium hover:bg-gray-100">Cancel</button>
-                                <button
-                                    onClick={handleCodingSubmit}
-                                    className="px-6 py-2 rounded-xl bg-indigo-600 text-white font-bold hover:bg-indigo-700 shadow-lg shadow-indigo-200 dark:shadow-none flex items-center gap-2"
-                                >
-                                    <CheckCircle size={18} />
-                                    Verify & Group
-                                </button>
-                            </div>
-                        </div>
-                    ) : activeTab === 'grouping' ? (
-                        <div>
-                            <h3 className="font-bold text-gray-700 dark:text-gray-300 mb-6">Grouped Claims (Ready for Upload)</h3>
-
-                            <div className="space-y-4">
-                                {processing.map(item => (
-                                    <div key={item.id} className="border border-gray-200 dark:border-gray-700 rounded-xl p-5 flex justify-between items-center hover:shadow-md transition-shadow">
-                                        <div>
-                                            <div className="flex items-center gap-3">
-                                                <h4 className="font-bold text-gray-900 dark:text-white">{item.medical_record.patient.name}</h4>
-                                                <span className="px-2 py-0.5 rounded text-xs font-bold bg-green-100 text-green-700 border border-green-200">
-                                                    {item.ina_cbg_code}
-                                                </span>
-                                            </div>
-                                            <p className="text-sm text-gray-500 mt-1">
-                                                {item.ina_cbg_desc}
-                                            </p>
-                                            <div className="text-xs text-gray-400 mt-2 flex gap-3">
-                                                <span>ICD-10: {item.primary_icd10}</span>
-                                                <span>•</span>
-                                                <span>Coder: {item.coder_name}</span>
-                                            </div>
+                                        <div className="flex items-center gap-2 text-sm opacity-80 mb-3">
+                                            <User size={14} /> RM: {item.patient.no_rm}
                                         </div>
-                                        <div className="text-right">
-                                            <p className="text-sm text-gray-500">Tariff INA-CBG</p>
-                                            <p className="text-xl font-bold text-indigo-600">Rp {item.tariff?.toLocaleString()}</p>
-
-                                            {item.status !== 'CLAIMED' ? (
-                                                <button
-                                                    onClick={() => handleGenerateClaim(item.id)}
-                                                    className="mt-2 text-xs font-bold text-indigo-600 hover:text-indigo-800 flex items-center justify-end gap-1"
-                                                >
-                                                    <FileText size={14} /> Generate Claim File
-                                                </button>
-                                            ) : (
-                                                <span className="mt-2 text-xs font-bold text-gray-400 flex items-center justify-end gap-1">
-                                                    <CheckCircle size={14} /> Claim Generated
-                                                </span>
-                                            )}
+                                        <div className={`text-xs font-bold px-3 py-1.5 rounded-lg w-fit ${selectedItem?.id === item.id ? 'bg-white/20' : 'bg-gray-100 dark:bg-gray-700 text-gray-500'}`}>
+                                            DX: {item.assessment || 'No Diagnosis'}
                                         </div>
                                     </div>
                                 ))}
+                                {queues.coding_queue.length === 0 && <EmptyState msg="No pending records" />}
                             </div>
                         </div>
-                    ) : (
-                        <div className="h-full flex flex-col items-center justify-center text-gray-400">
-                            <Activity size={48} className="mb-4 opacity-20" />
-                            <p>Select a patient to begin coding.</p>
+                    )}
+
+                    {/* DETAIL / WORKSPACE AREA */}
+                    {activeTab === 'coding' && (
+                        <div className="col-span-12 lg:col-span-8">
+                            <AnimatePresence mode="wait">
+                                {selectedItem ? (
+                                    <motion.div
+                                        key="workspace"
+                                        initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 20 }}
+                                        className="h-full flex flex-col gap-6"
+                                    >
+                                        {/* Clinical Summary */}
+                                        <div className="glass-panel p-8 rounded-[32px] border border-indigo-100 dark:border-indigo-900/30">
+                                            <h3 className="text-xl font-bold text-gray-800 dark:text-white mb-6 flex items-center gap-2">
+                                                <Activity className="text-indigo-500" /> Clinical Context
+                                            </h3>
+                                            <div className="grid grid-cols-2 gap-8">
+                                                <div className="space-y-1">
+                                                    <label className="text-xs font-bold text-gray-400 uppercase">Assessment</label>
+                                                    <p className="font-medium text-lg text-gray-900 dark:text-gray-100">{selectedItem.assessment}</p>
+                                                </div>
+                                                <div className="space-y-1">
+                                                    <label className="text-xs font-bold text-gray-400 uppercase">Doctor</label>
+                                                    <p className="font-medium text-lg text-gray-900 dark:text-gray-100">{selectedItem.doctor.name}</p>
+                                                </div>
+                                                <div className="col-span-2 bg-yellow-50 dark:bg-yellow-900/10 p-4 rounded-xl border border-yellow-100 dark:border-yellow-800/30">
+                                                    <label className="text-xs font-bold text-yellow-600 uppercase">Doctor's ICD-10 Suggestion</label>
+                                                    <p className="font-bold text-yellow-800 dark:text-yellow-400 mt-1">
+                                                        {selectedItem.icd10 ? `${selectedItem.icd10.code} - ${selectedItem.icd10.description}` : 'Not Specified'}
+                                                    </p>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        {/* Coder Input */}
+                                        <div className="glass-panel p-8 rounded-[32px] flex-1 border border-white/20">
+                                            <h3 className="text-xl font-bold text-gray-800 dark:text-white mb-6 flex items-center gap-2">
+                                                <BookOpen className="text-teal-500" /> Coding Input
+                                            </h3>
+                                            <div className="space-y-6">
+                                                <div>
+                                                    <label className="block text-sm font-bold text-gray-500 mb-2">Primary ICD-10</label>
+                                                    <input
+                                                        value={formData.primary_icd10}
+                                                        onChange={e => setFormData({ ...formData, primary_icd10: e.target.value })}
+                                                        className="w-full p-4 bg-gray-50 dark:bg-gray-900/50 rounded-xl border border-gray-200 dark:border-gray-700 font-bold focus:ring-2 focus:ring-indigo-500 transition-all"
+                                                        placeholder="e.g. A01.0"
+                                                    />
+                                                </div>
+                                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                                    <div>
+                                                        <label className="block text-sm font-bold text-gray-500 mb-2">Secondary ICD-10s</label>
+                                                        <input
+                                                            value={formData.secondary_icd10s}
+                                                            onChange={e => setFormData({ ...formData, secondary_icd10s: e.target.value })}
+                                                            className="w-full p-4 bg-gray-50 dark:bg-gray-900/50 rounded-xl border border-gray-200 dark:border-gray-700 font-bold focus:ring-2 focus:ring-indigo-500 transition-all"
+                                                            placeholder="Comma separated..."
+                                                        />
+                                                    </div>
+                                                    <div>
+                                                        <label className="block text-sm font-bold text-gray-500 mb-2">Procedures (ICD-9)</label>
+                                                        <input
+                                                            value={formData.procedures}
+                                                            onChange={e => setFormData({ ...formData, procedures: e.target.value })}
+                                                            className="w-full p-4 bg-gray-50 dark:bg-gray-900/50 rounded-xl border border-gray-200 dark:border-gray-700 font-bold focus:ring-2 focus:ring-indigo-500 transition-all"
+                                                            placeholder="e.g. 89.03"
+                                                        />
+                                                    </div>
+                                                </div>
+
+                                                <div className="pt-6 flex justify-end">
+                                                    <button
+                                                        onClick={runGrouper}
+                                                        className="px-8 py-4 bg-indigo-600 hover:bg-indigo-700 text-white rounded-2xl font-bold text-lg shadow-xl shadow-indigo-500/30 flex items-center gap-3 transition-transform active:scale-95"
+                                                    >
+                                                        <Layers size={24} /> Run Grouper Engine
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </motion.div>
+                                ) : (
+                                    <div className="h-full flex flex-col items-center justify-center text-gray-400 glass-panel rounded-[32px]">
+                                        <img src="https://cdn-icons-png.flaticon.com/512/2764/2764494.png" className="w-24 opacity-20 mb-4 invert dark:invert-0" alt="Select" />
+                                        <h3 className="text-xl font-bold">Ready to Code</h3>
+                                        <p>Select a patient from the left queue to begin.</p>
+                                    </div>
+                                )}
+                            </AnimatePresence>
                         </div>
                     )}
+
+                    {/* GROUPED RESULTS LIST */}
+                    {activeTab === 'grouping' && (
+                        <div className="col-span-12 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                            {queues.grouped_queue.map(item => (
+                                <motion.div
+                                    initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
+                                    key={item.id}
+                                    className="glass-panel p-6 rounded-[32px] border border-white/20 flex flex-col justify-between"
+                                >
+                                    <div>
+                                        <div className="flex justify-between items-start mb-4">
+                                            <span className="bg-green-100 text-green-700 px-3 py-1 rounded-lg text-xs font-bold border border-green-200">{item.ina_cbg_code}</span>
+                                            <span className="text-gray-400 text-xs font-mono">{new Date(item.coded_at).toLocaleDateString()}</span>
+                                        </div>
+                                        <h3 className="text-xl font-bold text-gray-800 dark:text-white mb-1">{item.medical_record.patient.name}</h3>
+                                        <p className="text-sm text-gray-500 font-bold mb-4">{item.ina_cbg_desc}</p>
+
+                                        <div className="space-y-2 bg-gray-50 dark:bg-gray-900/30 p-4 rounded-xl mb-4">
+                                            <div className="flex justify-between text-sm">
+                                                <span className="text-gray-500">ICD-10</span>
+                                                <span className="font-bold">{item.primary_icd10}</span>
+                                            </div>
+                                            <div className="flex justify-between text-sm">
+                                                <span className="text-gray-500">Coders</span>
+                                                <span className="font-bold">{item.coder_name}</span>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div className="pt-4 border-t border-gray-100 dark:border-gray-700">
+                                        <div className="flex justify-between items-end mb-4">
+                                            <span className="text-gray-500 text-sm font-medium">Approved Tariff</span>
+                                            <span className="text-2xl font-black text-indigo-600">Rp {item.tariff.toLocaleString()}</span>
+                                        </div>
+                                        <button
+                                            onClick={() => finalizeClaim(item.id)}
+                                            className="w-full py-3 bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-xl font-bold flex items-center justify-center gap-2 hover:opacity-90 transition-opacity"
+                                        >
+                                            <Download size={18} /> Finalize Claim
+                                        </button>
+                                    </div>
+                                </motion.div>
+                            ))}
+                            {queues.grouped_queue.length === 0 && <div className="col-span-full self-center"><EmptyState msg="No grouped results waiting for claims" /></div>}
+                        </div>
+                    )}
+
+                    {/* CLAIMS HISTORY */}
+                    {activeTab === 'claims' && (
+                        <div className="col-span-12">
+                            <div className="glass-panel p-6 rounded-[32px] overflow-hidden">
+                                <table className="w-full text-left">
+                                    <thead className="text-xs uppercase text-gray-500 font-bold bg-gray-50 dark:bg-gray-900/30">
+                                        <tr>
+                                            <th className="p-4 rounded-l-xl">Patient</th>
+                                            <th className="p-4">CBG Code</th>
+                                            <th className="p-4">Tariff</th>
+                                            <th className="p-4">Date</th>
+                                            <th className="p-4 text-center rounded-r-xl">Status</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
+                                        {queues.claimed_history.map(item => (
+                                            <tr key={item.id} className="hover:bg-gray-50/50 dark:hover:bg-white/5 transition-colors">
+                                                <td className="p-4 font-bold text-gray-900 dark:text-white">{item.medical_record.patient.name}</td>
+                                                <td className="p-4 font-mono text-gray-600">{item.ina_cbg_code}</td>
+                                                <td className="p-4 font-bold text-green-600">Rp {item.tariff.toLocaleString()}</td>
+                                                <td className="p-4 text-sm text-gray-500">{new Date(item.updated_at).toLocaleDateString()}</td>
+                                                <td className="p-4 text-center">
+                                                    <span className="px-3 py-1 bg-green-100 text-green-700 rounded-full text-xs font-bold border border-green-200 flex items-center gap-1 justify-center w-fit mx-auto">
+                                                        <CheckCircle size={12} /> CLAIMED
+                                                    </span>
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                                {queues.claimed_history.length === 0 && <EmptyState msg="No claims history found" />}
+                            </div>
+                        </div>
+                    )}
+
                 </div>
             </div>
-        </div>
+        </PageWrapper>
     );
 };
 
-const PatientCard = ({ patient, record, status, onClick, active }) => (
-    <div
-        onClick={onClick}
-        className={`p-4 rounded-xl border cursor-pointer transition-all ${active
-                ? 'bg-indigo-50 border-indigo-200 dark:bg-indigo-900/30 dark:border-indigo-700'
-                : 'bg-white dark:bg-gray-800 border-gray-100 dark:border-gray-700 hover:border-indigo-200'
-            }`}
-    >
-        <div className="flex justify-between items-start">
-            <h4 className="font-bold text-gray-900 dark:text-white text-sm">{patient.name}</h4>
-            {status && (
-                <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${status === 'CLAIMED' ? 'bg-gray-100 text-gray-500' : 'bg-green-100 text-green-700'}`}>
-                    {status}
-                </span>
-            )}
-        </div>
-        <p className="text-xs text-gray-500 mt-1">RM: {patient.rm_number}</p>
-        <div className="mt-2 flex items-center gap-2 text-xs text-gray-400">
-            <CheckCircle size={12} className={record.assessment ? "text-emerald-500" : "text-gray-300"} />
-            <span>Diagnosis</span>
-            <CheckCircle size={12} className={record.icd10 || record.primary_icd10 ? "text-emerald-500" : "text-gray-300"} />
-            <span>ICD-10</span>
-        </div>
+const EmptyState = ({ msg }) => (
+    <div className="flex flex-col items-center justify-center p-12 text-gray-400 border-2 border-dashed border-gray-200 dark:border-gray-700 rounded-[32px] w-full h-full min-h-[300px]">
+        <Layers size={48} className="mb-4 opacity-20" />
+        <p className="font-bold">{msg}</p>
     </div>
 );
 

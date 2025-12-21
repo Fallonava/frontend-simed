@@ -5,13 +5,14 @@ import api from '../utils/axiosConfig';
 import PageWrapper from '../components/PageWrapper';
 import toast, { Toaster } from 'react-hot-toast';
 import ModernHeader from '../components/ModernHeader';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 
 const MedicalRecords = () => {
     const navigate = useNavigate();
+    const [searchParams] = useSearchParams();
     const [records, setRecords] = useState([]);
     const [loading, setLoading] = useState(true);
-    const [searchTerm, setSearchTerm] = useState('');
+    const [searchTerm, setSearchTerm] = useState(searchParams.get('search') || '');
     const [selectedRecord, setSelectedRecord] = useState(null);
 
     const fetchRecords = async (search = '') => {
@@ -28,8 +29,13 @@ const MedicalRecords = () => {
     };
 
     useEffect(() => {
-        fetchRecords();
-    }, []);
+        const query = searchParams.get('search');
+        if (query) {
+            fetchRecords(query);
+        } else {
+            fetchRecords();
+        }
+    }, [searchParams]);
 
     const handleSearch = (e) => {
         e.preventDefault();

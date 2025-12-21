@@ -29,8 +29,8 @@ const CashierDashboard = React.lazy(() => import('./pages/CashierDashboard'));
 const PublicSchedule = React.lazy(() => import('./pages/PublicSchedule'));
 const ChronologyGenerator = React.lazy(() => import('./pages/ChronologyGenerator'));
 // const NurseDashboard = React.lazy(() => import('./pages/NurseDashboard')); // Removed/Unified
-const CentralPharmacy = React.lazy(() => import('./pages/CentralPharmacy'));
-const GeneralAssets = React.lazy(() => import('./pages/GeneralAssets'));
+// const CentralPharmacy = React.lazy(() => import('./pages/CentralPharmacy')); // Merged into InventoryDashboard
+// const GeneralAssets = React.lazy(() => import('./pages/GeneralAssets')); // Merged into InventoryDashboard
 const QueueDisplay = React.lazy(() => import('./pages/QueueDisplay')); // Phase 2: TV Display // New
 const LabDashboard = React.lazy(() => import('./pages/LabDashboard'));
 const RadiologyDashboard = React.lazy(() => import('./pages/RadiologyDashboard')); // New
@@ -134,12 +134,13 @@ function AnimatedRoutes() {
             <Route path="/medical-records" element={<PageWrapper><MedicalRecords /></PageWrapper>} />
             <Route path="/documents/center" element={<PageWrapper><DocumentCenter /></PageWrapper>} />
 
-            {/* Logistics & Inventory */}
+            {/* Logistics & Inventory - Unified */}
             <Route path="/inventory/pharmacy" element={<PageWrapper><InventoryDashboard /></PageWrapper>} />
             <Route path="/inventory/general" element={<PageWrapper><InventoryDashboard /></PageWrapper>} />
             <Route path="/pharmacy/inventory" element={<PageWrapper><InventoryDashboard /></PageWrapper>} />
-            <Route path="/logistics/pharmacy" element={<PageWrapper><CentralPharmacy /></PageWrapper>} />
-            <Route path="/logistics/assets" element={<PageWrapper><GeneralAssets /></PageWrapper>} />
+            {/* Redirects for legacy routes if needed, otherwise handled by MainMenu */}
+            <Route path="/logistics/pharmacy" element={<Navigate to="/inventory/general" replace />} />
+            <Route path="/logistics/assets" element={<Navigate to="/inventory/general" replace />} />
           </Route>
         </Routes>
       </Suspense>

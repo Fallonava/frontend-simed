@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useMemo, memo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { LayoutGrid, RefreshCw, Activity, Database, Monitor, Download, Calendar as ScheduleCalendarIcon, Search, Bell, User, ExternalLink, LogOut, Shield, PieChart as PieChartIcon } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 import useQueueStore from '../store/useQueueStore';
@@ -50,12 +50,7 @@ const LiveStatusSection = memo(({ doctors, leaves, isConnected }) => {
 });
 
 const AdminDashboard = () => {
-    const { doctors, initialize, generateQuota, isConnected } = useQueueStore();
-    const [analytics, setAnalytics] = useState({ totalPatients: 0, pieChartData: [], barChartData: [], queueStatusData: [] });
-    const [activeTab, setActiveTab] = useState('bi');
-    const [leaves, setLeaves] = useState([]);
-    const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
-    const [loading, setLoading] = useState(true);
+    const navigate = useNavigate();
 
     useEffect(() => {
         const init = async () => {

@@ -14,7 +14,10 @@ import PageLoader from '../components/PageLoader';
 import ModernHeader from '../components/ModernHeader';
 import PageWrapper from '../components/PageWrapper';
 
+import { useNavigate } from 'react-router-dom';
+
 const FinanceDashboard = () => {
+    const navigate = useNavigate();
     const [activeTab, setActiveTab] = useState('overview');
     const [loading, setLoading] = useState(false);
 
@@ -139,6 +142,7 @@ const FinanceDashboard = () => {
                 title="Hospital Finance Console"
                 subtitle="Financial Planning & Analysis (FP&A)"
                 gradient="from-indigo-600 to-blue-600"
+                onBack={() => navigate('/menu')}
             >
                 <div className="flex bg-gray-200/50 dark:bg-gray-800/50 backdrop-blur-md p-1 rounded-xl border border-gray-200 dark:border-white/10">
                     {tabs.map(tab => (

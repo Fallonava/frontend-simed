@@ -11,9 +11,11 @@ import api from '../services/api';
 import toast, { Toaster } from 'react-hot-toast';
 import PageWrapper from '../components/PageWrapper';
 import ModernHeader from '../components/ModernHeader';
+import { useNavigate } from 'react-router-dom';
 import useQueueStore from '../store/useQueueStore';
 
 const NurseStation = () => {
+    const navigate = useNavigate();
     const { socket } = useQueueStore();
 
     // Shared State
@@ -146,9 +148,10 @@ const NurseStation = () => {
                 <div className="flex flex-col xl:flex-row justify-between items-start xl:items-end gap-6 shrink-0">
                     <div>
                         <ModernHeader
-                            title="Clinical Station"
+                            title="Nurse Station"
                             subtitle="Real-time Patient Monitoring & Care"
                             className="mb-2"
+                            onBack={() => navigate('/menu')}
                         />
                         <div className="flex items-center gap-2 text-xs font-bold text-gray-400">
                             <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>

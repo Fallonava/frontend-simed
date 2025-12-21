@@ -284,6 +284,8 @@ app.post('/api/inpatient/:admissionId/observation', authMiddleware, inpatientCon
 app.post('/api/inpatient/:admissionId/mar', authMiddleware, inpatientController.logMedication);
 
 const dischargeController = require('./controllers/dischargeController');
+app.get('/api/discharge/candidates', authMiddleware, dischargeController.getDischargeCandidates);
+app.post('/api/discharge/:id/initiate', authMiddleware, dischargeController.initiateDischarge);
 app.post('/api/discharge/:id/finalize', authMiddleware, dischargeController.finalizeDischarge);
 
 // LIS/RIS Bridging (Phase 2b)

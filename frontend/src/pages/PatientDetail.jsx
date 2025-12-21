@@ -3,12 +3,13 @@ import { useParams, useNavigate } from 'react-router-dom';
 import {
     User, Calendar, MapPin, Phone, CreditCard,
     ArrowLeft, Printer, Edit, History, FileText,
-    Stethoscope, Activity, CheckCircle, X
+    Stethoscope, Activity, CheckCircle, X, Pill, AlertTriangle, LogOut
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import api from '../utils/axiosConfig';
 import PageWrapper from '../components/PageWrapper';
-import toast from 'react-hot-toast';
+import ModernHeader from '../components/ModernHeader';
+import toast, { Toaster } from 'react-hot-toast';
 
 const PatientDetail = () => {
     const { id } = useParams();
@@ -21,11 +22,29 @@ const PatientDetail = () => {
     const [showEditModal, setShowEditModal] = useState(false);
     const [editForm, setEditForm] = useState({});
 
+    // Discharge Modal
+    const [showDischargeModal, setShowDischargeModal] = useState(false);
+    const [dischargeForm, setDischargeForm] = useState({
+        date: new Date().toISOString().slice(0, 16),
+        type: 'Sembuh',
+        final_diagnosis: '',
+        resume: '',
+        follow_up: '',
+        control_date: ''
+    });
+
     const fetchPatient = async () => {
         try {
             const res = await api.get(`/patients/${id}`);
             setPatient(res.data);
-            setEditForm(res.data); // Pre-fill edit form
+            setEditForm(res.data);
+
+            // Check for Active Admission
+            const activeAdmission = res.data.admissions?.[0];
+            if (activeAdmission && activeAdmission.status === 'DISCHARGE_INITIATED') {
+                // Pre-fill or show status
+                setDischargeForm(prev => ({ ...prev, resume: activeAdmission.notes || '' }));
+            }
         } catch (error) {
             toast.error("Failed to load patient data");
             navigate('/admin/patients');
@@ -44,223 +63,295 @@ const PatientDetail = () => {
             await api.put(`/patients/${id}`, editForm);
             toast.success("Patient updated successfully");
             setShowEditModal(false);
-            fetchPatient(); // Refresh data
+            fetchPatient();
         } catch (error) {
             toast.error("Failed to update patient");
         }
     };
 
-    if (loading) return <div className="min-h-screen flex items-center justify-center text-gray-400 font-bold">Loading Profile...</div>;
+    const handleDischarge = async (e) => {
+        e.preventDefault();
+
+        const activeAdmission = patient.admissions?.[0];
+        if (!activeAdmission) {
+            toast.error("No active admission found for this patient.");
+            return;
+        }
+
+        try {
+            // Use proper backend initiation
+            await api.post(`/discharge/${activeAdmission.id}/initiate`, {
+                discharge_notes: dischargeForm.resume,
+                icd10_code: dischargeForm.final_diagnosis // mapping for now
+            });
+
+            // Optimistic Update
+            const updatedPatient = { ...patient };
+            updatedPatient.admissions[0].status = 'DISCHARGE_INITIATED';
+            setPatient(updatedPatient);
+
+            toast.success("Discharge Initiated! Please process in Nurse Station.");
+            setShowDischargeModal(false);
+        } catch (error) {
+            console.error(error);
+            toast.error("Failed to initiate discharge");
+        }
+    };
+
+    if (loading) return <div className="min-h-screen flex items-center justify-center text-gray-400 font-bold animate-pulse">Loading Profile...</div>;
     if (!patient) return null;
 
-    const TabButton = ({ id, label, icon: Icon }) => (
-        <button
-            onClick={() => setActiveTab(id)}
-            className={`flex items-center gap-2 px-6 py-3 rounded-xl font-bold text-sm transition-all duration-300
-                ${activeTab === id
-                    ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/30'
-                    : 'bg-white dark:bg-gray-800 text-gray-500 hover:bg-gray-50 dark:hover:bg-gray-700'}`}
-        >
-            <Icon size={16} strokeWidth={2.5} />
-            {label}
-        </button>
-    );
+    const isDischarged = patient.status === 'Discharged' || (patient.admissions?.[0]?.status === 'DISCHARGED');
+    const isInitiated = patient.admissions?.[0]?.status === 'DISCHARGE_INITIATED';
 
     return (
         <PageWrapper title={`Patient: ${patient.name}`}>
-            <div className="min-h-screen bg-gray-50/50 dark:bg-gray-900/50 p-6 md:p-8 font-sans">
-                <div className="max-w-7xl mx-auto">
+            <Toaster position="top-right" />
+            <ModernHeader
+                title={patient.name}
+                subtitle={`RM: ${patient.no_rm} • NIK: ${patient.nik}`}
+                action={
+                    <button
+                        onClick={() => navigate('/admin/patients')}
+                        className="bg-white/50 backdrop-blur p-2.5 rounded-xl hover:bg-white text-gray-500 hover:text-gray-900 transition-all border border-white/20"
+                    >
+                        <ArrowLeft size={20} />
+                    </button>
+                }
+            />
 
-                    {/* Header */}
-                    <div className="flex items-center gap-4 mb-8">
-                        <button onClick={() => navigate('/admin/patients')} className="p-3 bg-white dark:bg-gray-800 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-500 transition-colors border border-gray-100 dark:border-gray-700">
-                            <ArrowLeft size={20} />
-                        </button>
-                        <div>
-                            <h1 className="text-2xl font-extrabold text-gray-900 dark:text-white flex items-center gap-3">
-                                {patient.name}
-                                <span className="bg-green-100 text-green-700 text-xs px-2 py-1 rounded-lg">Active</span>
-                            </h1>
-                            <p className="text-gray-500 font-mono text-xs mt-1 font-bold">RM: {patient.no_rm} • NIK: {patient.nik}</p>
+            <div className="p-6 md:p-8 max-w-[1920px] mx-auto min-h-screen">
+
+                {isDischarged && (
+                    <motion.div
+                        initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }}
+                        className="mb-8 bg-red-50 dark:bg-red-900/20 border border-red-100 dark:border-red-800 p-6 rounded-3xl flex items-center justify-between"
+                    >
+                        <div className="flex items-center gap-4">
+                            <div className="w-12 h-12 rounded-full bg-red-100 dark:bg-red-900/50 flex items-center justify-center text-red-600">
+                                <LogOut size={24} />
+                            </div>
+                            <div>
+                                <h3 className="text-lg font-black text-red-700 dark:text-white">Patient Discharged</h3>
+                                <p className="text-sm font-bold text-red-500 dark:text-red-400">
+                                    Discharge completed. Admission closed.
+                                </p>
+                            </div>
                         </div>
+                        <button onClick={() => setShowDischargeModal(true)} className="px-6 py-3 bg-white dark:bg-gray-800 text-gray-900 dark:text-white rounded-xl font-bold text-sm shadow-sm hover:bg-gray-50">
+                            View Summary
+                        </button>
+                    </motion.div>
+                )}
+
+                {isInitiated && (
+                    <motion.div
+                        initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }}
+                        className="mb-8 bg-amber-50 dark:bg-amber-900/20 border border-amber-100 dark:border-amber-800 p-6 rounded-3xl flex items-center justify-between"
+                    >
+                        <div className="flex items-center gap-4">
+                            <div className="w-12 h-12 rounded-full bg-amber-100 dark:bg-amber-900/50 flex items-center justify-center text-amber-600">
+                                <AlertTriangle size={24} />
+                            </div>
+                            <div>
+                                <h3 className="text-lg font-black text-amber-700 dark:text-white">Discharge in Progress</h3>
+                                <p className="text-sm font-bold text-amber-600 dark:text-amber-400">
+                                    Waiting for Nurse Station clearance (Checklist & Billing).
+                                </p>
+                            </div>
+                        </div>
+                        <span className="px-6 py-3 bg-white dark:bg-gray-800 text-amber-600 rounded-xl font-bold text-sm shadow-sm">
+                            Pending Nurse Action
+                        </span>
+                    </motion.div>
+                )}
+
+                <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+
+                    {/* LEFT COLUMN: PROFILE CARD */}
+                    <div className="lg:col-span-4 xl:col-span-3 space-y-6">
+                        <motion.div
+                            initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
+                            className="glass-panel p-6 rounded-[40px] relative overflow-hidden text-center border-t border-white/40 sticky top-24"
+                        >
+                            <div className="absolute top-0 left-0 w-full h-32 bg-gradient-to-br from-indigo-500/20 to-purple-600/20 blur-3xl"></div>
+
+                            <div className="relative z-10 flex flex-col items-center">
+                                <div className={`w-32 h-32 rounded-[2rem] flex items-center justify-center text-5xl font-black text-white shadow-2xl shadow-indigo-500/30 mb-6 ${patient.gender === 'L' ? 'bg-gradient-to-br from-blue-500 to-indigo-600' : 'bg-gradient-to-br from-pink-500 to-rose-600'
+                                    }`}>
+                                    {patient.name.charAt(0)}
+                                </div>
+                                <h2 className="text-2xl font-black text-gray-900 dark:text-white mb-2">{patient.name}</h2>
+                                <span className={`px-3 py-1 rounded-lg text-xs font-bold uppercase tracking-wider ${isDischarged ? 'bg-red-100 text-red-600' : isInitiated ? 'bg-amber-100 text-amber-600' : 'bg-green-100 text-green-600'
+                                    }`}>
+                                    {isDischarged ? 'Discharged' : isInitiated ? 'Discharge Pending' : 'Active Patient'}
+                                </span>
+                            </div>
+
+                            <div className="mt-8 space-y-4 text-left">
+                                <InfoRow icon={Phone} label="Contact" value={patient.phone} />
+                                <InfoRow icon={MapPin} label="Address" value={patient.address} />
+                                <InfoRow icon={CreditCard} label="BPJS Number" value={patient.bpjs_no} />
+
+                                {patient.allergies && (
+                                    <div className="p-4 bg-red-50 dark:bg-red-900/20 rounded-2xl border border-red-100 dark:border-red-900/50 flex gap-3 items-start">
+                                        <AlertTriangle size={20} className="text-red-500 shrink-0 mt-0.5" />
+                                        <div>
+                                            <p className="text-xs font-bold text-red-500 uppercase tracking-wider">Allergies</p>
+                                            <p className="text-sm font-bold text-red-800 dark:text-red-300 mt-1">{patient.allergies}</p>
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-3 mt-8">
+                                <button className="py-4 bg-white dark:bg-gray-800 text-gray-900 dark:text-white rounded-2xl font-bold text-sm shadow-sm hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors flex items-center justify-center gap-2">
+                                    <Printer size={18} /> Print
+                                </button>
+                                <button onClick={() => setShowEditModal(true)} className="py-4 bg-indigo-600 text-white rounded-2xl font-bold text-sm shadow-lg shadow-indigo-500/30 hover:scale-105 active:scale-95 transition-all flex items-center justify-center gap-2">
+                                    <Edit size={18} /> Edit
+                                </button>
+                            </div>
+
+                            {!isDischarged && !isInitiated && patient.admissions?.length > 0 && (
+                                <button
+                                    onClick={() => setShowDischargeModal(true)}
+                                    className="w-full mt-3 py-4 bg-rose-50 text-rose-600 dark:bg-rose-900/20 dark:text-rose-400 rounded-2xl font-bold text-sm hover:bg-rose-100 dark:hover:bg-rose-900/40 transition-colors flex items-center justify-center gap-2 border border-rose-100 dark:border-rose-900/50"
+                                >
+                                    <LogOut size={18} /> Order Discharge
+                                </button>
+                            )}
+                        </motion.div>
                     </div>
 
-                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                    {/* RIGHT COLUMN: CLINICAL JOURNEY */}
+                    <div className="lg:col-span-8 xl:col-span-9 space-y-6">
 
-                        {/* LEFT: Profile Card */}
-                        <div className="lg:col-span-1 space-y-6">
-                            <div className="bg-white dark:bg-gray-800 rounded-3xl p-6 shadow-xl shadow-gray-200/50 dark:shadow-black/20 border border-gray-100 dark:border-gray-700 relative overflow-hidden">
-                                {/* Decor */}
-                                <div className="absolute top-0 right-0 w-32 h-32 bg-blue-500/10 rounded-full -mr-16 -mt-16 blur-3xl"></div>
-
-                                <div className="flex flex-col items-center text-center mb-6 relative z-10">
-                                    <div className="w-24 h-24 rounded-3xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white text-4xl font-bold shadow-lg shadow-blue-500/30 mb-4">
-                                        {patient.name.charAt(0)}
-                                    </div>
-                                    <h2 className="text-xl font-bold text-gray-900 dark:text-white">{patient.name}</h2>
-                                    <p className="text-sm text-gray-500 font-bold mt-1">{patient.gender === 'L' ? 'Male' : 'Female'} • {new Date().getFullYear() - new Date(patient.birth_date).getFullYear()} Years Old</p>
-                                </div>
-
-                                <div className="space-y-4">
-                                    <div className="p-4 bg-gray-50 dark:bg-gray-700/30 rounded-2xl flex items-center gap-4">
-                                        <div className="w-10 h-10 rounded-xl bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center text-blue-600">
-                                            <Phone size={18} />
-                                        </div>
-                                        <div>
-                                            <p className="text-[10px] uppercase font-bold text-gray-400">Phone</p>
-                                            <p className="text-sm font-bold text-gray-800 dark:text-gray-200">{patient.phone || '-'}</p>
-                                        </div>
-                                    </div>
-                                    <div className="p-4 bg-gray-50 dark:bg-gray-700/30 rounded-2xl flex items-center gap-4">
-                                        <div className="w-10 h-10 rounded-xl bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center text-purple-600">
-                                            <MapPin size={18} />
-                                        </div>
-                                        <div>
-                                            <p className="text-[10px] uppercase font-bold text-gray-400">Address</p>
-                                            <p className="text-xs font-bold text-gray-800 dark:text-gray-200 line-clamp-2">{patient.address || '-'}</p>
-                                        </div>
-                                    </div>
-                                    <div className="p-4 bg-gray-50 dark:bg-gray-700/30 rounded-2xl flex items-center gap-4">
-                                        <div className="w-10 h-10 rounded-xl bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center text-emerald-600">
-                                            <CreditCard size={18} />
-                                        </div>
-                                        <div>
-                                            <p className="text-[10px] uppercase font-bold text-gray-400">BPJS</p>
-                                            <p className="text-sm font-bold text-gray-800 dark:text-gray-200">{patient.bpjs_no || '-'}</p>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <div className="flex gap-2 mt-6">
-                                    <button className="flex-1 py-3 bg-black dark:bg-white text-white dark:text-black rounded-xl font-bold text-sm hover:scale-105 active:scale-95 transition-all shadow-lg shadow-gray-900/10 flex items-center justify-center gap-2">
-                                        <Printer size={16} /> Print Card
-                                    </button>
-                                    <button onClick={() => setShowEditModal(true)} className="flex-1 py-3 bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 rounded-xl font-bold text-sm hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors flex items-center justify-center gap-2">
-                                        <Edit size={16} /> Edit
-                                    </button>
-                                </div>
-                            </div>
+                        {/* Tab Switcher */}
+                        <div className="flex bg-white/50 dark:bg-gray-800/50 backdrop-blur p-1.5 rounded-2xl w-fit border border-white/20 shadow-sm mx-auto lg:mx-0">
+                            <TabButton active={activeTab === 'overview'} onClick={() => setActiveTab('overview')} icon={Activity} label="Overview" />
+                            <TabButton active={activeTab === 'history'} onClick={() => setActiveTab('history')} icon={FileText} label="Clinical History" />
+                            <TabButton active={activeTab === 'visits'} onClick={() => setActiveTab('visits')} icon={History} label="Visits Log" />
                         </div>
 
-                        {/* RIGHT: Tabs & Content */}
-                        <div className="lg:col-span-2">
-                            <div className="flex gap-2 mb-6 overflow-x-auto pb-2">
-                                <TabButton id="overview" label="Overview" icon={Activity} />
-                                <TabButton id="history" label="Medical History" icon={FileText} />
-                                <TabButton id="visits" label="Visit Log" icon={History} />
-                            </div>
-
-                            <div className="bg-white dark:bg-gray-800 rounded-3xl p-6 lg:p-8 shadow-xl shadow-gray-200/50 dark:shadow-black/20 border border-gray-100 dark:border-gray-700 min-h-[500px]">
-
+                        {/* Content Area */}
+                        <div className="glass-panel p-8 rounded-[40px] min-h-[600px] border-t border-white/40">
+                            <AnimatePresence mode="wait">
                                 {activeTab === 'overview' && (
-                                    <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-6">
-                                        <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-4">Quick Stats</h3>
-                                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-                                            <div className="p-4 rounded-2xl bg-blue-50 dark:bg-blue-900/10 border border-blue-100 dark:border-blue-900/30 text-center">
-                                                <div className="text-2xl font-black text-blue-600 dark:text-blue-400">{patient.queues?.length || 0}</div>
-                                                <div className="text-xs font-bold text-blue-400 dark:text-blue-500 uppercase tracking-wider">Total Visits</div>
-                                            </div>
-                                            <div className="p-4 rounded-2xl bg-purple-50 dark:bg-purple-900/10 border border-purple-100 dark:border-purple-900/30 text-center">
-                                                <div className="text-2xl font-black text-purple-600 dark:text-purple-400">{patient.medical_records?.length || 0}</div>
-                                                <div className="text-xs font-bold text-purple-400 dark:text-purple-500 uppercase tracking-wider">Records</div>
-                                            </div>
+                                    <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="space-y-8">
+                                        <h3 className="text-xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                                            <Activity className="text-indigo-500" /> Patient Snapshot
+                                        </h3>
+                                        <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
+                                            <StatBox label="Total Visits" value={patient.queues?.length || 0} color="blue" />
+                                            <StatBox label="Records" value={patient.medical_records?.length || 0} color="purple" />
+                                            <StatBox label="Status" value={isDischarged ? 'Discharged' : 'Active'} color={isDischarged ? 'orange' : 'green'} />
+                                            <StatBox label="Last BPJS" value="Active" color="green" />
                                         </div>
 
-                                        <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-4">Last Visit</h3>
-                                        {patient.queues && patient.queues.length > 0 ? (
-                                            <div className="p-5 rounded-2xl bg-gray-50 dark:bg-gray-700/30 border border-gray-100 dark:border-gray-700 flex items-start gap-4">
-                                                <div className="w-12 h-12 rounded-xl bg-orange-100 text-orange-600 flex items-center justify-center font-bold text-lg">
-                                                    {new Date(patient.queues[0].created_at).getDate()}
+                                        <div className="mt-8">
+                                            <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-4">Recent Activity</h3>
+                                            {patient.queues && patient.queues.length > 0 ? (
+                                                <div className="bg-gray-50 dark:bg-gray-800/50 p-6 rounded-3xl border border-dashed border-gray-200 dark:border-gray-700 flex items-center gap-6">
+                                                    <div className="w-16 h-16 rounded-2xl bg-white dark:bg-gray-800 shadow-sm flex items-center justify-center font-black text-2xl text-gray-300">
+                                                        {new Date(patient.queues[0].created_at).getDate()}
+                                                    </div>
+                                                    <div>
+                                                        <span className="text-xs font-bold text-gray-400 uppercase tracking-widest">Last Visit Date</span>
+                                                        <h4 className="text-xl font-bold text-gray-900 dark:text-white mt-1">
+                                                            {new Date(patient.queues[0].created_at).toLocaleDateString(undefined, { weekday: 'long', year: 'numeric', month: 'long' })}
+                                                        </h4>
+                                                        <div className="mt-2 flex gap-2">
+                                                            <span className="px-3 py-1 bg-white dark:bg-gray-800 rounded-lg text-xs font-bold border border-gray-200 dark:border-gray-700 text-gray-500">
+                                                                Queue: {patient.queues[0].queue_code}
+                                                            </span>
+                                                            <span className="px-3 py-1 bg-green-100 text-green-700 rounded-lg text-xs font-bold">
+                                                                {patient.queues[0].status}
+                                                            </span>
+                                                        </div>
+                                                    </div>
                                                 </div>
-                                                <div>
-                                                    <h4 className="font-bold text-gray-900 dark:text-white">Visited Poliklinik</h4>
-                                                    <p className="text-sm text-gray-500">{new Date(patient.queues[0].created_at).toLocaleDateString(undefined, { weekday: 'long', year: 'numeric', month: 'long' })}</p>
-                                                    <span className="inline-block mt-2 px-2 py-1 bg-green-100 text-green-700 text-xs font-bold rounded-md">
-                                                        {patient.queues[0].status}
-                                                    </span>
-                                                </div>
-                                            </div>
-                                        ) : (
-                                            <div className="text-gray-400 italic text-sm">No visits recorded yet.</div>
-                                        )}
+                                            ) : (
+                                                <div className="text-center py-12 text-gray-400 bg-gray-50/50 rounded-3xl border-2 border-dashed border-gray-200">No recent activity</div>
+                                            )}
+                                        </div>
                                     </motion.div>
                                 )}
 
                                 {activeTab === 'history' && (
-                                    <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="relative pl-4 space-y-8">
-                                        <div className="absolute left-[27px] top-4 bottom-4 w-0.5 bg-gray-200 dark:bg-gray-700"></div>
-
+                                    <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="pl-4 md:pl-8 border-l-2 border-indigo-100 dark:border-gray-700 space-y-12 py-4">
                                         {patient.medical_records && patient.medical_records.length > 0 ? patient.medical_records.map((record, idx) => (
-                                            <div key={record.id} className="relative z-10 flex gap-6">
-                                                <div className="w-14 h-14 rounded-full bg-white dark:bg-gray-800 border-4 border-blue-50 dark:border-gray-700 shadow-sm flex items-center justify-center shrink-0">
-                                                    <Stethoscope size={20} className="text-blue-500" />
+                                            <div key={record.id} className="relative">
+                                                <div className="absolute -left-[45px] top-0 w-6 h-6 rounded-full bg-indigo-500 border-4 border-white dark:border-gray-900 shadow-lg"></div>
+
+                                                <div className="mb-4">
+                                                    <span className="text-sm font-bold text-indigo-500 bg-indigo-50 px-3 py-1 rounded-full">{new Date(record.created_at).toLocaleDateString()}</span>
+                                                    <span className="ml-2 text-xs text-gray-400 font-bold">{new Date(record.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
                                                 </div>
-                                                <div className="flex-1 bg-gray-50 dark:bg-gray-700/20 rounded-2xl p-5 border border-gray-100 dark:border-gray-700/50">
-                                                    <div className="flex justify-between items-start mb-2">
-                                                        <div>
-                                                            <div className="font-bold text-gray-900 dark:text-white flex items-center gap-2">
-                                                                {record.doctor?.name || 'Unknown Doctor'}
-                                                                <span className="text-xs bg-blue-100 dark:bg-blue-900/30 text-blue-600 px-2 py-0.5 rounded-md font-normal">{record.doctor?.specialist}</span>
+
+                                                <div className="bg-white dark:bg-gray-800 rounded-[24px] p-6 shadow-xl shadow-gray-100 dark:shadow-none border border-gray-100 dark:border-gray-700/50">
+                                                    <div className="flex justify-between items-start mb-6">
+                                                        <div className="flex items-center gap-4">
+                                                            <div className="w-12 h-12 rounded-xl bg-indigo-50 dark:bg-indigo-900/30 flex items-center justify-center text-indigo-600">
+                                                                <Stethoscope size={24} />
                                                             </div>
-                                                            <p className="text-xs text-gray-500 font-medium">{new Date(record.created_at).toLocaleString()}</p>
+                                                            <div>
+                                                                <h4 className="font-bold text-lg text-gray-900 dark:text-white">{record.doctor?.name || 'Unknown Doctor'}</h4>
+                                                                <p className="text-xs font-bold text-gray-400 uppercase">{record.doctor?.specialist || 'General Practitioner'}</p>
+                                                            </div>
                                                         </div>
+                                                        {record.assessment && <span className="bg-yellow-100 text-yellow-800 px-3 py-1 rounded-lg text-xs font-bold border border-yellow-200">{record.assessment}</span>}
                                                     </div>
-                                                    <div className="space-y-2 mt-4">
-                                                        <div className="grid grid-cols-[100px_1fr] gap-2 text-sm">
-                                                            <span className="font-bold text-gray-400 uppercase text-[10px] tracking-wider pt-1">Subjective</span>
-                                                            <p className="text-gray-700 dark:text-gray-300">{record.subjective}</p>
+
+                                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 bg-gray-50 dark:bg-gray-900/30 p-5 rounded-2xl">
+                                                        <div className="space-y-1">
+                                                            <span className="text-xs font-bold text-gray-400 uppercase">Subjective (S)</span>
+                                                            <p className="text-gray-800 dark:text-gray-200 font-medium">{record.subjective}</p>
                                                         </div>
-                                                        <div className="grid grid-cols-[100px_1fr] gap-2 text-sm">
-                                                            <span className="font-bold text-gray-400 uppercase text-[10px] tracking-wider pt-1">Diagnosis</span>
-                                                            <p className="font-bold text-gray-900 dark:text-white bg-yellow-50 dark:bg-yellow-900/20 px-2 py-1 rounded-md inline-block w-fit">{record.assessment}</p>
-                                                        </div>
-                                                        <div className="grid grid-cols-[100px_1fr] gap-2 text-sm">
-                                                            <span className="font-bold text-gray-400 uppercase text-[10px] tracking-wider pt-1">Prescription</span>
-                                                            <p className="text-gray-700 dark:text-gray-300">{record.plan}</p>
+                                                        <div className="space-y-1">
+                                                            <span className="text-xs font-bold text-gray-400 uppercase">Plan / Prescription (P)</span>
+                                                            <p className="text-gray-800 dark:text-gray-200 font-medium">{record.plan}</p>
                                                         </div>
                                                     </div>
                                                 </div>
                                             </div>
                                         )) : (
-                                            <div className="text-gray-400 text-center py-10">No Medical Records Found</div>
+                                            <div className="text-gray-400 italic">No medical history available.</div>
                                         )}
                                     </motion.div>
                                 )}
 
                                 {activeTab === 'visits' && (
-                                    <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
-                                        <div className="overflow-hidden rounded-xl border border-gray-200 dark:border-gray-700">
-                                            <table className="w-full text-left text-sm">
-                                                <thead className="bg-gray-50 dark:bg-gray-700/50 text-gray-500 uppercase font-bold text-xs top-0">
+                                    <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}>
+                                        <div className="overflow-hidden rounded-2xl border border-gray-100 dark:border-gray-700">
+                                            <table className="w-full text-left">
+                                                <thead className="bg-gray-50 dark:bg-gray-800 text-xs uppercase font-bold text-gray-400">
                                                     <tr>
-                                                        <th className="p-4">Date</th>
-                                                        <th className="p-4">Queue Code</th>
-                                                        <th className="p-4">Status</th>
+                                                        <th className="p-4">Date & Time</th>
+                                                        <th className="p-4">Queue Ticket</th>
+                                                        <th className="p-4 rounded-r-xl">Status</th>
                                                     </tr>
                                                 </thead>
-                                                <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
-                                                    {patient.queues && patient.queues.length > 0 ? patient.queues.map(q => (
-                                                        <tr key={q.id} className="hover:bg-gray-50 dark:hover:bg-gray-700/30 transition-colors">
-                                                            <td className="p-4 font-medium">{new Date(q.created_at).toLocaleString()}</td>
-                                                            <td className="p-4 font-mono font-bold text-blue-600">{q.queue_code}</td>
+                                                <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
+                                                    {patient.queues?.map(q => (
+                                                        <tr key={q.id}>
+                                                            <td className="p-4 font-bold text-gray-700 dark:text-gray-300">{new Date(q.created_at).toLocaleString()}</td>
+                                                            <td className="p-4 font-mono font-bold text-indigo-600">{q.queue_code}</td>
                                                             <td className="p-4">
                                                                 <span className={`px-2 py-1 rounded text-[10px] font-bold uppercase
                                                                     ${q.status === 'SERVED' ? 'bg-green-100 text-green-700' :
-                                                                        q.status === 'WAITING' ? 'bg-yellow-100 text-yellow-700' : 'bg-gray-100 text-gray-600'}`}>
+                                                                        q.status === 'WAITING' ? 'bg-yellow-100 text-yellow-700' : 'bg-gray-100 text-gray-500'}`}>
                                                                     {q.status}
                                                                 </span>
                                                             </td>
                                                         </tr>
-                                                    )) : (
-                                                        <tr><td colSpan="3" className="p-8 text-center text-gray-400">No visits found</td></tr>
-                                                    )}
+                                                    ))}
                                                 </tbody>
                                             </table>
                                         </div>
                                     </motion.div>
                                 )}
-
-                            </div>
+                            </AnimatePresence>
                         </div>
                     </div>
                 </div>
@@ -268,58 +359,198 @@ const PatientDetail = () => {
                 {/* EDIT MODAL */}
                 <AnimatePresence>
                     {showEditModal && (
-                        <div className="fixed inset-0 bg-gray-900/60 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
+                        <div className="fixed inset-0 bg-gray-900/80 z-50 flex items-center justify-center p-4 backdrop-blur-md">
                             <motion.div
-                                initial={{ opacity: 0, scale: 0.95 }}
-                                animate={{ opacity: 1, scale: 1 }}
-                                exit={{ opacity: 0, scale: 0.95 }}
-                                className="bg-white dark:bg-gray-800 rounded-[32px] w-full max-w-2xl overflow-hidden shadow-2xl"
+                                initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.9 }}
+                                className="bg-white dark:bg-gray-800 rounded-[40px] w-full max-w-2xl overflow-hidden shadow-2xl border border-white/20"
                             >
-                                <div className="p-6 border-b border-gray-100 dark:border-gray-700 flex justify-between items-center">
-                                    <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Edit Patient</h2>
-                                    <button onClick={() => setShowEditModal(false)} className="p-2 bg-gray-100 dark:bg-gray-700 rounded-full hover:bg-gray-200"><X size={20} /></button>
+                                <div className="p-8 border-b border-gray-100 dark:border-gray-700 flex justify-between items-center bg-gray-50/50 dark:bg-gray-900/50">
+                                    <h2 className="text-2xl font-black text-gray-900 dark:text-white">Edit Patient Profile</h2>
+                                    <button onClick={() => setShowEditModal(false)} className="p-2 bg-white dark:bg-gray-700 rounded-full hover:bg-gray-100 shadow-sm"><X size={20} /></button>
                                 </div>
-                                <form onSubmit={handleUpdate} className="p-8 space-y-6">
+                                <form onSubmit={handleUpdate} className="p-8 space-y-6 max-h-[70vh] overflow-y-auto custom-scrollbar">
                                     <div className="grid grid-cols-2 gap-6">
                                         <div className="space-y-2">
-                                            <label className="text-xs font-bold text-gray-500 uppercase tracking-wider ml-1">Full Name</label>
-                                            <input required className="w-full p-4 rounded-xl border-0 bg-gray-100 dark:bg-gray-700/50 focus:ring-2 focus:ring-blue-500 font-bold" value={editForm.name} onChange={e => setEditForm({ ...editForm, name: e.target.value })} />
+                                            <label className="text-xs font-bold text-gray-400 uppercase tracking-wider ml-1">Full Name</label>
+                                            <input className="w-full p-4 rounded-xl border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 font-bold" value={editForm.name} onChange={e => setEditForm({ ...editForm, name: e.target.value })} />
                                         </div>
                                         <div className="space-y-2">
-                                            <label className="text-xs font-bold text-gray-500 uppercase tracking-wider ml-1">NIK</label>
-                                            <input required maxLength={16} className="w-full p-4 rounded-xl border-0 bg-gray-100 dark:bg-gray-700/50 focus:ring-2 focus:ring-blue-500 font-bold" value={editForm.nik} onChange={e => setEditForm({ ...editForm, nik: e.target.value })} />
+                                            <label className="text-xs font-bold text-gray-400 uppercase tracking-wider ml-1">NIK</label>
+                                            <input className="w-full p-4 rounded-xl border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 font-bold" value={editForm.nik} onChange={e => setEditForm({ ...editForm, nik: e.target.value })} />
                                         </div>
                                         <div className="space-y-2">
-                                            <label className="text-xs font-bold text-gray-500 uppercase tracking-wider ml-1">Gender</label>
-                                            <select className="w-full p-4 rounded-xl border-0 bg-gray-100 dark:bg-gray-700/50 focus:ring-2 focus:ring-blue-500 font-bold" value={editForm.gender} onChange={e => setEditForm({ ...editForm, gender: e.target.value })}>
+                                            <label className="text-xs font-bold text-gray-400 uppercase tracking-wider ml-1">Gender</label>
+                                            <select className="w-full p-4 rounded-xl border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 font-bold" value={editForm.gender} onChange={e => setEditForm({ ...editForm, gender: e.target.value })}>
                                                 <option value="L">Male</option>
                                                 <option value="P">Female</option>
                                             </select>
                                         </div>
                                         <div className="space-y-2">
-                                            <label className="text-xs font-bold text-gray-500 uppercase tracking-wider ml-1">Date of Birth</label>
-                                            <input required type="date" className="w-full p-4 rounded-xl border-0 bg-gray-100 dark:bg-gray-700/50 focus:ring-2 focus:ring-blue-500 font-bold" value={editForm.birth_date ? new Date(editForm.birth_date).toISOString().split('T')[0] : ''} onChange={e => setEditForm({ ...editForm, birth_date: e.target.value })} />
+                                            <label className="text-xs font-bold text-gray-400 uppercase tracking-wider ml-1">Phone</label>
+                                            <input className="w-full p-4 rounded-xl border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 font-bold" value={editForm.phone} onChange={e => setEditForm({ ...editForm, phone: e.target.value })} />
                                         </div>
                                         <div className="col-span-2 space-y-2">
-                                            <label className="text-xs font-bold text-gray-500 uppercase tracking-wider ml-1">Phone</label>
-                                            <input className="w-full p-4 rounded-xl border-0 bg-gray-100 dark:bg-gray-700/50 focus:ring-2 focus:ring-blue-500 font-bold" value={editForm.phone} onChange={e => setEditForm({ ...editForm, phone: e.target.value })} />
-                                        </div>
-                                        <div className="col-span-2 space-y-2">
-                                            <label className="text-xs font-bold text-gray-500 uppercase tracking-wider ml-1">Address</label>
-                                            <textarea required className="w-full p-4 rounded-xl border-0 bg-gray-100 dark:bg-gray-700/50 focus:ring-2 focus:ring-blue-500 font-bold resize-none h-24" value={editForm.address} onChange={e => setEditForm({ ...editForm, address: e.target.value })} />
+                                            <label className="text-xs font-bold text-gray-400 uppercase tracking-wider ml-1">Address</label>
+                                            <textarea className="w-full p-4 rounded-xl border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 font-bold resize-none h-24" value={editForm.address} onChange={e => setEditForm({ ...editForm, address: e.target.value })} />
                                         </div>
                                     </div>
-                                    <div className="pt-4 flex justify-end gap-3">
-                                        <button type="button" onClick={() => setShowEditModal(false)} className="px-6 py-3 rounded-xl font-bold text-gray-500 hover:bg-gray-100">Cancel</button>
-                                        <button type="submit" className="px-8 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold shadow-lg shadow-blue-500/30 hover:scale-105 active:scale-95 transition-all">Save Changes</button>
+                                    <div className="pt-6 flex justify-end gap-3 border-t border-gray-100 dark:border-gray-700">
+                                        <button type="button" onClick={() => setShowEditModal(false)} className="px-8 py-4 rounded-xl font-bold text-gray-500 hover:bg-gray-100">Cancel</button>
+                                        <button type="submit" className="px-10 py-4 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold shadow-xl shadow-indigo-500/30">Save Changes</button>
                                     </div>
                                 </form>
                             </motion.div>
                         </div>
                     )}
                 </AnimatePresence>
+
+                {/* DISCHARGE PLANNING MODAL */}
+                <AnimatePresence>
+                    {showDischargeModal && (
+                        <div className="fixed inset-0 bg-gray-900/80 z-50 flex items-center justify-center p-4 backdrop-blur-md">
+                            <motion.div
+                                initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.9 }}
+                                className="bg-white dark:bg-gray-800 rounded-[40px] w-full max-w-2xl overflow-hidden shadow-2xl border border-white/20"
+                            >
+                                <div className="p-8 border-b border-gray-100 dark:border-gray-700 flex justify-between items-center bg-gray-50/50 dark:bg-gray-900/50">
+                                    <div>
+                                        <h2 className="text-2xl font-black text-gray-900 dark:text-white flex items-center gap-2">
+                                            <LogOut className="text-red-500" /> Patient Discharge
+                                        </h2>
+                                        <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mt-1">
+                                            Finalize visit and discharge planning
+                                        </p>
+                                    </div>
+                                    <button onClick={() => setShowDischargeModal(false)} className="p-2 bg-white dark:bg-gray-700 rounded-full hover:bg-gray-100 shadow-sm"><X size={20} /></button>
+                                </div>
+                                <form onSubmit={handleDischarge} className="p-8 space-y-6 max-h-[70vh] overflow-y-auto custom-scrollbar">
+
+                                    {isDischarged && (
+                                        <div className="p-4 bg-yellow-50 text-yellow-800 rounded-xl border border-yellow-200 text-sm font-bold flex items-center gap-3">
+                                            <AlertTriangle size={20} />
+                                            <span>This patient is already discharged. Submitting will update the record.</span>
+                                        </div>
+                                    )}
+
+                                    <div className="grid grid-cols-2 gap-6">
+                                        <div className="space-y-2">
+                                            <label className="text-xs font-bold text-gray-400 uppercase tracking-wider ml-1">Discharge Date</label>
+                                            <input
+                                                type="datetime-local"
+                                                required
+                                                className="w-full p-4 rounded-xl border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 font-bold"
+                                                value={dischargeForm.date}
+                                                onChange={e => setDischargeForm({ ...dischargeForm, date: e.target.value })}
+                                            />
+                                        </div>
+                                        <div className="space-y-2">
+                                            <label className="text-xs font-bold text-gray-400 uppercase tracking-wider ml-1">Discharge Type</label>
+                                            <select
+                                                className="w-full p-4 rounded-xl border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 font-bold"
+                                                value={dischargeForm.type}
+                                                onChange={e => setDischargeForm({ ...dischargeForm, type: e.target.value })}
+                                            >
+                                                <option value="Sembuh">Pulang Sembuh (Recovered)</option>
+                                                <option value="Berobat Jalan">Berobat Jalan (Outpatient)</option>
+                                                <option value="Rujuk">Rujuk (Referred)</option>
+                                                <option value="APS">Pulang APS (Self-Discharge)</option>
+                                                <option value="Meninggal">Meninggal (Deceased)</option>
+                                            </select>
+                                        </div>
+
+                                        <div className="col-span-2 space-y-2">
+                                            <label className="text-xs font-bold text-gray-400 uppercase tracking-wider ml-1">Final Diagnosis</label>
+                                            <input
+                                                className="w-full p-4 rounded-xl border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 font-bold"
+                                                value={dischargeForm.final_diagnosis}
+                                                onChange={e => setDischargeForm({ ...dischargeForm, final_diagnosis: e.target.value })}
+                                                placeholder="e.g. Acute Bronchitis - Recovered"
+                                            />
+                                        </div>
+
+                                        <div className="col-span-2 space-y-2">
+                                            <label className="text-xs font-bold text-gray-400 uppercase tracking-wider ml-1">Clinical Resume / Summary</label>
+                                            <textarea
+                                                className="w-full p-4 rounded-xl border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 font-bold resize-none h-32"
+                                                value={dischargeForm.resume}
+                                                onChange={e => setDischargeForm({ ...dischargeForm, resume: e.target.value })}
+                                                placeholder="Brief summary of treatment, major findings, and procedures..."
+                                            />
+                                        </div>
+
+                                        <div className="col-span-2 space-y-2">
+                                            <label className="text-xs font-bold text-gray-400 uppercase tracking-wider ml-1">Follow-up Instructions</label>
+                                            <textarea
+                                                className="w-full p-4 rounded-xl border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 font-bold resize-none h-24"
+                                                value={dischargeForm.follow_up}
+                                                onChange={e => setDischargeForm({ ...dischargeForm, follow_up: e.target.value })}
+                                                placeholder="Medication instructions, rest requirements..."
+                                            />
+                                        </div>
+
+                                        <div className="space-y-2">
+                                            <label className="text-xs font-bold text-gray-400 uppercase tracking-wider ml-1">Control Date (Optional)</label>
+                                            <input
+                                                type="date"
+                                                className="w-full p-4 rounded-xl border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 font-bold"
+                                                value={dischargeForm.control_date}
+                                                onChange={e => setDischargeForm({ ...dischargeForm, control_date: e.target.value })}
+                                            />
+                                        </div>
+                                    </div>
+
+                                    <div className="pt-6 flex justify-end gap-3 border-t border-gray-100 dark:border-gray-700">
+                                        <button type="button" onClick={() => setShowDischargeModal(false)} className="px-8 py-4 rounded-xl font-bold text-gray-500 hover:bg-gray-100">Cancel</button>
+                                        <button type="submit" className="px-10 py-4 bg-red-600 hover:bg-red-700 text-white rounded-xl font-bold shadow-xl shadow-red-500/30 flex items-center gap-2">
+                                            <LogOut size={20} />
+                                            {isDischarged ? 'Update Discharge' : 'Discharge Patient'}
+                                        </button>
+                                    </div>
+                                </form>
+                            </motion.div>
+                        </div>
+                    )}
+                </AnimatePresence>
+
             </div>
         </PageWrapper>
+    );
+};
+
+const InfoRow = ({ icon: Icon, label, value }) => (
+    <div className="flex items-center gap-4 bg-white dark:bg-gray-800 p-4 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700/50">
+        <div className="w-10 h-10 rounded-xl bg-gray-50 dark:bg-gray-700 flex items-center justify-center text-gray-400">
+            <Icon size={18} />
+        </div>
+        <div>
+            <p className="text-[10px] uppercase font-bold text-gray-400">{label}</p>
+            <p className="text-sm font-bold text-gray-900 dark:text-white truncate max-w-[200px]">{value || '-'}</p>
+        </div>
+    </div>
+);
+
+const TabButton = ({ active, onClick, icon: Icon, label }) => (
+    <button onClick={onClick} className={`px-6 py-3 rounded-xl flex items-center gap-2 text-sm font-bold transition-all ${active
+        ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/30'
+        : 'text-gray-500 hover:text-gray-900 dark:hover:text-gray-200'
+        }`}>
+        <Icon size={16} /> {label}
+    </button>
+);
+
+const StatBox = ({ label, value, color }) => {
+    const colors = {
+        blue: 'bg-blue-50 text-blue-600 dark:bg-blue-900/20',
+        purple: 'bg-purple-50 text-purple-600 dark:bg-purple-900/20',
+        orange: 'bg-orange-50 text-orange-600 dark:bg-orange-900/20',
+        green: 'bg-green-50 text-green-600 dark:bg-green-900/20',
+        red: 'bg-red-50 text-red-600 dark:bg-red-900/20',
+    };
+    return (
+        <div className={`p-6 rounded-[24px] text-center ${colors[color] || colors.blue}`}>
+            <h4 className="text-3xl font-black mb-1">{value}</h4>
+            <span className="text-xs font-bold uppercase opacity-70 tracking-wider">{label}</span>
+        </div>
     );
 };
 

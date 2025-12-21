@@ -10,9 +10,12 @@ import toast from 'react-hot-toast';
 import ModernHeader from '../components/ModernHeader';
 import PageWrapper from '../components/PageWrapper';
 
+import { useNavigate } from 'react-router-dom';
+
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
 
 const CashierDashboard = () => {
+    const navigate = useNavigate();
     // --- State: Data & UI ---
     const [activeTab, setActiveTab] = useState('unbilled'); // 'unbilled' | 'unpaid' | 'history'
     const [items, setItems] = useState([]);
@@ -188,7 +191,11 @@ const CashierDashboard = () => {
 
     return (
         <PageWrapper title="Medical POS System" className="bg-gray-50 dark:bg-gray-900">
-            <ModernHeader title="Cashier Point of Sale" subtitle="Operational Billing Terminal">
+            <ModernHeader
+                title="Cashier Point of Sale"
+                subtitle="Operational Billing Terminal"
+                onBack={() => navigate('/menu')}
+            >
                 {renderShiftStatus()}
             </ModernHeader>
 
