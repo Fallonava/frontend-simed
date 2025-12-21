@@ -7,6 +7,7 @@ import ThemeToggle from './components/ThemeToggle';
 import CommandPalette from './components/CommandPalette';
 import PageWrapper from './components/PageWrapper';
 import PageLoader from './components/PageLoader';
+import SmoothScroll from './components/SmoothScroll';
 
 // Lazy Load Pages
 const AdminDashboard = React.lazy(() => import('./pages/AdminDashboard'));
@@ -151,6 +152,7 @@ function AnimatedRoutes() {
 function App() {
   return (
     <BrowserRouter>
+      <SmoothScroll />
       <CommandPalette />
       <AnimatedRoutes />
     </BrowserRouter>

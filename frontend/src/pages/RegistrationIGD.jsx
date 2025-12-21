@@ -9,6 +9,7 @@ import api from '../utils/axiosConfig';
 import PageWrapper from '../components/PageWrapper';
 import defaultAvatar from '../assets/doctor_avatar.png';
 import ModernHeader from '../components/ModernHeader';
+import SmoothScrollArea from '../components/SmoothScrollArea';
 
 const SOCKET_URL = import.meta.env.VITE_SOCKET_URL || 'http://localhost:3000';
 const CHIME_URL = '/airport-chime.mp3';
@@ -513,7 +514,7 @@ const RegistrationIGD = () => {
                         <Plus size={18} /> Register New Patient
                     </button>
 
-                    <div className="flex-1 overflow-y-auto space-y-4">
+                    <SmoothScrollArea className="flex-1" contentClassName="space-y-4">
                         {searchResults.length > 0 ? (
                             <div className="space-y-3 p-2 animate-in fade-in slide-in-from-bottom-4 duration-500">
                                 <div className="flex justify-between items-center px-1">
@@ -694,11 +695,11 @@ const RegistrationIGD = () => {
                                 </div>
                             )
                         )}
-                    </div>
+                    </SmoothScrollArea>
                 </div>
 
                 {/* RIGHT PANEL: SERVICES */}
-                <div className="flex-1 bg-gray-50 dark:bg-gray-900 p-8 flex flex-col overflow-y-auto rounded-[32px] min-h-[500px] lg:min-h-0 pb-40">
+                <SmoothScrollArea className="flex-1 bg-gray-50 dark:bg-gray-900 rounded-[32px] min-h-[500px] lg:min-h-0 pb-40" contentClassName="p-8 flex flex-col">
                     <div className="max-w-6xl mx-auto w-full space-y-8">
 
                         {/* Header */}
@@ -906,7 +907,7 @@ const RegistrationIGD = () => {
 
                         <div className="h-32"></div> {/* Spacer */}
                     </div>
-                </div>
+                </SmoothScrollArea>
             </div>
 
             {/* FLOATING ACTION BAR - Glassmorphic Premium */}
@@ -1541,7 +1542,7 @@ const RegistrationIGD = () => {
                     </div>
                 )}
             </AnimatePresence>
-        </PageWrapper>
+        </PageWrapper >
     );
 };
 
