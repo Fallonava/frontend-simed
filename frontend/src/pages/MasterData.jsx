@@ -8,7 +8,8 @@ import {
     LayoutGrid, Stethoscope, Store,
     Search, CalendarOff, Play,
     AlertCircle, Check, Image as ImageIcon, Film, Clock,
-    ChevronRight, MoreHorizontal, List, Grid
+    ChevronRight, MoreHorizontal, List, Grid,
+    BedDouble, Banknote, Utensils
 } from 'lucide-react';
 import defaultAvatar from '../assets/doctor_avatar.png';
 import ModernHeader from '../components/ModernHeader';
@@ -39,25 +40,35 @@ const MasterData = () => {
     // Form States
     const [formData, setFormData] = useState({});
 
+    const [rooms, setRooms] = useState([]);
+    const [tariffs, setTariffs] = useState([]);
+    const [dietMenus, setDietMenus] = useState([]);
+
     useEffect(() => {
         fetchAllData();
     }, []);
 
     const fetchAllData = async () => {
         try {
-            const [poliesRes, doctorsRes, countersRes, leavesRes, playlistRes, settingsRes] = await Promise.all([
+            const [poliesRes, doctorsRes, countersRes, leavesRes, playlistRes, settingsRes, roomsRes, tariffsRes, dietRes] = await Promise.all([
                 axios.get(`${API_URL}/polies`),
                 axios.get(`${API_URL}/doctors-master`),
                 axios.get(`${API_URL}/counters`),
                 axios.get(`${API_URL}/doctor-leaves`),
                 axios.get(`${API_URL}/playlist`),
-                axios.get(`${API_URL}/settings`)
+                axios.get(`${API_URL}/settings`),
+                axios.get(`${API_URL}/rooms`),
+                axios.get(`${API_URL}/tariffs`),
+                axios.get(`${API_URL}/nutrition/menus`)
             ]);
             setPolies(poliesRes.data);
             setDoctors(doctorsRes.data);
             setCounters(countersRes.data);
             setLeaves(leavesRes.data);
             setPlaylist(playlistRes.data);
+            setRooms(roomsRes.data);
+            setTariffs(tariffsRes.data);
+            setDietMenus(dietRes.data.data); // specific structure for nutrition
             if (settingsRes.data) setSettings(settingsRes.data);
         } catch (error) {
             console.error("Error fetching data:", error);
@@ -74,9 +85,12 @@ const MasterData = () => {
             case 'counters': return counters.filter(c => c.name.toLowerCase().includes(lowerQuery));
             case 'leave': return leaves.filter(l => l.doctor?.name.toLowerCase().includes(lowerQuery));
             case 'playlist': return playlist.filter(p => p.url?.toLowerCase().includes(lowerQuery) || p.type.toLowerCase().includes(lowerQuery));
+            case 'rooms': return rooms.filter(r => r.name.toLowerCase().includes(lowerQuery) || r.type.toLowerCase().includes(lowerQuery));
+            case 'tariffs': return tariffs.filter(t => t.name.toLowerCase().includes(lowerQuery) || t.category.toLowerCase().includes(lowerQuery));
+            case 'gizi': return dietMenus.filter(m => m.name.toLowerCase().includes(lowerQuery) || m.type.toLowerCase().includes(lowerQuery));
             default: return [];
         }
-    }, [searchQuery, activeTab, polies, doctors, counters, leaves, playlist]);
+    }, [searchQuery, activeTab, polies, doctors, counters, leaves, playlist, rooms, tariffs, dietMenus]);
 
     // --- Actions ---
     const handleOpenModal = (type, item = null) => {
@@ -92,6 +106,9 @@ const MasterData = () => {
         if (type === 'playlist') setFormData(item ? {
             type: item.type, url: item.url, duration: item.duration, order: item.order
         } : { type: 'VIDEO', url: '', duration: 10, order: 0 });
+        if (type === 'room') setFormData(item ? { name: item.name, type: item.type, price: item.price, gender: item.gender } : { name: '', type: 'VIP', price: 0, gender: 'CAMPUR' });
+        if (type === 'tariff') setFormData(item ? { name: item.name, category: item.category, price: item.price, unit: item.unit, code: item.code } : { name: '', category: 'MEDIS', price: 0, unit: 'Tindakan', code: '' });
+        if (type === 'menu') setFormData(item ? { name: item.name, code: item.code, type: item.type, calories: item.calories, description: item.description } : { name: '', code: '', type: 'REGULAR', calories: 0, description: '' });
     };
 
     const handleConfirmDelete = (action) => {
@@ -129,6 +146,9 @@ const MasterData = () => {
                 case 'counter': url = '/counters'; break;
                 case 'leave': url = '/doctor-leaves'; payload.doctor_id = parseInt(payload.doctor_id); break;
                 case 'playlist': url = '/playlist'; payload.duration = parseInt(payload.duration); payload.order = parseInt(payload.order); payload.isActive = true; break;
+                case 'room': url = '/rooms'; payload.price = parseFloat(payload.price); break;
+                case 'tariff': url = '/tariffs'; payload.price = parseFloat(payload.price); break;
+                case 'menu': url = '/nutrition/menus'; payload.calories = parseInt(payload.calories); break;
                 default: return;
             }
 
@@ -347,6 +367,92 @@ const MasterData = () => {
             }
         }
 
+        // --- ROOMS ---
+        if (activeTab === 'rooms') {
+            return (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 p-6">
+                    {filteredData.map(room => (
+                        <GlassCard key={room.id} className="hover:scale-[1.02] transition-transform duration-300">
+                            <div className="flex flex-col h-full">
+                                <div className="flex justify-between items-start mb-4">
+                                    <div className="w-14 h-14 rounded-2xl bg-teal-100 text-teal-600 flex items-center justify-center shadow-sm">
+                                        <BedDouble size={28} />
+                                    </div>
+                                    <span className={`px-3 py-1 rounded-full text-xs font-bold border ${room.gender === 'L' ? 'bg-blue-50 text-blue-600 border-blue-200' : room.gender === 'P' ? 'bg-pink-50 text-pink-600 border-pink-200' : 'bg-purple-50 text-purple-600 border-purple-200'}`}>
+                                        {room.gender || 'CAMPUR'}
+                                    </span>
+                                </div>
+                                <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-1">{room.name}</h3>
+                                <div className="text-sm font-medium text-teal-600 dark:text-teal-400 mb-4">{room.type} • Rp {parseInt(room.price).toLocaleString('id-ID')}</div>
+
+                                <div className="mt-auto pt-4 border-t border-gray-100 dark:border-gray-700 flex gap-2">
+                                    <div className="flex-1 text-xs text-gray-500 flex items-center gap-1">
+                                        <div className={`w-2 h-2 rounded-full ${room.beds?.length > 0 ? 'bg-green-500' : 'bg-red-500'}`}></div>
+                                        {room.beds?.length || 0} Bed
+                                    </div>
+                                    <button onClick={() => handleOpenModal('room', room)} className="p-2 rounded-lg hover:bg-gray-100 text-gray-600"><Edit size={16} /></button>
+                                    <button onClick={() => handleConfirmDelete(() => deleteItem('rooms', room.id))} className="p-2 rounded-lg hover:bg-red-50 text-red-500"><Trash2 size={16} /></button>
+                                </div>
+                            </div>
+                        </GlassCard>
+                    ))}
+                </div>
+            );
+        }
+
+        // --- TARIFFS ---
+        if (activeTab === 'tariffs') {
+            return (
+                <div className="px-6 py-2">
+                    {filteredData.map(t => (
+                        <FloatingRow key={t.id}>
+                            <div className="w-[45%] flex items-center gap-4">
+                                <div className="w-10 h-10 rounded-full bg-orange-100 text-orange-600 flex items-center justify-center shrink-0">
+                                    <Banknote size={18} />
+                                </div>
+                                <div className="font-bold text-gray-800 dark:text-white">{t.name}</div>
+                            </div>
+                            <div className="w-[20%] text-sm font-medium text-gray-500">{t.category}</div>
+                            <div className="w-[25%] font-mono font-bold text-gray-800 dark:text-white">
+                                Rp {parseInt(t.price).toLocaleString('id-ID')} <span className="text-xs font-normal text-gray-400">/ {t.unit}</span>
+                            </div>
+                            <div className="w-[10%] flex justify-end gap-2">
+                                <ActionButton icon={Edit} onClick={() => handleOpenModal('tariff', t)} colorClass="text-blue-500 bg-blue-50 hover:bg-blue-100" />
+                                <ActionButton icon={Trash2} onClick={() => handleConfirmDelete(() => deleteItem('tariffs', t.id))} colorClass="text-red-500 bg-red-50 hover:bg-red-100" />
+                            </div>
+                        </FloatingRow>
+                    ))}
+                </div>
+            );
+        }
+
+        // --- GIZI / DIET ---
+        if (activeTab === 'gizi') {
+            return (
+                <div className="px-6 py-2">
+                    {filteredData.map(m => (
+                        <FloatingRow key={m.id}>
+                            <div className="w-[40%] flex items-center gap-4">
+                                <div className="w-10 h-10 rounded-full bg-green-100 text-green-600 flex items-center justify-center shrink-0">
+                                    <Utensils size={18} />
+                                </div>
+                                <div>
+                                    <div className="font-bold text-gray-800 dark:text-white">{m.name}</div>
+                                    <div className="text-xs text-gray-500">{m.code}</div>
+                                </div>
+                            </div>
+                            <div className="w-[20%] text-sm font-medium text-gray-500"><span className="bg-gray-100 px-2 py-1 rounded">{m.type}</span></div>
+                            <div className="w-[30%] text-sm font-bold text-gray-700">{m.calories} kcal</div>
+                            <div className="w-[10%] flex justify-end gap-2">
+                                <ActionButton icon={Edit} onClick={() => handleOpenModal('menu', m)} colorClass="text-blue-500 bg-blue-50 hover:bg-blue-100" />
+                                <ActionButton icon={Trash2} onClick={() => handleConfirmDelete(() => deleteItem('nutrition/menus', m.id))} colorClass="text-red-500 bg-red-50 hover:bg-red-100" />
+                            </div>
+                        </FloatingRow>
+                    ))}
+                </div>
+            );
+        }
+
         // --- POLIKLINIK / COUNTERS / LEAVE (Common List/Grid) ---
         if (viewMode === 'list') {
             return (
@@ -461,7 +567,10 @@ const MasterData = () => {
                     {[
                         { id: 'poliklinik', label: 'Poliklinik', icon: LayoutGrid },
                         { id: 'doctors', label: 'Dokter', icon: Stethoscope },
+                        { id: 'rooms', label: 'Ruangan', icon: BedDouble },
+                        { id: 'tariffs', label: 'Tarif', icon: Banknote },
                         { id: 'counters', label: 'Loket', icon: Store },
+                        { id: 'gizi', label: 'Menu Gizi', icon: Utensils },
                         { id: 'leave', label: 'Cuti', icon: CalendarOff },
                         { id: 'playlist', label: 'TV Display', icon: Play },
                         { id: 'settings', label: 'Pengaturan', icon: Search },
@@ -706,6 +815,69 @@ const MasterData = () => {
                                             <Input label="Durasi (Detik)" type="number" value={formData.duration} onChange={e => setFormData({ ...formData, duration: e.target.value })} />
                                             <Input label="No. Urut" type="number" value={formData.order} onChange={e => setFormData({ ...formData, order: e.target.value })} />
                                         </div>
+                                    </>
+                                )}
+
+                                {modalConfig.type === 'room' && (
+                                    <>
+                                        <Input label="Nama Ruangan" value={formData.name} onChange={e => setFormData({ ...formData, name: e.target.value })} placeholder="Mawar 01" />
+                                        <div className="flex gap-4">
+                                            <div className="flex-1">
+                                                <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2 ml-1">Kelas/Tipe</label>
+                                                <select className="w-full p-4 bg-gray-50 dark:bg-gray-800 border-none rounded-2xl outline-none" value={formData.type} onChange={e => setFormData({ ...formData, type: e.target.value })}>
+                                                    {['VIP', 'KELAS_1', 'KELAS_2', 'KELAS_3', 'ICU', 'ISOLASI'].map(t => <option key={t} value={t}>{t.replace('_', ' ')}</option>)}
+                                                </select>
+                                            </div>
+                                            <div className="flex-1">
+                                                <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2 ml-1">Khusus Gender</label>
+                                                <select className="w-full p-4 bg-gray-50 dark:bg-gray-800 border-none rounded-2xl outline-none" value={formData.gender} onChange={e => setFormData({ ...formData, gender: e.target.value })}>
+                                                    <option value="CAMPUR">Campur (L/P)</option>
+                                                    <option value="L">Laki-laki</option>
+                                                    <option value="P">Perempuan</option>
+                                                </select>
+                                            </div>
+                                        </div>
+                                        <Input label="Harga per Malam (Rp)" type="number" value={formData.price} onChange={e => setFormData({ ...formData, price: e.target.value })} />
+                                    </>
+                                )}
+
+                                {modalConfig.type === 'tariff' && (
+                                    <>
+                                        <Input label="Nama Layanan / Tindakan" value={formData.name} onChange={e => setFormData({ ...formData, name: e.target.value })} placeholder="Konsultasi Spesialis" />
+                                        <div className="flex gap-4">
+                                            <div className="w-1/2">
+                                                <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2 ml-1">Kategori</label>
+                                                <select className="w-full p-4 bg-gray-50 dark:bg-gray-800 border-none rounded-2xl outline-none" value={formData.category} onChange={e => setFormData({ ...formData, category: e.target.value })}>
+                                                    {['MEDIS', 'NON-MEDIS', 'ADMINISTRASI', 'PENUNJANG'].map(t => <option key={t} value={t}>{t}</option>)}
+                                                </select>
+                                            </div>
+                                            <div className="w-1/2">
+                                                <Input label="Satuan" value={formData.unit} onChange={e => setFormData({ ...formData, unit: e.target.value })} placeholder="Kali / Hari / Jam" />
+                                            </div>
+                                        </div>
+                                        <div className="flex gap-4">
+                                            <Input label="Harga (Rp)" type="number" value={formData.price} onChange={e => setFormData({ ...formData, price: e.target.value })} />
+                                            <Input label="Kode (Opsional)" value={formData.code} onChange={e => setFormData({ ...formData, code: e.target.value })} required={false} />
+                                        </div>
+                                    </>
+                                )}
+
+                                {modalConfig.type === 'menu' && (
+                                    <>
+                                        <Input label="Nama Menu" value={formData.name} onChange={e => setFormData({ ...formData, name: e.target.value })} placeholder="Bubur Saring" />
+                                        <div className="flex gap-4">
+                                            <div className="w-1/2">
+                                                <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2 ml-1">Jenis Diet</label>
+                                                <select className="w-full p-4 bg-gray-50 dark:bg-gray-800 border-none rounded-2xl outline-none" value={formData.type} onChange={e => setFormData({ ...formData, type: e.target.value })}>
+                                                    {['REGULAR', 'SOFT', 'LIQUID', 'DIET_DM', 'DIET_RG'].map(t => <option key={t} value={t}>{t.replace('_', ' ')}</option>)}
+                                                </select>
+                                            </div>
+                                            <div className="w-1/2">
+                                                <Input label="Kalori (kcal)" type="number" value={formData.calories} onChange={e => setFormData({ ...formData, calories: e.target.value })} />
+                                            </div>
+                                        </div>
+                                        <Input label="Kode Menu" value={formData.code} onChange={e => setFormData({ ...formData, code: e.target.value })} />
+                                        <Input label="Keterangan" value={formData.description} onChange={e => setFormData({ ...formData, description: e.target.value })} required={false} placeholder="Komposisi..." />
                                     </>
                                 )}
 

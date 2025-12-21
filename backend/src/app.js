@@ -192,9 +192,13 @@ app.post('/api/inpatient/:admissionId/mar', authMiddleware, inpatientController.
 // Nutrition / Gizi Routes
 const nutritionController = require('./controllers/nutritionController');
 app.get('/api/nutrition/menus', authMiddleware, nutritionController.getMenus);
+app.post('/api/nutrition/menus', authMiddleware, nutritionController.createMenu); // NEW
+app.put('/api/nutrition/menus/:id', authMiddleware, nutritionController.updateMenu); // NEW
+app.delete('/api/nutrition/menus/:id', authMiddleware, nutritionController.deleteMenu); // NEW
 app.post('/api/nutrition/order', authMiddleware, nutritionController.createOrder);
 app.get('/api/nutrition/kitchen', authMiddleware, nutritionController.getKitchenOrders);
 app.put('/api/nutrition/order/:id/status', authMiddleware, nutritionController.updateStatus);
+
 
 // HR Routes
 const hrController = require('./controllers/hrController');
@@ -270,10 +274,19 @@ app.post('/api/casemix/save', authMiddleware, casemixController.saveCoding);
 app.post('/api/casemix/claim', authMiddleware, casemixController.generateClaimFile);
 
 // Bed Management (Phase 2b)
+// Bed Management (Phase 2b) - IMPROVED
 const bedController = require('./controllers/bedController');
-app.get('/api/beds', authMiddleware, bedController.getAllBeds);
-app.get('/api/beds/stats', authMiddleware, bedController.getStats);
-app.put('/api/beds/:id/status', authMiddleware, bedController.updateBedStatus);
+// Room & Bed Routes
+const roomController = require('./controllers/roomController');
+app.get('/api/rooms', authMiddleware, roomController.getAllBeds); // Gets Rooms + Beds
+app.post('/api/rooms', authMiddleware, roomController.createRoom);
+app.put('/api/rooms/:id', authMiddleware, roomController.updateRoom);
+app.delete('/api/rooms/:id', authMiddleware, roomController.deleteRoom);
+app.post('/api/beds', authMiddleware, roomController.createBed);
+app.delete('/api/beds/:id', authMiddleware, roomController.deleteBed);
+app.put('/api/beds/:id/status', authMiddleware, roomController.updateBedStatus);
+app.get('/api/beds/stats', authMiddleware, roomController.getStats);
+
 
 // Nurse Station (CPPT & e-MAR) (Phase 2b)
 // Nurse Station (CPPT & e-MAR) (Phase 2b)
@@ -321,6 +334,14 @@ app.get('/api/playlist', playlistController.getAll);
 app.post('/api/playlist', playlistController.create);
 app.put('/api/playlist/:id', playlistController.update);
 app.delete('/api/playlist/:id', playlistController.delete);
+
+// Service Tariff Routes (NEW)
+const tariffController = require('./controllers/tariffController');
+app.get('/api/tariffs', tariffController.getAll);
+app.post('/api/tariffs', tariffController.create);
+app.put('/api/tariffs/:id', tariffController.update);
+app.delete('/api/tariffs/:id', tariffController.delete);
+
 
 // Setting Routes
 const settingController = require('./controllers/settingController');

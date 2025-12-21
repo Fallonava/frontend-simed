@@ -11,6 +11,45 @@ exports.getMenus = async (req, res) => {
     }
 };
 
+// POST /api/nutrition/menus (NEW)
+exports.createMenu = async (req, res) => {
+    try {
+        const { name, code, type, calories, description } = req.body;
+        const menu = await prisma.dietMenu.create({
+            data: { name, code, type, calories: parseInt(calories), description }
+        });
+        res.json({ success: true, data: menu });
+    } catch (err) {
+        res.status(400).json({ error: err.message });
+    }
+};
+
+// PUT /api/nutrition/menus/:id (NEW)
+exports.updateMenu = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { name, code, type, calories, description } = req.body;
+        const menu = await prisma.dietMenu.update({
+            where: { id: parseInt(id) },
+            data: { name, code, type, calories: parseInt(calories), description }
+        });
+        res.json({ success: true, data: menu });
+    } catch (err) {
+        res.status(400).json({ error: err.message });
+    }
+};
+
+// DELETE /api/nutrition/menus/:id (NEW)
+exports.deleteMenu = async (req, res) => {
+    try {
+        const { id } = req.params;
+        await prisma.dietMenu.delete({ where: { id: parseInt(id) } });
+        res.json({ success: true, message: 'Menu deleted' });
+    } catch (err) {
+        res.status(500).json({ error: 'Failed to delete menu' });
+    }
+};
+
 // POST /api/nutrition/order
 exports.createOrder = async (req, res) => {
     const { admissionId, dietMenuId, mealTime, extras } = req.body;
