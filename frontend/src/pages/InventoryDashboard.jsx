@@ -80,7 +80,7 @@ const InventoryDashboard = () => {
                 subtitle="Unified Supply Chain Management"
                 onBack={() => navigate('/menu')}
             >
-                <div className="flex bg-gray-200/50 dark:bg-gray-800/50 backdrop-blur-md p-1 rounded-xl border border-gray-200 dark:border-white/10 overflow-x-auto">
+                <div className="flex bg-black/5 dark:bg-white/10 backdrop-blur-md p-1 rounded-xl border border-black/5 dark:border-white/10 overflow-x-auto">
                     {tabs.map(tab => (
                         <button
                             key={tab.id}

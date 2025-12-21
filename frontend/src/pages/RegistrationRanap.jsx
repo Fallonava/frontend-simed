@@ -10,6 +10,7 @@ import { useNavigate } from 'react-router-dom';
 import api from '../utils/axiosConfig';
 import PageWrapper from '../components/PageWrapper';
 import ModernHeader from '../components/ModernHeader';
+import SmoothScrollArea from '../components/SmoothScrollArea';
 
 const RegistrationRanap = () => {
     const navigate = useNavigate();
@@ -220,7 +221,7 @@ const RegistrationRanap = () => {
                                 initial={{ opacity: 0, y: 20 }}
                                 animate={{ opacity: 1, y: 0 }}
                                 key={item.id}
-                                className="bg-white dark:bg-gray-800 p-6 rounded-[24px] shadow-sm border border-gray-100 dark:border-gray-700 hover:shadow-xl transition-all group"
+                                className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl p-6 rounded-[24px] shadow-sm border border-white/20 dark:border-gray-700/50 hover:shadow-xl transition-all group"
                             >
                                 <div className="flex justify-between items-start mb-4">
                                     <div className="flex items-center gap-3">
@@ -275,7 +276,7 @@ const RegistrationRanap = () => {
                             initial={{ scale: 0.95, opacity: 0 }}
                             animate={{ scale: 1, opacity: 1 }}
                             exit={{ scale: 0.95, opacity: 0 }}
-                            className="bg-white dark:bg-gray-800 w-full max-w-lg rounded-[32px] shadow-2xl overflow-hidden p-8"
+                            className="bg-white/90 dark:bg-gray-800/90 backdrop-blur-2xl w-full max-w-lg rounded-[32px] shadow-2xl overflow-hidden p-8 border border-white/20"
                         >
                             <div className="flex justify-between items-center mb-6">
                                 <h3 className="text-xl font-bold">Direct Admission</h3>
@@ -295,7 +296,7 @@ const RegistrationRanap = () => {
                                     />
                                 </div>
 
-                                <div className="max-h-60 overflow-y-auto space-y-2">
+                                <SmoothScrollArea className="max-h-60" contentClassName="space-y-2">
                                     {patientSearchResults.map(p => (
                                         <div
                                             key={p.id}
@@ -314,7 +315,7 @@ const RegistrationRanap = () => {
                                             No patients found. Press Enter to search.
                                         </div>
                                     )}
-                                </div>
+                                </SmoothScrollArea>
                             </div>
                         </motion.div>
                     </div>
@@ -329,7 +330,7 @@ const RegistrationRanap = () => {
                             initial={{ scale: 0.95, opacity: 0 }}
                             animate={{ scale: 1, opacity: 1 }}
                             exit={{ scale: 0.95, opacity: 0 }}
-                            className="bg-white dark:bg-gray-800 w-full max-w-4xl max-h-[90vh] overflow-y-auto rounded-[32px] shadow-2xl flex flex-col md:flex-row overflow-hidden"
+                            className="bg-white/95 dark:bg-gray-800/95 backdrop-blur-3xl w-full max-w-5xl max-h-[90vh] rounded-[32px] shadow-2xl flex flex-col md:flex-row overflow-hidden border border-white/20"
                         >
                             {/* LEFT: PATIENT INFO */}
                             <div className="md:w-1/3 bg-gray-50 dark:bg-gray-900 p-8 border-r border-gray-100 dark:border-gray-800 flex flex-col">
@@ -361,8 +362,8 @@ const RegistrationRanap = () => {
                             </div>
 
                             {/* RIGHT: ACTION FORM */}
-                            <div className="flex-1 p-8 flex flex-col relative">
-                                <button onClick={() => setShowProcessModal(false)} className="absolute top-6 right-6 p-2 rounded-full hover:bg-gray-100"><ArrowRight size={20} className="rotate-180" /></button>
+                            <SmoothScrollArea className="flex-1 relative bg-white dark:bg-gray-800" contentClassName="p-8 flex flex-col">
+                                <button onClick={() => setShowProcessModal(false)} className="absolute top-6 right-6 p-2 rounded-full hover:bg-gray-100 z-10"><ArrowRight size={20} className="rotate-180" /></button>
 
                                 <h2 className="text-2xl font-bold mb-6">Complete Admission</h2>
 
@@ -370,7 +371,7 @@ const RegistrationRanap = () => {
                                 <section className="mb-8">
                                     <h3 className="text-sm font-bold text-gray-500 uppercase mb-4 flex items-center gap-2"><div className="w-6 h-6 rounded-full bg-black text-white flex items-center justify-center text-xs">1</div> Select Room & Bed</h3>
 
-                                    <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 max-h-48 overflow-y-auto pr-2 custom-scrollbar">
+                                    <SmoothScrollArea className="max-h-56 pr-2 bg-gray-50 dark:bg-gray-900/50 rounded-xl border border-gray-100 dark:border-gray-700 p-1" contentClassName="grid grid-cols-2 lg:grid-cols-3 gap-3 p-1">
                                         {availableBeds.map(bed => (
                                             <div
                                                 key={bed.id}
@@ -385,7 +386,7 @@ const RegistrationRanap = () => {
                                                 <div className="text-xs text-gray-500">{bed.roomName} ({bed.roomClass})</div>
                                             </div>
                                         ))}
-                                    </div>
+                                    </SmoothScrollArea>
                                     {selectedBed && (
                                         <div className="mt-2 text-xs text-green-600 font-bold flex items-center gap-2 animate-in fade-in slide-in-from-top-1">
                                             <CheckCircle size={14} /> Selected: {selectedBed.roomName} - Bed {selectedBed.code}
@@ -470,7 +471,7 @@ const RegistrationRanap = () => {
                                 >
                                     Finalize Admission <Printer size={20} />
                                 </button>
-                            </div>
+                            </SmoothScrollArea>
                         </motion.div>
                     </div>
                 )}

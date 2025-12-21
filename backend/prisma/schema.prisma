@@ -70,7 +70,10 @@ model Queue {
   patient        Patient?    @relation(fields: [patient_id], references: [id])
   queue_number   Int
   queue_code     String
-  status         String      @default("WAITING") // WAITING, CALLED, SERVED, SKIPPED
+  booking_code   String?     @unique // For MJKN / Online Booking
+  booked_via     String      @default("OFFLINE") // OFFLINE, MOBILE_JKN, KIOSK, WEB
+  check_in_at    DateTime?   // Geolocation Check-in Time
+  status         String      @default("WAITING") // WAITING, CALLED, SERVED, SKIPPED, CANCELLED
   created_at     DateTime    @default(now())
   medical_records MedicalRecord[]
 }

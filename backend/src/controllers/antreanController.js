@@ -175,6 +175,8 @@ exports.ambilAntrean = async (req, res) => {
                 patient_id: patient.id,
                 queue_number: currentCount + 1,
                 queue_code: `JKN-${currentCount + 1}`,
+                booking_code: `BOOK-${Date.now()}`, // Unique BPJS Booking ID
+                booked_via: 'MOBILE_JKN',
                 status: 'WAITING'
             }
         });
@@ -189,7 +191,7 @@ exports.ambilAntrean = async (req, res) => {
             metadata: { message: "Sukses", code: 200 },
             response: {
                 nomorantrean: newQueue.queue_code,
-                kodebooking: `BOOK-${newQueue.id}`,
+                kodebooking: newQueue.booking_code,
                 jenisantrean: 1,
                 estimasidilayani: Date.now() + 3600 * 1000,
                 namapoli: "POLI JKN",

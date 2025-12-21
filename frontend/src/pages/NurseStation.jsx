@@ -13,6 +13,15 @@ import PageWrapper from '../components/PageWrapper';
 import ModernHeader from '../components/ModernHeader';
 import { useNavigate } from 'react-router-dom';
 import useQueueStore from '../store/useQueueStore';
+import SmoothScrollArea from '../components/SmoothScrollArea';
+
+// Unit Selector Configuration
+const UNITS = [
+    { id: 'IGD', label: 'Emergency', icon: Siren, color: 'text-red-500' },
+    { id: 'POLI', label: 'Outpatient', icon: Stethoscope, color: 'text-blue-500' },
+    { id: 'WARD', label: 'Inpatient', icon: Bed, color: 'text-orange-500' },
+    { id: 'ICU', label: 'ICU', icon: Activity, color: 'text-purple-500' }
+];
 
 const NurseStation = () => {
     const navigate = useNavigate();
@@ -145,48 +154,36 @@ const NurseStation = () => {
             <div className="flex flex-col h-[calc(100vh-80px)] max-w-[1920px] mx-auto p-4 md:p-6 gap-6 overflow-hidden">
 
                 {/* Header & Controls */}
-                <div className="flex flex-col xl:flex-row justify-between items-start xl:items-end gap-6 shrink-0">
-                    <div>
-                        <ModernHeader
-                            title="Nurse Station"
-                            subtitle="Real-time Patient Monitoring & Care"
-                            className="mb-2"
-                            onBack={() => navigate('/menu')}
-                        />
-                        <div className="flex items-center gap-2 text-xs font-bold text-gray-400">
-                            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-                            Live Sync Active • Last updated: {lastUpdated.toLocaleTimeString()}
-                        </div>
+                <ModernHeader
+                    title="Nurse Station"
+                    subtitle="Real-time Patient Monitoring & Care"
+                    onBack={() => navigate('/menu')}
+                >
+                    <div className="flex bg-black/5 dark:bg-white/10 backdrop-blur-md p-1 rounded-xl border border-black/5 dark:border-white/10 overflow-x-auto">
+                        {UNITS.map(unit => (
+                            <button
+                                key={unit.id}
+                                onClick={() => { setViewUnit(unit.id); setSelectedPatient(null); }}
+                                className={`px-4 py-2 rounded-lg flex items-center gap-2 transition-all duration-300 font-bold text-xs whitespace-nowrap
+                                    ${viewUnit === unit.id
+                                        ? 'bg-white dark:bg-gray-800 text-black dark:text-white shadow-sm'
+                                        : 'text-gray-500 hover:text-gray-900 dark:hover:text-gray-300'}`}
+                            >
+                                <unit.icon size={14} className={viewUnit === unit.id ? 'text-current' : unit.color} />
+                                <span>{unit.label}</span>
+                                {getCount(unit.id) > 0 && (
+                                    <span className={`ml-1 px-1.5 py-0.5 rounded-md text-[10px] ${viewUnit === unit.id ? 'bg-black/10 dark:bg-white/20' : 'bg-gray-200 dark:bg-gray-700'}`}>
+                                        {getCount(unit.id)}
+                                    </span>
+                                )}
+                            </button>
+                        ))}
                     </div>
+                </ModernHeader>
 
-                    <div className="flex gap-4">
-                        {/* Unit Selector */}
-                        <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-md p-1.5 rounded-[20px] flex items-center border border-white/20 shadow-lg">
-                            {[
-                                { id: 'IGD', label: 'Emergency', icon: Siren, color: 'text-red-500' },
-                                { id: 'POLI', label: 'Outpatient', icon: Stethoscope, color: 'text-blue-500' },
-                                { id: 'WARD', label: 'Inpatient', icon: Bed, color: 'text-orange-500' },
-                                { id: 'ICU', label: 'ICU', icon: Activity, color: 'text-purple-500' }
-                            ].map(unit => (
-                                <button
-                                    key={unit.id}
-                                    onClick={() => { setViewUnit(unit.id); setSelectedPatient(null); }}
-                                    className={`px-5 py-2.5 rounded-xl flex items-center gap-2 transition-all duration-300 font-bold text-sm
-                                        ${viewUnit === unit.id
-                                            ? 'bg-gray-900 dark:bg-white text-white dark:text-gray-900 shadow-md transform scale-100'
-                                            : 'text-gray-500 hover:bg-gray-100 dark:hover:bg-white/5'}`}
-                                >
-                                    <unit.icon size={16} className={viewUnit === unit.id ? 'text-current' : unit.color} />
-                                    <span>{unit.label}</span>
-                                    {getCount(unit.id) > 0 && (
-                                        <span className={`ml-1 px-1.5 py-0.5 rounded-md text-[10px] ${viewUnit === unit.id ? 'bg-white/20 text-white' : 'bg-gray-200 text-gray-600'}`}>
-                                            {getCount(unit.id)}
-                                        </span>
-                                    )}
-                                </button>
-                            ))}
-                        </div>
-                    </div>
+                <div className="flex items-center gap-2 text-xs font-bold text-gray-400 px-2">
+                    <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                    Live Sync Active • Last updated: {lastUpdated.toLocaleTimeString()}
                 </div>
 
                 {/* Main Workspace */}
@@ -207,7 +204,7 @@ const NurseStation = () => {
                         </div>
 
                         {/* List */}
-                        <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar space-y-3 pb-20">
+                        <SmoothScrollArea className="flex-1 pb-20" contentClassName="pr-2 space-y-3">
                             <AnimatePresence mode="popLayout">
                                 {isLoading && allPatients.length === 0 ? (
                                     <div className="flex flex-col items-center justify-center py-20 opacity-50 space-y-4">
@@ -230,11 +227,11 @@ const NurseStation = () => {
                                     ))
                                 )}
                             </AnimatePresence>
-                        </div>
+                        </SmoothScrollArea>
                     </div>
 
                     {/* RIGHT PANEL: Workspace */}
-                    <div className="flex-1 bg-white/60 dark:bg-gray-800/60 backdrop-blur-xl rounded-[40px] border border-white/40 dark:border-white/5 shadow-2xl relative overflow-hidden flex flex-col">
+                    <div className="flex-1 bg-white/60 dark:bg-gray-800/60 backdrop-blur-3xl rounded-[40px] border border-white/40 dark:border-gray-700/50 shadow-2xl relative overflow-hidden flex flex-col">
                         <AnimatePresence mode="wait">
                             {selectedPatient ? (
                                 <motion.div
@@ -250,7 +247,7 @@ const NurseStation = () => {
                                         setActiveAction={setActiveAction}
                                     />
 
-                                    <div className="flex-1 overflow-y-auto p-8 custom-scrollbar">
+                                    <SmoothScrollArea className="flex-1" contentClassName="p-8">
                                         {selectedPatient._isQueue ? (
                                             <TriageAssessmentForm
                                                 patientRecord={selectedPatient}
@@ -272,7 +269,7 @@ const NurseStation = () => {
                                                 />
                                             )
                                         )}
-                                    </div>
+                                    </SmoothScrollArea>
                                 </motion.div>
                             ) : (
                                 <EmptyStatePlaceholder />
@@ -331,7 +328,7 @@ const PatientCard = ({ patient, isSelected, onClick }) => (
 );
 
 const WorkspaceHeader = ({ patient, activeAction, setActiveAction }) => (
-    <div className="p-8 border-b border-gray-100 dark:border-gray-700/50 bg-white/50 dark:bg-gray-900/50 backdrop-blur-md sticky top-0 z-20">
+    <div className="p-8 border-b border-gray-100 dark:border-gray-700/50 bg-white/50 dark:bg-gray-900/50 backdrop-blur-xl sticky top-0 z-20">
         <div className="flex flex-col xl:flex-row justify-between items-start xl:items-center gap-6">
             <div className="flex items-center gap-5">
                 <div className={`w-16 h-16 rounded-2xl flex items-center justify-center text-white shadow-lg

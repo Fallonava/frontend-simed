@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import SmoothScrollArea from '../components/SmoothScrollArea';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Utensils, Search, ChefHat, PlusCircle, CheckCircle, Soup, Coffee, Heart } from 'lucide-react';
 import api from '../utils/axiosConfig';
@@ -114,7 +115,7 @@ const NutritionOrder = () => {
                 <ModernHeader
                     title="Pemesanan Gizi"
                     subtitle="Patient Meal & Diet Ordering"
-                    onBack={() => navigate('/nurse')}
+                    onBack={() => navigate('/menu')}
                 />
 
                 <div className="flex flex-col lg:flex-row gap-8 h-full overflow-hidden mt-6">
@@ -132,7 +133,7 @@ const NutritionOrder = () => {
                             />
                         </div>
 
-                        <div className="flex-1 overflow-y-auto space-y-3 pr-2 custom-scrollbar pb-20">
+                        <SmoothScrollArea className="flex-1 pb-20" contentClassName="pr-2 space-y-3">
                             {filteredPatients.map(adm => (
                                 <motion.div
                                     key={adm.id}
@@ -163,11 +164,11 @@ const NutritionOrder = () => {
                                     </div>
                                 </motion.div>
                             ))}
-                        </div>
+                        </SmoothScrollArea>
                     </div>
 
                     {/* RIGHT: Order Area */}
-                    <div className="flex-1 bg-white/60 dark:bg-gray-800/60 backdrop-blur-2xl rounded-[40px] border border-white/40 dark:border-gray-700 shadow-xl overflow-hidden relative flex flex-col">
+                    <div className="flex-1 bg-white/60 dark:bg-gray-800/60 backdrop-blur-3xl rounded-[40px] border border-white/40 dark:border-gray-700 shadow-xl overflow-hidden relative flex flex-col">
 
                         {!selectedPatient ? (
                             <div className="flex-1 flex flex-col items-center justify-center text-center p-8 opacity-60">
@@ -189,14 +190,14 @@ const NutritionOrder = () => {
                                         </div>
 
                                         {/* Meal Time Selector */}
-                                        <div className="flex p-1 bg-gray-100 dark:bg-gray-700 rounded-xl">
+                                        <div className="flex p-1 bg-black/5 dark:bg-white/10 rounded-xl">
                                             {['BREAKFAST', 'LUNCH', 'DINNER'].map(time => (
                                                 <button
                                                     key={time}
                                                     onClick={() => setMealTime(time)}
-                                                    className={`px-5 py-2.5 rounded-lg text-xs font-bold transition-all ${mealTime === time
-                                                        ? 'bg-white shadow-sm text-emerald-600 scale-100'
-                                                        : 'text-gray-500 hover:text-emerald-600'}`}
+                                                    className={`px-4 py-2 rounded-lg text-xs font-bold transition-all ${mealTime === time
+                                                        ? 'bg-white dark:bg-gray-800 shadow-sm text-emerald-600 dark:text-emerald-400 scale-100'
+                                                        : 'text-gray-500 hover:text-emerald-600 dark:hover:text-emerald-300'}`}
                                                 >
                                                     {time}
                                                 </button>
@@ -206,15 +207,15 @@ const NutritionOrder = () => {
                                 </div>
 
                                 {/* Category Filter */}
-                                <div className="flex gap-2 mb-6 overflow-x-auto pb-2 custom-scrollbar">
+                                <div className="flex gap-2 mb-4 px-6 pt-6 overflow-x-auto pb-2 no-scrollbar">
                                     {['ALL', 'REGULAR', 'SOFT', 'DIET', 'LIQUID'].map(cat => (
                                         <button
                                             key={cat}
                                             onClick={() => setActiveCategory(cat)}
-                                            className={`px-4 py-2 rounded-xl text-xs font-bold transition-all whitespace-nowrap
+                                            className={`px-4 py-2 rounded-xl text-xs font-bold transition-all whitespace-nowrap border
                                                     ${activeCategory === cat
-                                                    ? 'bg-gray-900 dark:bg-white text-white dark:text-gray-900 shadow-md transform scale-105'
-                                                    : 'bg-white dark:bg-gray-800 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 border border-gray-100 dark:border-gray-700'}`}
+                                                    ? 'bg-gray-900 dark:bg-white text-white dark:text-gray-900 border-transparent shadow-md transform scale-105'
+                                                    : 'bg-white dark:bg-gray-800 text-gray-400 border-gray-100 dark:border-gray-700 hover:border-gray-300'}`}
                                         >
                                             {cat}
                                         </button>
@@ -222,7 +223,7 @@ const NutritionOrder = () => {
                                 </div>
 
                                 {/* Menu Grid */}
-                                <div className="flex-1 overflow-y-auto p-1 custom-scrollbar">
+                                <SmoothScrollArea className="flex-1" contentClassName="p-6">
                                     <h3 className="text-lg font-bold text-gray-800 dark:text-white mb-4">Select Menu</h3>
                                     <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
                                         {menus
@@ -254,7 +255,7 @@ const NutritionOrder = () => {
                                     </div>
 
                                     {/* Extras Input */}
-                                    <div className="mt-8">
+                                    <div className="mt-8 mb-20">
                                         <h3 className="text-lg font-bold text-gray-800 dark:text-white mb-4">Special Requests & Allergies</h3>
                                         <div className="bg-white/50 dark:bg-gray-900/50 p-1 rounded-2xl border border-gray-200 dark:border-gray-700 focus-within:ring-2 focus-within:ring-emerald-500/50 transition-all">
                                             <textarea
@@ -265,7 +266,7 @@ const NutritionOrder = () => {
                                             />
                                         </div>
                                     </div>
-                                </div>
+                                </SmoothScrollArea>
 
                                 {/* Footer Action */}
                                 <div className="p-6 border-t border-gray-100 dark:border-gray-700 bg-white/80 dark:bg-gray-900/80 backdrop-blur-lg">

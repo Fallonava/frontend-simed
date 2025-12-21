@@ -7,6 +7,7 @@ import api from '../utils/axiosConfig';
 import PageWrapper from '../components/PageWrapper';
 import ModernHeader from '../components/ModernHeader';
 import { useNavigate } from 'react-router-dom';
+import SmoothScrollArea from '../components/SmoothScrollArea';
 
 const LabDashboard = () => {
     const navigate = useNavigate();
@@ -185,7 +186,7 @@ const LabDashboard = () => {
                 </div>
 
                 {/* Table View */}
-                <div className="bg-white/60 dark:bg-gray-800/60 backdrop-blur-3xl rounded-[32px] border border-white/40 dark:border-gray-700 shadow-xl overflow-hidden min-h-[500px] flex flex-col">
+                <div className="bg-white/60 dark:bg-gray-800/60 backdrop-blur-3xl rounded-[32px] border border-white/40 dark:border-gray-700/50 shadow-xl overflow-hidden min-h-[500px] flex flex-col relative group/table">
                     {/* Table Header */}
                     <div className="grid grid-cols-12 gap-4 px-8 py-5 border-b border-gray-200/50 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-800/30 text-xs font-bold text-gray-400 uppercase tracking-widest">
                         <div className="col-span-1 text-center">No</div>
@@ -196,7 +197,7 @@ const LabDashboard = () => {
                     </div>
 
                     {/* Table Body */}
-                    <div className="flex-1 overflow-y-auto max-h-[600px] custom-scrollbar">
+                    <SmoothScrollArea className="flex-1 h-[600px]" contentClassName="pb-20">
                         <AnimatePresence mode="popLayout">
                             {filteredOrders.length === 0 ? (
                                 <motion.div
@@ -272,7 +273,7 @@ const LabDashboard = () => {
                                 ))
                             )}
                         </AnimatePresence>
-                    </div>
+                    </SmoothScrollArea>
                 </div>
 
                 {/* Modern Modal */}
@@ -291,7 +292,7 @@ const LabDashboard = () => {
                                 initial={{ opacity: 0, scale: 0.9, y: 20 }}
                                 animate={{ opacity: 1, scale: 1, y: 0 }}
                                 exit={{ opacity: 0, scale: 0.9, y: 20 }}
-                                className="relative bg-white/90 dark:bg-gray-900/90 backdrop-blur-2xl w-full max-w-2xl rounded-[40px] shadow-2xl overflow-hidden border border-white/20 dark:border-gray-700"
+                                className="relative bg-white/95 dark:bg-gray-900/95 backdrop-blur-3xl w-full max-w-2xl rounded-[40px] shadow-2xl overflow-hidden border border-white/20 dark:border-gray-700/50"
                             >
                                 {/* Modal Header */}
                                 <div className="bg-gradient-to-r from-purple-50 to-indigo-50 dark:from-gray-800 dark:to-gray-800 p-8 border-b border-gray-100 dark:border-gray-700 flex justify-between items-center">

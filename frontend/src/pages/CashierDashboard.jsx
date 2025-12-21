@@ -13,6 +13,7 @@ import PageWrapper from '../components/PageWrapper';
 import { useNavigate } from 'react-router-dom';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
+import SmoothScrollArea from '../components/SmoothScrollArea';
 
 const CashierDashboard = () => {
     const navigate = useNavigate();
@@ -202,7 +203,7 @@ const CashierDashboard = () => {
             <div className="p-4 md:p-6 h-[calc(100vh-140px)] flex gap-6 overflow-hidden max-w-[1920px] mx-auto">
 
                 {/* --- LEFT PANEL: QUEUE & LIST --- */}
-                <div className="w-1/3 flex flex-col bg-white dark:bg-gray-800 rounded-3xl shadow-xl shadow-gray-200/50 dark:shadow-black/20 border border-gray-100 dark:border-white/5 overflow-hidden">
+                <div className="w-1/3 flex flex-col bg-white/60 dark:bg-gray-800/60 backdrop-blur-3xl rounded-3xl shadow-xl shadow-gray-200/50 dark:shadow-black/20 border border-white/40 dark:border-gray-700/50 overflow-hidden">
                     {/* Search & Filter */}
                     <div className="p-4 border-b border-gray-100 dark:border-white/5 space-y-4">
                         <div className="flex bg-gray-100 dark:bg-gray-900 p-1 rounded-xl">
@@ -232,7 +233,7 @@ const CashierDashboard = () => {
                     </div>
 
                     {/* List Items */}
-                    <div className="flex-1 overflow-y-auto p-2 space-y-2">
+                    <SmoothScrollArea className="flex-1 p-2 space-y-2">
                         {loading ? (
                             <div className="p-8 text-center text-gray-400">Loading...</div>
                         ) : filteredItems.length === 0 ? (
@@ -270,11 +271,11 @@ const CashierDashboard = () => {
                                 </motion.div>
                             ))
                         )}
-                    </div>
+                    </SmoothScrollArea>
                 </div>
 
                 {/* --- RIGHT PANEL: TERMINAL --- */}
-                <div className="flex-1 bg-white dark:bg-gray-800 rounded-3xl shadow-xl shadow-gray-200/50 dark:shadow-black/20 border border-gray-100 dark:border-white/5 flex flex-col relative overflow-hidden">
+                <div className="flex-1 bg-white/60 dark:bg-gray-800/60 backdrop-blur-3xl rounded-3xl shadow-xl shadow-gray-200/50 dark:shadow-black/20 border border-white/40 dark:border-gray-700/50 flex flex-col relative overflow-hidden">
                     {selectedItem ? (
                         <>
                             {/* Terminal Header */}
@@ -297,7 +298,7 @@ const CashierDashboard = () => {
                             </div>
 
                             {/* Ticket View */}
-                            <div className="flex-1 overflow-y-auto p-6 bg-gray-50 dark:bg-black/20">
+                            <SmoothScrollArea className="flex-1 bg-gray-50/50 dark:bg-black/20" contentClassName="p-6">
                                 {/* Receipt-like Card */}
                                 <div className="max-w-md mx-auto bg-white dark:bg-gray-700 rounded-xl shadow-sm border border-gray-200 dark:border-white/10 overflow-hidden">
                                     <div className="bg-gray-100 dark:bg-gray-800 p-3 text-center border-b border-dashed border-gray-300 dark:border-gray-600">
@@ -321,7 +322,7 @@ const CashierDashboard = () => {
                                         </div>
                                     </div>
                                 </div>
-                            </div>
+                            </SmoothScrollArea>
 
                             {/* Action Bar */}
                             <div className="p-6 bg-white dark:bg-gray-800 border-t border-gray-100 dark:border-white/5">
@@ -360,10 +361,10 @@ const CashierDashboard = () => {
             {/* --- PAYMENT MODAL --- */}
             <AnimatePresence>
                 {showPaymentModal && activeTab === 'unpaid' && selectedItem && (
-                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
+                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-md">
                         <motion.div
                             initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }}
-                            className="bg-white dark:bg-gray-800 w-full max-w-2xl rounded-3xl shadow-2xl overflow-hidden"
+                            className="bg-white/90 dark:bg-gray-800/90 backdrop-blur-2xl w-full max-w-2xl rounded-[32px] shadow-2xl overflow-hidden border border-white/20"
                         >
                             <div className="p-6 border-b border-gray-100 flex justify-between items-center">
                                 <h3 className="text-xl font-bold flex items-center gap-2">

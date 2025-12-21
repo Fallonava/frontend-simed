@@ -1,4 +1,5 @@
 import React from 'react';
+import SmoothScrollArea from '../components/SmoothScrollArea';
 import ModernHeader from '../components/ModernHeader';
 import { useNavigate } from 'react-router-dom';
 import useAuthStore from '../store/useAuthStore';
@@ -311,7 +312,7 @@ const MainMenu = () => {
     };
 
     return (
-        <div className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors duration-300 relative font-sans">
+        <div className="h-screen bg-gray-50 dark:bg-gray-900 transition-colors duration-300 relative font-sans flex flex-col overflow-hidden">
 
             <ThemeToggle />
 
@@ -321,46 +322,48 @@ const MainMenu = () => {
                 onBack={null} // No back button on main menu
             />
 
-            <div className="max-w-[1920px] mx-auto p-8 pt-10">
+            <SmoothScrollArea className="flex-1" contentClassName="pb-20">
+                <div className="max-w-[1920px] mx-auto p-8 pt-6">
 
-                <div className="space-y-12">
-                    {menuGroups.map((group, groupIdx) => {
-                        const visibleItems = group.items.filter(item => item.roles.includes(user?.role));
-                        if (visibleItems.length === 0) return null;
+                    <div className="space-y-12">
+                        {menuGroups.map((group, groupIdx) => {
+                            const visibleItems = group.items.filter(item => item.roles.includes(user?.role));
+                            if (visibleItems.length === 0) return null;
 
-                        return (
-                            <div key={groupIdx} className="animate-fade-in-up" style={{ animationDelay: `${groupIdx * 100}ms` }}>
-                                <h2 className="text-xl font-bold text-gray-400 uppercase tracking-widest mb-6 flex items-center gap-4">
-                                    <span className="w-8 h-[2px] bg-gray-300 dark:bg-gray-700"></span>
-                                    {group.category}
-                                </h2>
-                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                                    {visibleItems.map((item, idx) => (
-                                        <button
-                                            key={idx}
-                                            onClick={() => navigate(item.path)}
-                                            className="bg-white dark:bg-gray-800 rounded-3xl p-6 shadow-sm hover:shadow-xl transition-all hover:-translate-y-1 group border border-gray-100 dark:border-gray-700 relative overflow-hidden text-left"
-                                        >
-                                            <div className={`absolute top-0 right-0 w-24 h-24 bg-gradient-to-br ${gradientMap[item.color] || 'from-blue-500'} to-transparent opacity-10 rounded-bl-[100px] transition-all duration-500 ease-out group-hover:scale-150 group-hover:opacity-30`}></div>
+                            return (
+                                <div key={groupIdx} className="animate-fade-in-up" style={{ animationDelay: `${groupIdx * 100}ms` }}>
+                                    <h2 className="text-xl font-bold text-gray-400 uppercase tracking-widest mb-6 flex items-center gap-4">
+                                        <span className="w-8 h-[2px] bg-gray-300 dark:bg-gray-700"></span>
+                                        {group.category}
+                                    </h2>
+                                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                                        {visibleItems.map((item, idx) => (
+                                            <button
+                                                key={idx}
+                                                onClick={() => navigate(item.path)}
+                                                className="bg-white/60 dark:bg-gray-800/60 backdrop-blur-3xl rounded-[32px] p-6 shadow-lg hover:shadow-2xl transition-all duration-300 hover:-translate-y-2 group border border-white/40 dark:border-gray-700 relative overflow-hidden text-left"
+                                            >
+                                                <div className={`absolute top-0 right-0 w-24 h-24 bg-gradient-to-br ${gradientMap[item.color] || 'from-blue-500'} to-transparent opacity-10 rounded-bl-[100px] transition-all duration-500 ease-out group-hover:scale-150 group-hover:opacity-30`}></div>
 
-                                            <div className={`${item.color} w-14 h-14 rounded-2xl flex items-center justify-center text-white mb-4 shadow-lg group-hover:scale-110 transition-transform duration-300`}>
-                                                {item.icon}
-                                            </div>
-                                            <h3 className="text-lg font-bold text-gray-800 dark:text-gray-100 mb-1 leading-tight">{item.title}</h3>
-                                            <p className="text-sm text-gray-400 dark:text-gray-500 font-medium">{item.description}</p>
-                                        </button>
-                                    ))}
+                                                <div className={`${item.color} w-14 h-14 rounded-2xl flex items-center justify-center text-white mb-4 shadow-lg group-hover:scale-110 transition-transform duration-300`}>
+                                                    {item.icon}
+                                                </div>
+                                                <h3 className="text-lg font-bold text-gray-800 dark:text-gray-100 mb-1 leading-tight">{item.title}</h3>
+                                                <p className="text-sm text-gray-400 dark:text-gray-500 font-medium">{item.description}</p>
+                                            </button>
+                                        ))}
+                                    </div>
                                 </div>
-                            </div>
-                        );
-                    })}
-                </div>
+                            );
+                        })}
+                    </div>
 
-                <footer className="mt-20 text-center text-gray-400 text-sm py-8 border-t border-gray-200 dark:border-gray-700">
-                    <p>&copy; {new Date().getFullYear()} Fallonava Health System. All rights reserved.</p>
-                </footer>
-            </div>
-        </div>
+                    <footer className="mt-20 text-center text-gray-400 text-sm py-8 border-t border-transparent">
+                        <p>&copy; {new Date().getFullYear()} Fallonava Health System. All rights reserved.</p>
+                    </footer>
+                </div>
+            </SmoothScrollArea >
+        </div >
     );
 };
 

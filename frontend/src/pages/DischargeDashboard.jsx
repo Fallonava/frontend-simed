@@ -8,6 +8,7 @@ import api from '../services/api';
 import toast, { Toaster } from 'react-hot-toast';
 import PageWrapper from '../components/PageWrapper';
 import ModernHeader from '../components/ModernHeader';
+import SmoothScrollArea from '../components/SmoothScrollArea';
 
 const DischargeDashboard = () => {
     const [patients, setPatients] = useState([]);
@@ -67,17 +68,16 @@ const DischargeDashboard = () => {
                 <AnimatePresence mode="wait">
                     {view === 'LIST' ? (
                         <motion.div
-                            key="list"
                             initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}
-                            className="glass-panel rounded-[32px] overflow-hidden border border-white/20"
+                            className="bg-white/60 dark:bg-gray-800/60 backdrop-blur-3xl rounded-[32px] overflow-hidden border border-white/40 dark:border-gray-700/50 shadow-xl"
                         >
                             <div className="p-6 border-b border-gray-100 dark:border-gray-800 flex justify-between items-center bg-gray-50/30 dark:bg-gray-900/10">
                                 <h3 className="text-lg font-bold text-gray-900 dark:text-white">Active Discharge Candidates</h3>
                             </div>
 
-                            <div className="overflow-x-auto">
+                            <SmoothScrollArea className="h-[600px]" contentClassName="pb-20">
                                 <table className="w-full text-left">
-                                    <thead className="bg-gray-50/50 dark:bg-gray-900/50 text-gray-400 uppercase text-xs font-bold tracking-wider backdrop-blur-sm">
+                                    <thead className="bg-gray-50/50 dark:bg-gray-900/50 text-gray-400 uppercase text-xs font-bold tracking-wider backdrop-blur-sm sticky top-0 z-10">
                                         <tr>
                                             <th className="p-6">Patient</th>
                                             <th className="p-6">Location</th>
@@ -125,7 +125,7 @@ const DischargeDashboard = () => {
                                         )}
                                     </tbody>
                                 </table>
-                            </div>
+                            </SmoothScrollArea>
                         </motion.div>
                     ) : (
                         <motion.div
@@ -167,7 +167,7 @@ const StatCard = ({ icon: Icon, label, value, color }) => {
     };
 
     return (
-        <div className="glass-panel p-6 rounded-[24px] flex items-center gap-5 border border-white/40 shadow-sm">
+        <div className="bg-white/60 dark:bg-gray-800/60 backdrop-blur-3xl p-6 rounded-[24px] flex items-center gap-5 border border-white/40 dark:border-gray-700/50 shadow-sm">
             <div className={`w-14 h-14 rounded-2xl flex items-center justify-center ${colors[color]}`}>
                 <Icon size={28} />
             </div>
@@ -247,7 +247,7 @@ const DischargeForm = ({ patient, onBack }) => {
                     <ArrowRight size={18} className="rotate-180" /> Back to Dashboard
                 </button>
 
-                <div className="glass-panel p-8 rounded-[40px] border border-white/20 text-center relative overflow-hidden">
+                <div className="bg-white/60 dark:bg-gray-800/60 backdrop-blur-3xl p-8 rounded-[40px] border border-white/40 dark:border-gray-700/50 text-center relative overflow-hidden shadow-xl">
                     <div className="absolute top-0 left-0 w-full h-32 bg-gradient-to-br from-indigo-500/10 to-purple-600/10 blur-3xl"></div>
 
                     <div className="relative z-10">
@@ -278,7 +278,7 @@ const DischargeForm = ({ patient, onBack }) => {
 
                 {/* Step 1 Content */}
                 {step === 1 && (
-                    <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="glass-panel p-8 rounded-[40px] border border-white/20">
+                    <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="bg-white/60 dark:bg-gray-800/60 backdrop-blur-3xl p-8 rounded-[40px] border border-white/40 dark:border-gray-700/50 shadow-xl">
                         <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-6 flex items-center gap-3">
                             <FileText className="text-indigo-500" />
                             Medical Resume & Orders
@@ -308,7 +308,7 @@ const DischargeForm = ({ patient, onBack }) => {
 
                 {/* Step 2 Content */}
                 {step === 2 && (
-                    <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="glass-panel p-8 rounded-[40px] border border-white/20">
+                    <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="bg-white/60 dark:bg-gray-800/60 backdrop-blur-3xl p-8 rounded-[40px] border border-white/40 dark:border-gray-700/50 shadow-xl">
                         <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-6 flex items-center gap-3">
                             <CheckSquare className="text-indigo-500" />
                             Nurse Clearance Checklist
@@ -357,7 +357,7 @@ const InfoItem = ({ label, value, icon: Icon }) => (
 const StepIndicator = ({ number, title, active, completed }) => (
     <div className={`flex items-center gap-3 ${active ? 'opacity-100' : 'opacity-50'} transition-opacity`}>
         <div className={`w-10 h-10 rounded-full flex items-center justify-center font-black text-sm border-2 ${completed ? 'bg-indigo-600 border-indigo-600 text-white' :
-                active ? 'bg-indigo-50 border-indigo-600 text-indigo-600' : 'bg-transparent border-gray-300 text-gray-400'
+            active ? 'bg-indigo-50 border-indigo-600 text-indigo-600' : 'bg-transparent border-gray-300 text-gray-400'
             }`}>
             {completed ? <CheckCircle2 size={20} /> : number}
         </div>
@@ -369,8 +369,8 @@ const CheckItem = ({ label, checked, onChange }) => (
     <div
         onClick={onChange}
         className={`flex items-center gap-4 p-5 rounded-2xl border-2 cursor-pointer transition-all duration-200 group ${checked
-                ? 'bg-indigo-50 dark:bg-indigo-900/20 border-indigo-500 text-indigo-800 dark:text-indigo-300'
-                : 'bg-white dark:bg-gray-800 border-transparent hover:border-gray-200 dark:hover:border-gray-700 shadow-sm hover:shadow-md'
+            ? 'bg-indigo-50 dark:bg-indigo-900/20 border-indigo-500 text-indigo-800 dark:text-indigo-300'
+            : 'bg-white dark:bg-gray-800 border-transparent hover:border-gray-200 dark:hover:border-gray-700 shadow-sm hover:shadow-md'
             }`}
     >
         <div className={`w-6 h-6 rounded-lg border-2 flex items-center justify-center transition-colors ${checked ? 'bg-indigo-500 border-indigo-500 text-white' : 'border-gray-300 bg-white'

@@ -36,7 +36,7 @@ const ModernHeader = ({
     });
 
     return (
-        <header className={`sticky top-0 h-auto py-3 lg:h-20 lg:py-0 shrink-0 px-4 md:px-8 flex flex-col md:flex-row items-center justify-between bg-white/70 dark:bg-gray-900/70 backdrop-blur-xl border-b border-gray-100 dark:border-gray-800 z-50 gap-3 md:gap-0 transition-all duration-300 ${className}`}>
+        <header className={`sticky top-0 h-auto py-3 lg:h-20 lg:py-0 shrink-0 px-4 md:px-8 flex flex-col md:flex-row items-center justify-between bg-white/60 dark:bg-gray-900/60 backdrop-blur-3xl border-b border-white/40 dark:border-gray-700/50 z-50 gap-3 md:gap-0 transition-all duration-300 ${className}`}>
 
             {/* LEFT: Logo & Title (inc. Back Button) */}
             <div className="flex items-center gap-3 w-full md:w-auto justify-between md:justify-start">
@@ -65,7 +65,7 @@ const ModernHeader = ({
 
             {/* MIDDLE: Custom Children (Tabs etc.) */}
             {children && (
-                <div className="flex-1 flex justify-center w-full md:w-auto overflow-x-auto">
+                <div className="flex-1 flex justify-start md:justify-center w-full md:w-auto overflow-x-auto no-scrollbar">
                     {children}
                 </div>
             )}
