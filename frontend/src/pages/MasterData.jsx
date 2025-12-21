@@ -151,57 +151,53 @@ const MasterData = () => {
     // --- Submit Handlers ---
     const handleSubmit = async (e) => {
         e.preventDefault();
-        const { type, item } = modalConfig;
-        const isEdit = !!item;
-
+        const toastId = toast.loading('Menyimpan data...');
         try {
-            let url = '';
-            let payload = { ...formData };
+            if (modalConfig.item) {
+                // Update
+                let endpoint = '';
+                if (modalConfig.type === 'poli') endpoint = `/polies/${modalConfig.item.id}`;
+                if (modalConfig.type === 'doctor') endpoint = `/doctors-master/${modalConfig.item.id}`;
+                if (modalConfig.type === 'counter') endpoint = `/counters/${modalConfig.item.id}`;
+                if (modalConfig.type === 'playlist') endpoint = `/playlist/${modalConfig.item.id}`;
+                if (modalConfig.type === 'room') endpoint = `/rooms/${modalConfig.item.id}`;
+                if (modalConfig.type === 'tariff') endpoint = `/tariffs/${modalConfig.item.id}`;
+                if (modalConfig.type === 'menu') endpoint = `/nutrition/menus/${modalConfig.item.id}`;
 
-            if (type === 'playlist' && payload.type === 'LOCAL_VIDEO' && payload.file) {
-                const uploadData = new FormData();
-                uploadData.append('file', payload.file);
-                const res = await axios.post(`${API_URL}/upload`, uploadData);
-                payload.url = res.data.url;
-                delete payload.file;
-                payload.type = 'VIDEO';
-            }
-
-            switch (type) {
-                case 'poli': url = '/polies'; break;
-                case 'doctor': url = '/doctors'; payload.poliklinik_id = parseInt(payload.poliklinik_id); break;
-                case 'counter': url = '/counters'; break;
-                case 'leave': url = '/doctor-leaves'; payload.doctor_id = parseInt(payload.doctor_id); break;
-                case 'playlist': url = '/playlist'; payload.duration = parseInt(payload.duration); payload.order = parseInt(payload.order); payload.isActive = true; break;
-                case 'room': url = '/rooms'; payload.price = parseFloat(payload.price); break;
-                case 'tariff': url = '/tariffs'; payload.price = parseFloat(payload.price); break;
-                case 'menu': url = '/nutrition/menus'; payload.calories = parseInt(payload.calories); break;
-                default: return;
-            }
-
-            if (isEdit && type !== 'leave') {
-                await axios.put(`${API_URL}${url}/${item.id}`, payload);
-                toast.success('Data berhasil diperbarui!');
+                await axios.put(endpoint, formData);
+                toast.success('Data berhasil diperbarui', { id: toastId });
             } else {
-                await axios.post(`${API_URL}${url}`, payload);
-                toast.success('Data berhasil ditambahkan!');
-            }
+                // Create
+                let endpoint = '';
+                if (modalConfig.type === 'poli') endpoint = '/polies';
+                if (modalConfig.type === 'doctor') endpoint = '/doctors-master';
+                if (modalConfig.type === 'counter') endpoint = '/counters';
+                if (modalConfig.type === 'leave') endpoint = '/doctor-leaves';
+                if (modalConfig.type === 'playlist') endpoint = '/playlist';
+                if (modalConfig.type === 'room') endpoint = '/rooms';
+                if (modalConfig.type === 'tariff') endpoint = '/tariffs';
+                if (modalConfig.type === 'menu') endpoint = '/nutrition/menus';
 
+                await axios.post(endpoint, formData);
+                toast.success('Data berhasil ditambahkan', { id: toastId });
+            }
+            setModalConfig({ isOpen: false, type: '', item: null });
             fetchAllData();
-            setModalConfig({ isOpen: false, type: null, item: null });
         } catch (error) {
             console.error(error);
-            toast.error(error.response?.data?.error || "Terjadi kesalahan saat menyimpan.");
+            toast.error('Gagal menyimpan data', { id: toastId });
         }
     };
 
     const deleteItem = async (endpoint, id) => {
+        const toastId = toast.loading('Menghapus data...');
         try {
-            await axios.delete(`${API_URL}/${endpoint}/${id}`);
-            toast.success('Data berhasil dihapus.');
+            await axios.delete(`/${endpoint}/${id}`);
+            toast.success('Data berhasil dihapus', { id: toastId });
             fetchAllData();
         } catch (error) {
-            toast.error("Gagal menghapus data.");
+            console.error(error);
+            toast.error('Gagal menghapus data', { id: toastId });
         }
     };
 
