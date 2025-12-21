@@ -139,9 +139,12 @@ exports.checkOut = async (req, res) => {
     const { bedId } = req.body;
 
     try {
-        await prisma.$transaction(async (prisma) => {
+        const result = await prisma.$transaction(async (prisma) => {
             // 1. Find the bed
-            const bed = await prisma.bed.findUnique({ where: { id: parseInt(bedId) } });
+            const bed = await prisma.bed.findUnique({
+                where: { id: parseInt(bedId) },
+                include: { room: true }
+            });
             if (!bed) throw new Error('Bed not found');
 
             const patientId = bed.current_patient_id;
@@ -154,18 +157,65 @@ exports.checkOut = async (req, res) => {
                 }
             });
 
-            if (admission) {
-                // Update Admission
-                await prisma.admission.update({
-                    where: { id: admission.id },
-                    data: {
-                        status: 'DISCHARGED',
-                        check_out: new Date()
-                    }
-                });
-            }
+            if (!admission) throw new Error('No active admission found for this bed');
 
-            // 3. Update Bed to CLEANING (Standard Protocol)
+            // --- SMART BILLING: GENERATE INVOICE ---
+            const checkInDate = new Date(admission.check_in);
+            const now = new Date();
+            const diffTime = Math.abs(now - checkInDate);
+            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) || 1;
+            const roomPrice = parseFloat(bed.room.price);
+            const roomTotal = roomPrice * diffDays;
+
+            // Fetch Service Orders during stay
+            const serviceOrders = await prisma.serviceOrder.findMany({
+                where: {
+                    medical_record: { patient_id: patientId },
+                    created_at: { gte: checkInDate }
+                },
+                include: { tariff: true }
+            });
+
+            // Calculate Total
+            const serviceTotal = serviceOrders.reduce((sum, order) => sum + (parseFloat(order.price) || 0), 0);
+            const grandTotal = roomTotal + serviceTotal;
+
+            // Create Invoice & Transaction
+            const invoiceNo = `INV/${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}/${Math.floor(1000 + Math.random() * 9000)}`;
+
+            const items = [
+                { description: `Kamar (${bed.room.type}) - ${diffDays} Hari`, amount: roomPrice, quantity: diffDays },
+                ...serviceOrders.map(so => ({
+                    description: `Jasa: ${so.tariff ? so.tariff.name : so.type}`,
+                    amount: parseFloat(so.price) || 0,
+                    quantity: 1
+                }))
+            ];
+
+            // Create Transaction Record (Financial)
+            const transaction = await prisma.transaction.create({
+                data: {
+                    invoice_no: invoiceNo,
+                    patient_id: patientId,
+                    total_amount: grandTotal,
+                    status: 'UNPAID', // Receptionist will collect payment
+                    medical_record_id: serviceOrders[0]?.medical_record_id || undefined, // Optional link
+                    items: {
+                        create: items
+                    }
+                }
+            });
+
+            // Update Admission
+            await prisma.admission.update({
+                where: { id: admission.id },
+                data: {
+                    status: 'DISCHARGED',
+                    check_out: now
+                }
+            });
+
+            // 3. Update Bed to CLEANING
             await prisma.bed.update({
                 where: { id: parseInt(bedId) },
                 data: {
@@ -173,12 +223,18 @@ exports.checkOut = async (req, res) => {
                     current_patient_id: null
                 }
             });
+
+            return { transaction, diffDays, grandTotal };
         });
 
         // SOCKET EMIT
         req.io.emit('admission_update', { type: 'CHECKOUT', bedId });
 
-        res.json({ status: 'success', message: 'Patient discharged. Bed is now CLEANING.' });
+        res.json({
+            status: 'success',
+            message: `Patient discharged. Invoice generated: Rp ${result.grandTotal.toLocaleString('id-ID')}`,
+            invoice: result.transaction
+        });
     } catch (error) {
         console.error('Check-out Error:', error);
         res.status(400).json({ error: error.message });
@@ -226,14 +282,34 @@ exports.getBedPanel = async (req, res) => {
 
         if (!bed) return res.status(404).json({ error: 'Bed not found' });
 
-        // Mock Doctor & Bill
+        // Real-time Billing Calculation (Smart Billing)
+        let billing_estimate = 0;
+        let lengthOfStay = 0;
+
+        if (bed.admissions && bed.admissions.length > 0) {
+            const admission = bed.admissions[0];
+            const checkInDate = new Date(admission.check_in);
+            const now = new Date();
+
+            // Calculate days (rounding up to 1 day minimum)
+            const diffTime = Math.abs(now - checkInDate);
+            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+            lengthOfStay = diffDays > 0 ? diffDays : 1;
+
+            if (bed.room && bed.room.price) {
+                billing_estimate = lengthOfStay * parseFloat(bed.room.price);
+            }
+        }
+
+        // Mock Doctor & Diet (To be integrated later with ServiceOrder & DietOrder)
         const mockData = {
             doctor: {
-                name: 'Dr. Spesialis Dalam',
+                name: 'Dr. Spesialis Dalam', // Should fetch from Doctor model
                 visit_time: '09:00 - 10:00'
             },
-            billing_estimate: 2500000,
-            diet: 'Bubur Saring (Low Salt)'
+            diet: 'Bubur Saring (Low Salt)', // Should fetch from DietOrder
+            billing_estimate,
+            lengthOfStay
         };
 
         res.json({

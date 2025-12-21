@@ -210,8 +210,26 @@ model ServiceOrder {
   notes             String?
   result            String?       // URL or Text result
   
+  tariff_id         Int?
+  tariff            ServiceTariff? @relation(fields: [tariff_id], references: [id])
+  price             Decimal?       @db.Decimal(10, 2) // Snapshot price at time of order
+
   created_at        DateTime      @default(now())
   updated_at        DateTime      @updatedAt
+}
+
+model ServiceTariff {
+  id        Int      @id @default(autoincrement())
+  name      String
+  category  String   // Medical, Non-Medical, Admin
+  price     Decimal  @db.Decimal(10, 2)
+  unit      String?  // kali, hari, jam, pcs
+  code      String?  @unique
+  
+  service_orders ServiceOrder[]
+
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
 }
 
 model Medicine {
@@ -631,16 +649,3 @@ model Expense {
   created_at  DateTime @default(now())
   updated_at  DateTime @updatedAt
 }
- 
- m o d e l   S e r v i c e T a r i f f   {  
-     i d                 I n t             @ i d   @ d e f a u l t ( a u t o i n c r e m e n t ( ) )  
-     n a m e             S t r i n g  
-     c a t e g o r y     S t r i n g       / /   M e d i c a l ,   N o n - M e d i c a l ,   A d m i n  
-     p r i c e           D e c i m a l     @ d b . D e c i m a l ( 1 0 ,   2 )  
-     u n i t             S t r i n g ?     / /   k a l i ,   h a r i ,   j a m ,   p c s  
-     c o d e             S t r i n g ?     @ u n i q u e  
-      
-     c r e a t e d _ a t   D a t e T i m e   @ d e f a u l t ( n o w ( ) )  
-     u p d a t e d _ a t   D a t e T i m e   @ u p d a t e d A t  
- }  
- 

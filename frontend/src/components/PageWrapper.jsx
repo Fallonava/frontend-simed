@@ -4,12 +4,12 @@ import { motion } from 'framer-motion';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Home } from 'lucide-react';
 
-const PageWrapper = ({ children }) => {
+const PageWrapper = ({ children, disableHomeFab = false }) => {
     const navigate = useNavigate();
     const location = useLocation();
 
-    // Hide home button on login, menu, and public pages
-    const hideHomeButton = ['/login', '/menu', '/', '/kiosk', '/counter'].includes(location.pathname);
+    // Hide home button on login, menu, and public pages, OR if explicitly disabled
+    const shouldHideFab = disableHomeFab || ['/login', '/menu', '/', '/kiosk', '/counter'].includes(location.pathname);
 
     return (
         <motion.div
@@ -21,7 +21,7 @@ const PageWrapper = ({ children }) => {
         >
             {children}
 
-            {!hideHomeButton && ReactDOM.createPortal(
+            {!shouldHideFab && ReactDOM.createPortal(
                 <motion.button
                     initial={{ opacity: 0, scale: 0 }}
                     animate={{ opacity: 1, scale: 1 }}

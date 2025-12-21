@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import axios from 'axios';
+import axios from '../utils/axiosConfig';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Toaster, toast } from 'react-hot-toast';
 import { useNavigate } from 'react-router-dom';
@@ -9,14 +9,15 @@ import {
     Search, CalendarOff, Play,
     AlertCircle, Check, Image as ImageIcon, Film, Clock,
     ChevronRight, MoreHorizontal, List, Grid,
-    BedDouble, Banknote, Utensils
+    BedDouble, Banknote, Utensils, Settings
 } from 'lucide-react';
 import defaultAvatar from '../assets/doctor_avatar.png';
 import ModernHeader from '../components/ModernHeader';
 import PageWrapper from '../components/PageWrapper';
 import FallonavaLogo from '../components/FallonavaLogo';
+import ResponsiveNav from '../components/ResponsiveNav';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
+
 
 const MasterData = () => {
     const navigate = useNavigate();
@@ -50,29 +51,46 @@ const MasterData = () => {
 
     const fetchAllData = async () => {
         try {
-            const [poliesRes, doctorsRes, countersRes, leavesRes, playlistRes, settingsRes, roomsRes, tariffsRes, dietRes] = await Promise.all([
-                axios.get(`${API_URL}/polies`),
-                axios.get(`${API_URL}/doctors-master`),
-                axios.get(`${API_URL}/counters`),
-                axios.get(`${API_URL}/doctor-leaves`),
-                axios.get(`${API_URL}/playlist`),
-                axios.get(`${API_URL}/settings`),
-                axios.get(`${API_URL}/rooms`),
-                axios.get(`${API_URL}/tariffs`),
-                axios.get(`${API_URL}/nutrition/menus`)
+            const results = await Promise.allSettled([
+                axios.get('/polies'),
+                axios.get('/doctors-master'),
+                axios.get('/counters'),
+                axios.get('/doctor-leaves'),
+                axios.get('/playlist'),
+                axios.get('/settings'),
+                axios.get('/rooms'),
+                axios.get('/tariffs'),
+                axios.get('/nutrition/menus')
             ]);
-            setPolies(poliesRes.data);
-            setDoctors(doctorsRes.data);
-            setCounters(countersRes.data);
-            setLeaves(leavesRes.data);
-            setPlaylist(playlistRes.data);
-            setRooms(roomsRes.data);
-            setTariffs(tariffsRes.data);
-            setDietMenus(dietRes.data.data); // specific structure for nutrition
-            if (settingsRes.data) setSettings(settingsRes.data);
+
+            const [poliesRes, doctorsRes, countersRes, leavesRes, playlistRes, settingsRes, roomsRes, tariffsRes, dietRes] = results;
+
+            if (poliesRes.status === 'fulfilled') setPolies(poliesRes.value.data);
+            if (doctorsRes.status === 'fulfilled') setDoctors(doctorsRes.value.data);
+            if (countersRes.status === 'fulfilled') setCounters(countersRes.value.data);
+            if (leavesRes.status === 'fulfilled') setLeaves(leavesRes.value.data);
+            if (playlistRes.status === 'fulfilled') setPlaylist(playlistRes.value.data);
+            if (settingsRes.status === 'fulfilled' && settingsRes.value.data) setSettings(settingsRes.value.data);
+
+            // New Data Types
+            if (roomsRes.status === 'fulfilled') setRooms(roomsRes.value.data);
+            if (tariffsRes.status === 'fulfilled') setTariffs(tariffsRes.value.data);
+            if (dietRes.status === 'fulfilled') {
+                // Handle potential different response structures
+                const data = dietRes.value.data;
+                setDietMenus(Array.isArray(data) ? data : data.data || []);
+            }
+
+            // Log errors if any
+            results.forEach((res, index) => {
+                if (res.status === 'rejected') {
+                    console.error(`Fetch failed for index ${index}:`, res.reason);
+                }
+            });
+
         } catch (error) {
-            console.error("Error fetching data:", error);
-            toast.error("Gagal memuat data master.");
+            console.error("Critical error fetching data:", error);
+            toast.error("Terjadi kesalahan memuat data.");
         }
     };
 
@@ -93,7 +111,16 @@ const MasterData = () => {
     }, [searchQuery, activeTab, polies, doctors, counters, leaves, playlist, rooms, tariffs, dietMenus]);
 
     // --- Actions ---
-    const handleOpenModal = (type, item = null) => {
+    const handleOpenModal = (rawType, item = null) => {
+        // Normalize type from activeTab names to singular form keys
+        let type = rawType;
+        if (rawType === 'rooms') type = 'room';
+        if (rawType === 'tariffs') type = 'tariff';
+        if (rawType === 'gizi') type = 'menu';
+        if (rawType === 'doctors') type = 'doctor';
+        if (rawType === 'counters') type = 'counter';
+        if (rawType === 'poliklinik') type = 'poli';
+
         setModalConfig({ isOpen: true, type, item });
         // Initial form state population
         if (type === 'poli') setFormData(item ? { name: item.name, queue_code: item.queue_code } : { name: '', queue_code: '' });
@@ -555,40 +582,31 @@ const MasterData = () => {
         }
     };
 
+    const navItems = [
+        { id: 'poliklinik', label: 'Poliklinik', icon: LayoutGrid },
+        { id: 'doctors', label: 'Dokter', icon: Stethoscope },
+        { id: 'rooms', label: 'Ruangan', icon: BedDouble },
+        { id: 'tariffs', label: 'Tarif', icon: Banknote },
+        { id: 'counters', label: 'Loket', icon: Store },
+        { id: 'gizi', label: 'Menu Gizi', icon: Utensils },
+        { id: 'leave', label: 'Cuti', icon: CalendarOff },
+        { id: 'playlist', label: 'Playlist', icon: Play },
+        { id: 'settings', label: 'Pengaturan', icon: Settings }
+    ];
+
     return (
-        <PageWrapper title="Data Induk RS" className="bg-gray-50 dark:bg-gray-900">
+        <PageWrapper title="Data Induk RS" className="bg-gray-50 dark:bg-gray-900" disableHomeFab={true}>
+            <ResponsiveNav
+                items={navItems}
+                activeId={activeTab}
+                onSelect={setActiveTab}
+            />
             <ModernHeader
                 title="Data Induk (Master)"
                 subtitle="Manajemen Sumber Daya Rumah Sakit"
                 onBack={() => navigate('/menu')}
                 className="mb-8"
             >
-                <div className="flex bg-white/40 dark:bg-gray-800/40 backdrop-blur-xl rounded-full border border-white/20 dark:border-white/10 shadow-lg shadow-black/5 overflow-x-auto no-scrollbar p-1.5 gap-2 max-w-full">
-                    {[
-                        { id: 'poliklinik', label: 'Poliklinik', icon: LayoutGrid },
-                        { id: 'doctors', label: 'Dokter', icon: Stethoscope },
-                        { id: 'rooms', label: 'Ruangan', icon: BedDouble },
-                        { id: 'tariffs', label: 'Tarif', icon: Banknote },
-                        { id: 'counters', label: 'Loket', icon: Store },
-                        { id: 'gizi', label: 'Menu Gizi', icon: Utensils },
-                        { id: 'leave', label: 'Cuti', icon: CalendarOff },
-                        { id: 'playlist', label: 'TV Display', icon: Play },
-                        { id: 'settings', label: 'Pengaturan', icon: Search },
-                    ].map(tab => (
-                        <button
-                            key={tab.id}
-                            type="button"
-                            onClick={() => { setActiveTab(tab.id); setSearchQuery(''); }}
-                            className={`flex items-center gap-2 px-6 py-3 rounded-full font-medium transition-colors duration-200 shrink-0 whitespace-nowrap relative z-10 select-none touch-manipulation cursor-pointer
-                            ${activeTab === tab.id
-                                    ? 'bg-salm-gradient text-white shadow-md shadow-salm-purple/20'
-                                    : 'bg-white/30 dark:bg-gray-800/30 text-gray-600 dark:text-gray-300 hover:text-gray-900 border border-transparent'}`}
-                        >
-                            <tab.icon size={18} strokeWidth={2} />
-                            <span>{tab.label}</span>
-                        </button>
-                    ))}
-                </div>
             </ModernHeader>
 
             <main className="flex-1 px-4 lg:px-8 pb-4 lg:pb-8 flex flex-col min-h-0">
