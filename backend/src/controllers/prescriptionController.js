@@ -75,10 +75,72 @@ exports.updateStatus = async (req, res) => {
             const prescription = await tx.prescription.update({
                 where: { id: prescriptionId },
                 data: { status },
-                include: { items: true }
+                include: { items: { include: { medicine: true } } }
             });
 
             if (status === 'COMPLETED') {
+                // Phase 2: Deduct from Smart Inventory (FIFO)
+                // 1. Get Pharmacy Location (Depo Rawat Jalan)
+                const pharmacyLocation = await tx.inventoryLocation.findFirst({
+                    where: { name: 'Depo Apotek Rawat Jalan' }
+                });
+
+                if (!pharmacyLocation) {
+                    // Fallback/Warning: If depot not found, just deduct from legacy Master (Phase 1)
+                    console.warn('Smart Inventory: Depo Apotek Rawat Jalan not found. Skipping Batch deduction.');
+                } else {
+                    for (const item of prescription.items) {
+                        let qtyToDeduct = item.quantity;
+                        const medicineName = item.medicine.name;
+                        let totalCost = 0;
+                        let qtyConfigured = 0;
+
+                        // 2. Find Batches (FIFO - Earliest Expiry First)
+                        const batches = await tx.stockBatch.findMany({
+                            where: {
+                                location_id: pharmacyLocation.id,
+                                item_name: medicineName,
+                                quantity: { gt: 0 }
+                            },
+                            orderBy: { expiry_date: 'asc' }
+                        });
+
+                        // 3. Deduct from Batches
+                        for (const batch of batches) {
+                            if (qtyToDeduct <= 0) break;
+
+                            const deduct = Math.min(batch.quantity, qtyToDeduct);
+
+                            // Cost Calculation (Phase 2: COGS)
+                            const batchCost = batch.unit_cost || 0;
+                            totalCost += (deduct * batchCost);
+                            qtyConfigured += deduct;
+
+                            await tx.stockBatch.update({
+                                where: { id: batch.id },
+                                data: { quantity: { decrement: deduct } }
+                            });
+
+                            qtyToDeduct -= deduct;
+                        }
+
+                        // 4. Save Actual Cost Snapshot (Weighted Avg)
+                        if (qtyConfigured > 0) {
+                            const weightedAvgCost = totalCost / qtyConfigured;
+                            await tx.prescriptionItem.update({
+                                where: { id: item.id },
+                                data: { actual_price: weightedAvgCost }
+                            });
+                        }
+
+                        // Alert if insufficient stock in batches
+                        if (qtyToDeduct > 0) {
+                            console.warn(`Partial fulfillment for ${medicineName}. Missing: ${qtyToDeduct}`);
+                        }
+                    }
+                }
+
+                // Phase 1 Legacy: Also update Master Catalog stock for backward compatibility
                 for (const item of prescription.items) {
                     await tx.medicine.update({
                         where: { id: item.medicine_id },

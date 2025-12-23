@@ -20,7 +20,7 @@ exports.getTriageQueue = async (req, res) => {
                 // Simplifikasi: Ambil semua antrian hari ini
                 daily_quota: {
                     date: {
-                        gte: new Date(new Date().setHours(0, 0, 0, 0)),
+                        gte: new Date(new Date().getTime() - 7 * 24 * 60 * 60 * 1000), // Last 7 days for testing
                         lt: new Date(new Date().setHours(23, 59, 59, 999))
                     }
                 }
@@ -29,7 +29,9 @@ exports.getTriageQueue = async (req, res) => {
                 patient: true,
                 daily_quota: {
                     include: {
-                        doctor: true
+                        doctor: {
+                            include: { poliklinik: true }
+                        }
                     }
                 },
                 medical_records: true // Cek apakah sudah ada MR
@@ -39,24 +41,46 @@ exports.getTriageQueue = async (req, res) => {
             }
         });
 
-        // Filter: Hanya tampilkan yang BELUM di-triage (MedicalRecord belum ada atau triage_status check)
-        // Jika MedicalRecord belum ada, berarti perlu Triage.
-        // Jika MedicalRecord ada, cek triage_status.
-        const pendingTriage = queue.filter(q => {
-            const hasMR = q.medical_records.length > 0;
-            if (!hasMR) return true; // Belum ada MR, perlu triage
-            // Jika MR ada, cek status
-            return q.medical_records.some(mr => mr.triage_status === 'PENDING');
-        });
+        console.log(`[DEBUG] Triage Queue Found: ${queue.length} items`);
+        console.log(`[DEBUG] Date Filter: ${new Date(new Date().getTime() - 7 * 24 * 60 * 60 * 1000).toISOString()}`);
+
+        // REMOVED FILTER: We want to show ALL waiting patients, even if triage is done.
+        // The Frontend will decide whether to show "Needs Triage" or "Waiting for Doctor"
+
+        // const pendingTriage = queue.filter(q => {
+        //     const hasMR = q.medical_records.length > 0;
+        //     if (!hasMR) return true; // Belum ada MR, perlu triage
+        //     // Jika MR ada, cek status
+        //     return q.medical_records.some(mr => mr.triage_status === 'PENDING');
+        // });
+
+        // Use full queue
+        const visibleQueue = queue;
 
         // Format data untuk frontend
-        const formatted = pendingTriage.map(q => ({
-            id: q.id,
-            patient: q.patient,
-            doctor: q.daily_quota.doctor,
-            queue: q,
-            medical_record_id: q.medical_records[0]?.id // Optional if exists
-        }));
+        const formatted = visibleQueue.map(q => {
+            const mr = q.medical_records[0]; // Recent MR
+            return {
+                id: q.id,
+                patient: q.patient,
+                doctor: q.daily_quota.doctor,
+                poliklinik: q.daily_quota.doctor.poliklinik,
+                queue: q,
+                medical_record_id: mr?.id,
+                triage_status: mr?.triage_status || 'PENDING', // Derived status (PENDING if no MR)
+                vitals: mr ? { // Map vitals if exist
+                    systolic: mr.systolic,
+                    diastolic: mr.diastolic,
+                    heart_rate: mr.heart_rate,
+                    temperature: mr.temperature,
+                    weight: mr.weight,
+                    height: mr.height,
+                    triage_level: mr.triage_level,
+                    chief_complaint: mr.chief_complaint,
+                    allergies: q.patient.allergies // Use patient allergies as source of truth
+                } : null
+            };
+        });
 
         res.json(formatted);
     } catch (error) {
@@ -68,7 +92,7 @@ exports.getTriageQueue = async (req, res) => {
 // POST /api/triage/:queueId/submit
 exports.submitTriage = async (req, res) => {
     const { queueId } = req.params;
-    const { vitals, allergies } = req.body;
+    const { vitals, allergies, triage_level, chief_complaint } = req.body;
     const { id: queueIntId } = { id: parseInt(queueId) };
 
     try {
@@ -88,18 +112,32 @@ exports.submitTriage = async (req, res) => {
         }
 
         // 2. Buat atau Update MedicalRecord
-        // Cek dulu apakah Medical Record sudah ada untuk queue ini
         const existingMR = await prisma.medicalRecord.findFirst({
             where: { queue_id: parseInt(queueId) }
         });
+
+        // Filter valid vitals for Schema
+        const { systolic, diastolic, heart_rate, temperature, weight, height, respiratory_rate, oxygen_saturation } = vitals || {};
+
+        let extraNotes = '';
+        if (respiratory_rate) extraNotes += `RR: ${respiratory_rate} x/m. `;
+        if (oxygen_saturation) extraNotes += `SpO2: ${oxygen_saturation}%. `;
 
         let mr;
         if (existingMR) {
             mr = await prisma.medicalRecord.update({
                 where: { id: existingMR.id },
                 data: {
-                    ...vitals, // Spread systolic, temp, etc.
-                    triage_status: 'COMPLETED'
+                    systolic: systolic ? parseInt(systolic) : undefined,
+                    diastolic: diastolic ? parseInt(diastolic) : undefined,
+                    heart_rate: heart_rate ? parseInt(heart_rate) : undefined,
+                    temperature: temperature ? parseFloat(temperature) : undefined,
+                    weight: weight ? parseFloat(weight) : undefined,
+                    height: height ? parseFloat(height) : undefined,
+                    triage_level: parseInt(triage_level),
+                    chief_complaint: chief_complaint,
+                    triage_status: 'COMPLETED',
+                    objective: (existingMR.objective || '') + (extraNotes ? '\n[Triage] ' + extraNotes : '')
                 }
             });
         } else {
@@ -108,15 +146,25 @@ exports.submitTriage = async (req, res) => {
                     patient_id: queueItem.patient_id,
                     doctor_id: queueItem.daily_quota.doctor_id,
                     queue_id: parseInt(queueId),
-                    ...vitals,
+                    systolic: systolic ? parseInt(systolic) : undefined,
+                    diastolic: diastolic ? parseInt(diastolic) : undefined,
+                    heart_rate: heart_rate ? parseInt(heart_rate) : undefined,
+                    temperature: temperature ? parseFloat(temperature) : undefined,
+                    weight: weight ? parseFloat(weight) : undefined,
+                    height: height ? parseFloat(height) : undefined,
+                    triage_level: parseInt(triage_level),
+                    chief_complaint: chief_complaint,
                     triage_status: 'COMPLETED',
                     subjective: '', // Placeholder SOAP
-                    objective: '',
+                    objective: extraNotes ? '[Triage] ' + extraNotes : '',
                     assessment: '',
                     plan: ''
                 }
             });
         }
+
+        // SOCKET EMIT
+        req.io.emit('queue_update', { type: 'TRIAGE_SUBMIT', queueId, patientName: queueItem.patient.name });
 
         res.json({ message: 'Triage submitted', medical_record: mr });
 

@@ -102,16 +102,15 @@ const CalendarWidget = memo(({ currentDate, selectedDate, setSelectedDate, chang
             const count = doctorCounts.get(dateKey) || 0;
 
             days.push(
-                <motion.div
+                <div
                     key={day}
-                    layoutId={`day-${day}`} // Careful with layoutId on many elements
                     onClick={(e) => {
                         e.stopPropagation();
                         setSelectedDate(date);
                         resetTimer();
                     }}
                     className={`
-                        w-full aspect-square rounded-2xl flex flex-col items-center justify-center cursor-pointer relative transition-all duration-300 border
+                        w-full aspect-square rounded-2xl flex flex-col items-center justify-center cursor-pointer relative transition-all duration-200 border will-change-transform
                         ${isSelected
                             ? 'bg-salm-blue text-white shadow-xl shadow-salm-blue/30 border-blue-500 z-10 scale-105 ring-2 ring-white dark:ring-gray-800'
                             : isToday
@@ -126,7 +125,7 @@ const CalendarWidget = memo(({ currentDate, selectedDate, setSelectedDate, chang
                             <div key={i} className={`w-1 h-1 rounded-full ${isSelected ? 'bg-white/80' : 'bg-salm-purple/50'}`}></div>
                         ))}
                     </div>
-                </motion.div>
+                </div>
             );
         }
 
@@ -144,7 +143,7 @@ const CalendarWidget = memo(({ currentDate, selectedDate, setSelectedDate, chang
             onMouseEnter={handleExpandData}
             onClick={handleExpandData}
         >
-            <div className="bg-white/60 dark:bg-gray-800/60 backdrop-blur-2xl rounded-[32px] md:rounded-[40px] p-4 md:p-6 shadow-2xl shadow-gray-200/50 dark:shadow-black/20 border border-white/60 dark:border-gray-700 flex flex-col overflow-hidden transition-all duration-500">
+            <div className="bg-white/95 dark:bg-gray-800/95 rounded-[32px] md:rounded-[40px] p-4 md:p-6 shadow-2xl shadow-gray-200/50 dark:shadow-black/20 border border-white/60 dark:border-gray-700 flex flex-col overflow-hidden transition-all duration-500">
 
                 {/* Header / Toggle */}
                 <div
@@ -167,66 +166,56 @@ const CalendarWidget = memo(({ currentDate, selectedDate, setSelectedDate, chang
                     </button>
                 </div>
 
-                {/* Collapsible Content */}
-                <AnimatePresence initial={false}>
-                    {isExpanded && (
-                        <motion.div
-                            initial={{ height: 0, opacity: 0, marginTop: 0 }}
-                            animate={{ height: "auto", opacity: 1, marginTop: 16 }}
-                            exit={{ height: 0, opacity: 0, marginTop: 0 }}
-                            transition={{ type: "spring", stiffness: 400, damping: 30, mass: 0.8 }}
-                            className="overflow-hidden"
-                        >
-                            <div>
-                                {/* Month Selector */}
-                                <div className="flex items-center justify-between mb-4 md:mb-5 shrink-0">
-                                    <h2 className="text-base md:text-lg font-bold text-gray-700 dark:text-gray-300 ml-1">
-                                        {currentDate.toLocaleString('default', { month: 'long', year: 'numeric' })}
-                                    </h2>
-                                    <div className="flex gap-1">
-                                        <button
-                                            onClick={(e) => { e.stopPropagation(); changeMonth(-1); }}
-                                            className="w-8 h-8 flex items-center justify-center hover:bg-white dark:hover:bg-gray-700 rounded-full transition-all shadow-sm active:scale-90"
-                                        >
-                                            <ChevronLeft className="w-4 h-4" />
-                                        </button>
-                                        <button
-                                            onClick={(e) => { e.stopPropagation(); changeMonth(1); }}
-                                            className="w-8 h-8 flex items-center justify-center hover:bg-white dark:hover:bg-gray-700 rounded-full transition-all shadow-sm active:scale-90"
-                                        >
-                                            <ChevronRight className="w-4 h-4" />
-                                        </button>
-                                    </div>
-                                </div>
-
-                                {/* Weekday Header */}
-                                <div className="grid grid-cols-7 mb-2 text-center shrink-0">
-                                    {['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'].map(d => (
-                                        <div key={d} className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">{d}</div>
-                                    ))}
-                                </div>
-
-                                {/* Calendar Grid */}
-                                <div className="grid grid-cols-7 gap-1.5 flex-1">
-                                    {renderCalendarGrid}
-                                </div>
+                {/* Collapsible Content - CSS only for better performance */}
+                <div className={`overflow-hidden transition-all duration-300 ease-out ${isExpanded ? 'max-h-[600px] opacity-100 mt-4' : 'max-h-0 opacity-0 mt-0'}`}>
+                    <div>
+                        {/* Month Selector */}
+                        <div className="flex items-center justify-between mb-4 md:mb-5 shrink-0">
+                            <h2 className="text-base md:text-lg font-bold text-gray-700 dark:text-gray-300 ml-1">
+                                {currentDate.toLocaleString('default', { month: 'long', year: 'numeric' })}
+                            </h2>
+                            <div className="flex gap-1">
+                                <button
+                                    onClick={(e) => { e.stopPropagation(); changeMonth(-1); }}
+                                    className="w-8 h-8 flex items-center justify-center hover:bg-white dark:hover:bg-gray-700 rounded-full transition-all shadow-sm active:scale-90"
+                                >
+                                    <ChevronLeft className="w-4 h-4" />
+                                </button>
+                                <button
+                                    onClick={(e) => { e.stopPropagation(); changeMonth(1); }}
+                                    className="w-8 h-8 flex items-center justify-center hover:bg-white dark:hover:bg-gray-700 rounded-full transition-all shadow-sm active:scale-90"
+                                >
+                                    <ChevronRight className="w-4 h-4" />
+                                </button>
                             </div>
-                        </motion.div>
-                    )}
-                </AnimatePresence>
+                        </div>
 
-                {/* Collapsed State Summary */}
-                {!isExpanded && (
-                    <motion.div
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        className="pt-2 flex items-center justify-between text-xs text-gray-500 font-medium"
-                    >
-                        <span>Selected: <span className="text-salm-blue font-bold">{selectedDate.toLocaleDateString()}</span></span>
-                    </motion.div>
-                )}
-            </div>
+                        {/* Weekday Header */}
+                        <div className="grid grid-cols-7 mb-2 text-center shrink-0">
+                            {['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'].map(d => (
+                                <div key={d} className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">{d}</div>
+                            ))}
+                        </div>
+
+                        {/* Calendar Grid */}
+                        <div className="grid grid-cols-7 gap-1.5 flex-1">
+                            {renderCalendarGrid}
+                        </div>
+                    </div>
+                </div>
+
+            {/* Collapsed State Summary */}
+            {!isExpanded && (
+                <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    className="pt-2 flex items-center justify-between text-xs text-gray-500 font-medium"
+                >
+                    <span>Selected: <span className="text-salm-blue font-bold">{selectedDate.toLocaleDateString()}</span></span>
+                </motion.div>
+            )}
         </div>
+        </div >
     );
 });
 
@@ -239,6 +228,7 @@ const PublicSchedule = () => {
     const [leaves, setLeaves] = useState([]);
     // const [loading, setLoading] = useState(true); // Unused for now
     const [showQrOverlay, setShowQrOverlay] = useState(true);
+    const [qrRendered, setQrRendered] = useState(false); // Lazy load QR
 
     const publicUrl = window.location.href;
 
@@ -249,6 +239,13 @@ const PublicSchedule = () => {
         }, 10000);
         return () => clearTimeout(timer);
     }, []);
+
+    // Lazy render QR code only when needed
+    useEffect(() => {
+        if (showQrOverlay && !qrRendered) {
+            setQrRendered(true);
+        }
+    }, [showQrOverlay, qrRendered]);
 
     useEffect(() => {
         const fetchData = async () => {
@@ -406,7 +403,7 @@ const PublicSchedule = () => {
 
     // --- Renderers ---
     const renderRosterView = () => (
-        <div className="w-full h-full flex flex-col bg-white/60 dark:bg-gray-900/60 backdrop-blur-3xl rounded-[24px] md:rounded-[40px] shadow-[0_20px_40px_-12px_rgba(0,0,0,0.1)] border border-white/50 dark:border-gray-700/50 overflow-hidden animate-in fade-in slide-in-from-bottom-6 duration-700 ring-1 ring-white/20">
+        <div className="w-full h-full flex flex-col bg-white/95 dark:bg-gray-900/95 rounded-[24px] md:rounded-[40px] shadow-[0_20px_40px_-12px_rgba(0,0,0,0.1)] border border-white/50 dark:border-gray-700/50 overflow-hidden animate-in fade-in slide-in-from-bottom-6 duration-700 ring-1 ring-white/20">
             {/* Toolbar */}
             <div className="px-4 py-3 md:px-8 md:py-6 border-b border-gray-200/30 dark:border-white/5 bg-white/40 dark:bg-black/20 shrink-0 flex flex-col md:flex-row items-center justify-between gap-3 md:gap-4 z-20 relative backdrop-blur-md">
                 <div className="text-center md:text-left w-full md:w-auto flex flex-row items-center justify-between md:block">
@@ -478,13 +475,12 @@ const PublicSchedule = () => {
                                 {[1, 2, 3, 4, 5, 6, 7].map(dayNum => (
                                     <td key={dayNum} className="border-b border-r border-gray-50/50 dark:border-gray-800/20 p-1 md:p-3 text-center relative group/cell transition-colors duration-300">
                                         {doc.weekly[dayNum] ? (
-                                            <motion.div
-                                                whileHover={{ scale: 1.05, y: -2 }}
-                                                className="inline-flex flex-col items-center justify-center w-full py-2 md:py-3.5 px-1 md:px-2 bg-white dark:bg-gray-800 rounded-lg md:rounded-xl shadow-[0_2px_8px_rgba(0,0,0,0.04)] dark:shadow-none ring-1 ring-black/5 dark:ring-white/10 group-hover/cell:ring-salm-blue/30 group-hover/cell:shadow-[0_8px_16px_rgba(59,130,246,0.1)] transition-all duration-300 cursor-default"
+                                            <div
+                                                className="inline-flex flex-col items-center justify-center w-full py-2 md:py-3.5 px-1 md:px-2 bg-white dark:bg-gray-800 rounded-lg md:rounded-xl shadow-[0_2px_8px_rgba(0,0,0,0.04)] dark:shadow-none ring-1 ring-black/5 dark:ring-white/10 group-hover/cell:ring-salm-blue/30 group-hover/cell:shadow-[0_8px_16px_rgba(59,130,246,0.1)] transition-all duration-200 cursor-default hover:scale-105 hover:-translate-y-0.5"
                                             >
                                                 <span className="text-[9px] md:text-xs font-bold text-gray-700 dark:text-gray-300 whitespace-nowrap tracking-tight">{doc.weekly[dayNum]}</span>
-                                                <div className="hidden md:block w-1.5 h-1.5 rounded-full bg-green-500 mt-1.5 opacity-0 group-hover/cell:opacity-100 transition-opacity duration-300 shadow-[0_0_8px_rgba(34,197,94,0.6)]"></div>
-                                            </motion.div>
+                                                <div className="hidden md:block w-1.5 h-1.5 rounded-full bg-green-500 mt-1.5 opacity-0 group-hover/cell:opacity-100 transition-opacity duration-200 shadow-[0_0_8px_rgba(34,197,94,0.6)]"></div>
+                                            </div>
                                         ) : (
                                             <div className="flex items-center justify-center">
                                                 <div className="w-1 h-1 md:w-1.5 md:h-1.5 rounded-full bg-gray-100 dark:bg-gray-800 group-hover/row:bg-gray-200 dark:group-hover/row:bg-gray-700 transition-colors duration-300"></div>
@@ -504,7 +500,7 @@ const PublicSchedule = () => {
         <div className="h-screen bg-theme-bg text-theme-text font-sans selection:bg-salm-pink selection:text-white overflow-hidden flex flex-col">
 
             {/* --- Header --- */}
-            <header className="h-auto py-3 lg:h-20 lg:py-0 shrink-0 px-4 md:px-8 flex flex-col md:flex-row items-center justify-between bg-white/70 dark:bg-gray-900/70 backdrop-blur-xl border-b border-gray-100 dark:border-gray-800 z-50 gap-3 md:gap-0">
+            <header className="h-auto py-3 lg:h-20 lg:py-0 shrink-0 px-4 md:px-8 flex flex-col md:flex-row items-center justify-between bg-white/95 dark:bg-gray-900/95 border-b border-gray-100 dark:border-gray-800 z-50 gap-3 md:gap-0">
                 <div className="flex items-center gap-3 w-full md:w-auto justify-between md:justify-start">
                     <div className="flex items-center gap-3">
                         <FallonavaLogo className="w-8 h-8 md:w-10 md:h-10 rounded-xl shadow-lg shadow-salm-purple/20" />
@@ -556,7 +552,7 @@ const PublicSchedule = () => {
                         />
 
                         {/* Right: Schedule List */}
-                        <div className="flex-1 flex flex-col min-h-[400px] lg:min-h-0 bg-white/60 dark:bg-gray-800/60 backdrop-blur-xl rounded-[24px] md:rounded-[32px] shadow-xl border border-white/50 dark:border-gray-700 overflow-hidden relative">
+                        <div className="flex-1 flex flex-col min-h-[400px] lg:min-h-0 bg-white/95 dark:bg-gray-800/95 rounded-[24px] md:rounded-[32px] shadow-xl border border-white/50 dark:border-gray-700 overflow-hidden relative">
                             <div className="absolute top-0 right-0 w-64 h-64 bg-salm-purple/5 rounded-full blur-3xl -mr-20 -mt-20 pointer-events-none"></div>
 
                             <div className="p-4 md:p-8 border-b border-gray-100 dark:border-gray-700 shrink-0 flex items-center justify-between">
@@ -585,12 +581,12 @@ const PublicSchedule = () => {
                                             {dailySchedule.map((doctor, idx) => (
                                                 <motion.div
                                                     key={`${doctor.id}-${idx}`}
-                                                    initial={{ opacity: 0, scale: 0.95, y: 10 }}
-                                                    animate={{ opacity: 1, scale: 1, y: 0 }}
-                                                    exit={{ opacity: 0, scale: 0.95, y: 10 }}
-                                                    transition={{ type: "spring", stiffness: 300, damping: 30, delay: idx * 0.05 }}
+                                                    initial={{ opacity: 0, y: 10 }}
+                                                    animate={{ opacity: 1, y: 0 }}
+                                                    exit={{ opacity: 0, y: 10 }}
+                                                    transition={{ duration: 0.2 }}
                                                     className={`
-                                                        p-5 md:p-6 rounded-[28px] md:rounded-[32px] transition-all group relative overflow-hidden
+                                                        p-5 md:p-6 rounded-[28px] md:rounded-[32px] transition-all group relative overflow-hidden will-change-transform
                                                         ${doctor.onLeave
                                                             ? 'bg-red-50/60 dark:bg-red-900/10 border border-red-100/50 dark:border-red-900/30'
                                                             : 'bg-white/80 dark:bg-gray-800/80 backdrop-blur-md shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:shadow-[0_20px_40px_rgb(0,0,0,0.08)] ring-1 ring-black/5 border border-white/60 dark:border-gray-700/50 shadow-[inset_0_1px_0_rgba(255,255,255,0.6)]'
@@ -667,7 +663,7 @@ const PublicSchedule = () => {
                             onClick={() => setShowQrOverlay(false)}
                         >
                             <div className="bg-white p-2 rounded-xl shrink-0">
-                                <QRCodeCanvas value={publicUrl} size={64} />
+                                {qrRendered && <QRCodeCanvas value={publicUrl} size={64} />}
                             </div>
                             <div>
                                 <h3 className="font-bold text-sm leading-tight text-gray-900 dark:text-white">Scan for<br />Mobile Access</h3>

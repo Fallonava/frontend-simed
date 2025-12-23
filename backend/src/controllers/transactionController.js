@@ -55,7 +55,8 @@ exports.createInvoice = async (req, res) => {
             include: {
                 doctor: true,
                 patient: true,
-                prescriptions: { include: { items: { include: { medicine: true } } } }
+                prescriptions: { include: { items: { include: { medicine: true } } } },
+                service_orders: true // Include Lab/Rad orders
             }
         });
 
@@ -89,6 +90,41 @@ exports.createInvoice = async (req, res) => {
                 });
             });
         }
+
+        // 4. Lab & Radiology (Service Orders)
+        if (record.service_orders && record.service_orders.length > 0) {
+            record.service_orders.forEach(order => {
+                // Only charge if completed (or charge regardless? standard is usually upon order or result. Let's say Completed)
+                if (order.status === 'COMPLETED' || order.status === 'PENDING') {
+                    // Note: Ideally we charge when ordered to prevent loss if patient leaves, 
+                    // but for "Integrasi check" let's charge all associated orders.
+
+                    let serviceCost = 0;
+                    let desc = '';
+
+                    if (order.type === 'LAB') {
+                        serviceCost = 150000; // Mock Lab Price
+                        desc = `Laboratorium: ${order.notes || 'General Checkup'}`;
+                    } else if (order.type === 'RAD') {
+                        serviceCost = 200000; // Mock Rad Price
+                        desc = `Radiologi: ${order.notes || 'Imaging'}`;
+                    }
+
+                    if (serviceCost > 0) {
+                        total += serviceCost;
+                        items.push({
+                            description: desc,
+                            amount: serviceCost,
+                            quantity: 1
+                        });
+                    }
+                }
+            });
+        }
+
+        // Check if invoice already exists?
+        // For now, simpler to just create new (Multiple invoices possible per visit? Usually merged).
+        // Let's assume one invoice per generate call.
 
         // Create Transaction
         const invoiceNo = `INV/${new Date().toISOString().slice(0, 10).replace(/-/g, '')}/${Math.floor(Math.random() * 1000)}`;

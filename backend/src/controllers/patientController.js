@@ -121,7 +121,14 @@ exports.getById = async (req, res) => {
                     include: { doctor: true },
                     orderBy: { created_at: 'desc' }
                 },
+                admissions: {
+                    where: { status: { in: ['ACTIVE', 'DISCHARGE_INITIATED'] } },
+                    include: { bed: { include: { room: true } } },
+                    orderBy: { created_at: 'desc' },
+                    take: 1
+                },
                 queues: {
+
                     orderBy: { created_at: 'desc' },
                     take: 10 // Last 10 visits
                 }

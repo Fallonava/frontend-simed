@@ -33,8 +33,7 @@ const Welcome = () => {
 
     return (
         <div className="min-h-screen bg-theme-bg text-theme-text relative overflow-hidden font-sans selection:bg-salm-pink selection:text-white transition-colors duration-300 bg-noise">
-            {/* Theme Toggle */}
-            <ThemeToggle />
+
 
             {/* Ambient Background - Improved with nicer blurring */}
             <motion.div

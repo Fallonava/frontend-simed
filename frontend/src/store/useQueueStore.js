@@ -2,8 +2,14 @@ import { create } from 'zustand';
 import { io } from 'socket.io-client';
 import axios from 'axios';
 
-const SOCKET_URL = import.meta.env.VITE_SOCKET_URL || 'http://localhost:3000';
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
+const getBaseURL = () => {
+    if (import.meta.env.VITE_SOCKET_URL) return import.meta.env.VITE_SOCKET_URL;
+    const { hostname } = typeof window !== 'undefined' ? window.location : { hostname: 'localhost' };
+    return `http://${hostname}:3000`;
+};
+
+const SOCKET_URL = getBaseURL();
+const API_URL = `${SOCKET_URL}/api`;
 
 const useQueueStore = create((set, get) => ({
     socket: null,
@@ -128,6 +134,21 @@ const useQueueStore = create((set, get) => ({
             await get().fetchDoctors();
         } catch (error) {
             console.error('Failed to generate quota:', error);
+        }
+    },
+
+    checkIn: async (code) => {
+        try {
+            const response = await axios.post(`${API_URL}/antrean/checkin`, {
+                kodebooking: code,
+                waktu: Date.now(),
+                latitude: -6.2000,
+                longitude: 106.8166
+            });
+            return response.data;
+        } catch (error) {
+            console.error('Check-in failed:', error);
+            throw error;
         }
     }
 }));

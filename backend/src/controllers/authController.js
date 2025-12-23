@@ -51,3 +51,45 @@ exports.me = async (req, res) => {
     // User is already attached by middleware
     res.json(req.user);
 };
+
+exports.loginPatient = async (req, res) => {
+    const { prisma } = req;
+    const { nik } = req.body || {};
+
+    if (!nik) {
+        return res.status(400).json({ error: 'NIK is required' });
+    }
+
+    try {
+        const patient = await prisma.patient.findUnique({
+            where: { nik }
+        });
+
+        if (!patient) {
+            return res.status(401).json({ error: 'NIK tidak ditemukan or Pasien belum terdaftar' });
+        }
+
+        // For MVP: No password, just NIK valid.
+        // In future: Verify DOB or OTP.
+
+        const token = jwt.sign(
+            { id: patient.id, nik: patient.nik, name: patient.name, role: 'PATIENT' },
+            JWT_SECRET,
+            { expiresIn: '30d' } // Long session for mobile
+        );
+
+        res.json({
+            token,
+            user: {
+                id: patient.id,
+                nik: patient.nik,
+                name: patient.name,
+                role: 'PATIENT',
+                no_rm: patient.no_rm
+            }
+        });
+    } catch (error) {
+        console.error("Login Patient Error:", error);
+        res.status(500).json({ error: 'Login failed' });
+    }
+};
