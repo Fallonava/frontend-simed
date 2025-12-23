@@ -46,7 +46,7 @@ const RadiologyDashboard = () => {
 
     const openModal = (order) => {
         setSelectedOrder(order);
-        setResultData({ imageUrl: 'https://via.placeholder.com/600x400?text=X-RAY+SCAN', report: '' });
+        setResultData({ imageUrl: '', report: '' });
     };
 
     const handleSubmit = async () => {

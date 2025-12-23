@@ -192,6 +192,8 @@ exports.takeTicket = async (req, res) => {
                     patient_id: patient_id ? parseInt(patient_id) : null,
                     queue_number: queueNumber, // Keep internal rotation number
                     queue_code: queueCode,
+                    booked_via: 'OFFLINE', // Default
+                    check_in_at: new Date(), // OFFLINE TICKETS ARE AUTO CHECKED-IN
                     status: 'WAITING'
                 }
             });
@@ -230,6 +232,7 @@ exports.getWaiting = async (req, res) => {
     try {
         const whereClause = {
             status: 'WAITING',
+            check_in_at: { not: null }, // ONLY SHOW CHECKED-IN PATIENTS
             daily_quota: {
                 date: today
             }
@@ -277,6 +280,7 @@ exports.callNext = async (req, res) => {
             // Build filter for next ticket
             const whereClause = {
                 status: 'WAITING',
+                check_in_at: { not: null }, // ONLY CALL PATIENTS WHO ARE HERE
                 daily_quota: {
                     date: today
                 }

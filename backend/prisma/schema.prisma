@@ -76,6 +76,7 @@ model Queue {
   status         String      @default("WAITING") // WAITING, CALLED, SERVED, SKIPPED, CANCELLED
   created_at     DateTime    @default(now())
   medical_records MedicalRecord[]
+  task_timestamps TaskTimestamp[]
 }
 
 model Patient {
@@ -101,12 +102,18 @@ model Patient {
   medical_records MedicalRecord[]
   prescriptions Prescription[]
   transactions Transaction[]
-  
+  // BPJS Relations
+  seps        Sep[]
+  fingerprint_logs FingerprintLog[]
+
   // Inpatient Relations
   current_bed Bed?
   admissions  Admission[]
   
   invoices    Invoice[]
+  form_responses FormResponse[]
+  implants    UsedImplant[]
+  crossmatches BloodCrossmatch[]
 }
 
 model Sequence {
@@ -139,6 +146,70 @@ model Playlist {
   order     Int      @default(0)
   isActive  Boolean  @default(true)
   created_at DateTime @default(now())
+  transaction_date DateTime @default(now())
+}
+
+// --- BPJS BRIDGING MODELS ---
+
+model Sep {
+  id              Int      @id @default(autoincrement())
+  no_sep          String   @unique
+  tgl_sep         DateTime @default(now()) // YYYY-MM-DD
+  no_kartu        String
+  no_mr           String
+  
+  // Relations
+  patient_id      Int
+  patient         Patient  @relation(fields: [patient_id], references: [id])
+  medical_record_id Int?   @unique
+  medical_record  MedicalRecord? @relation(fields: [medical_record_id], references: [id])
+  
+  // SEP Details
+  jns_pelayanan   String   // 1=Inap, 2=Jalan
+  poli_tujuan     String   // Kode Poli BPJS
+  diagnosa_awal   String   // ICD-10
+  catatan         String?
+  
+  // Advanced Features
+  is_coba         Boolean  @default(false) // Backdate/Emergency flag
+  is_kll          Boolean  @default(false)
+  is_suplesi      Boolean  @default(false)
+  no_sep_suplesi  String?
+  lp_manual       String?  // Untuk KLL
+  
+  created_by      String?
+  created_at      DateTime @default(now())
+}
+
+model FingerprintLog {
+  id           Int      @id @default(autoincrement())
+  patient_id   Int
+  patient      Patient  @relation(fields: [patient_id], references: [id])
+  
+  check_time   DateTime @default(now())
+  device_id    String?
+  
+  status       String   // SUCCESS, FAILED, BYPASS
+  verify_score Int?     // Match score
+  
+  is_sent      Boolean  @default(false) // Sent to BPJS?
+  sent_at      DateTime?
+}
+
+model TaskTimestamp {
+  id           Int      @id @default(autoincrement())
+  queue_id     Int
+  queue        Queue    @relation(fields: [queue_id], references: [id])
+  
+  task_id      Int      // 1-7 (Checkin to Pulang)
+  timestamp    DateTime @default(now()) // Waktu RS
+  
+  is_sent      Boolean  @default(false)
+  sent_at      DateTime? // Waktu kirim ke BPJS
+  
+  error_log    String?   // If failed
+  
+  @@unique([queue_id, task_id])
 }
 
 model Setting {
@@ -183,6 +254,9 @@ model MedicalRecord {
   // SATUSEHAT Integration
   satusehat_id  String?  // Encounter ID (UUID)
   casemix       Casemix?
+  sep           Sep?
+  
+
   
   // Smart Document Fields
   rest_days     Int?     // For Surat Sakit
@@ -195,6 +269,21 @@ model MedicalRecord {
   transaction   Transaction?
   service_orders ServiceOrder[]
   invoices      Invoice[]
+  form_responses FormResponse[]
+  implants      UsedImplant[]
+  
+  // Teaching Hospital Fields
+  status        String   @default("FINAL") // DRAFT, PROVISIONAL, FINAL
+  created_by_id Int?
+  verified_by_id Int?
+  is_teaching_case Boolean @default(false)
+  
+  assessments   ClinicalAssessment[]
+  
+  // TTE (Electronic Signature)
+  is_signed     Boolean  @default(false)
+  signed_at     DateTime?
+  tte_metadata  Json?    // Store BSRE/Privy response or certificate hash
 }
 
 model ICD10 {
@@ -212,6 +301,8 @@ model ServiceOrder {
   status            String        @default("PENDING") // PENDING, IN_PROGRESS, COMPLETED
   notes             String?
   result            String?       // URL or Text result
+  result_image_url  String?       // For quick preview
+  dicom_study_id    String?       // Link to internal/external PACS
   
   tariff_id         Int?
   tariff            ServiceTariff? @relation(fields: [tariff_id], references: [id])
@@ -219,6 +310,13 @@ model ServiceOrder {
 
   created_at        DateTime      @default(now())
   updated_at        DateTime      @updatedAt
+  
+  // Advanced Radiology Fields
+  dicom_url         String?
+  radiation_dose    Float?
+  
+  // Pathology
+  pa_sample         PASample?
 }
 
 model ServiceTariff {
@@ -312,6 +410,11 @@ model TransactionItem {
   description     String   // "Jasa Dokter", "Paracetamol", "Biaya Daftar"
   amount          Float
   quantity        Int      @default(1)
+  
+  // Remuneration Split
+  jasa_sarana     Float    @default(0)
+  jasa_pelayanan  Float    @default(0)
+  doctor_id       Int?     // Link to individual doctor for Jasa Pelayanan
 }
 
 
@@ -362,6 +465,8 @@ model Admission {
   medication_logs MedicationLog[]
   diet_orders     DietOrder[]
   invoices        Invoice[]
+  form_responses  FormResponse[]
+  implants        UsedImplant[]
 }
 
 model InpatientObservation {
@@ -442,6 +547,12 @@ model Employee {
   user            User?    @relation(fields: [user_id], references: [id])
   
   schedules       EmployeeSchedule[]
+  doctor_fees     DoctorFeeLog[]
+  kpis            EmployeeKPI[]
+  
+  is_locked       Boolean  @default(false)
+  lock_reason     String?
+  
   created_at      DateTime @default(now())
   updated_at      DateTime @updatedAt
 }
@@ -651,4 +762,265 @@ model Expense {
   date        DateTime @default(now())
   created_at  DateTime @default(now())
   updated_at  DateTime @updatedAt
+}
+
+// --- DYNAMIC MEDICAL FORMS (DMF) ---
+
+model FormTemplate {
+  id          Int      @id @default(autoincrement())
+  name        String   // e.g. "Observation ICU Sheet"
+  code        String   @unique // e.g. "FORM-ICU-01"
+  description String?
+  category    String   // ICU, IBS, KEMO, HD, CATHLAB, etc.
+  schema      Json     // The structure of the form (labels, types, weights, etc)
+  version     Int      @default(1)
+  isActive    Boolean  @default(true)
+  created_at  DateTime @default(now())
+  updated_at  DateTime @updatedAt
+  
+  responses   FormResponse[]
+}
+
+model FormResponse {
+  id                Int           @id @default(autoincrement())
+  template_id       Int
+  template          FormTemplate  @relation(fields: [template_id], references: [id])
+  
+  medical_record_id Int?
+  medical_record    MedicalRecord? @relation(fields: [medical_record_id], references: [id])
+  
+  admission_id      Int?
+  admission         Admission?     @relation(fields: [admission_id], references: [id])
+  
+  patient_id        Int
+  patient           Patient       @relation(fields: [patient_id], references: [id])
+  
+  data              Json          // The submitted field values { "systolic": 120, "notes": "..." }
+  submitted_by      String?       // Name/Role of the submitter
+  submitted_at      DateTime      @default(now())
+  
+  // For longitudinal tracking (like ICU hourly sheets or session-based dialysis)
+  observation_time  DateTime?     @default(now()) 
+}
+
+model UsedImplant {
+  id                Int           @id @default(autoincrement())
+  patient_id        Int
+  patient           Patient       @relation(fields: [patient_id], references: [id])
+  medical_record_id Int?
+  medical_record    MedicalRecord? @relation(fields: [medical_record_id], references: [id])
+  admission_id      Int?
+  admission         Admission?     @relation(fields: [admission_id], references: [id])
+  
+  item_name         String
+  sku               String?       // Barcode
+  batch_no          String?
+  serial_no         String?       // Critical for high-value items
+  
+  price             Decimal?      @db.Decimal(10, 2)
+  used_at           DateTime      @default(now())
+  surgeon_name      String?
+  is_billed         Boolean       @default(false)
+}
+
+// --- TEACHING HOSPITAL MODELS ---
+
+model LogbookEntry {
+  id              Int      @id @default(autoincrement())
+  user_id         Int      // The Resident or Koas
+  patient_id      Int
+  activity_type   String   // e.g. "Appendectomy", "Normal Delivery", "Diagnosis"
+  role            String   // Operator, First Assistant, Observer
+  
+  medical_record_id Int?
+  
+  is_verified     Boolean  @default(false)
+  verified_by_id  Int?     // The DPJP
+  
+  created_at      DateTime @default(now())
+}
+
+model ClinicalAssessment {
+  id                Int           @id @default(autoincrement())
+  medical_record_id Int
+  medical_record    MedicalRecord @relation(fields: [medical_record_id], references: [id])
+  
+  student_id        Int           // User ID of Koas/Resident
+  supervisor_id     Int           // User ID of DPJP
+  
+  type              String        // MINI_CEX, DOPS, CBD
+  scores            Json          // { "anamnesis": 80, "exam": 85, ... }
+  feedback          String?
+  
+  created_at        DateTime      @default(now())
+}
+// --- ANATOMIC PATHOLOGY (PA) ---
+
+model PASample {
+  id                Int           @id @default(autoincrement())
+  service_order_id  Int           @unique
+  service_order     ServiceOrder  @relation(fields: [service_order_id], references: [id])
+  
+  sample_type       String        // Biopsy, Excision, Fine Needle
+  organ_source      String?
+  
+  status            String        @default("RECEIVED") // RECEIVED, GROSSING, PROCESSING, SLIDE, READING, COMPLETED
+  
+  gross_desc        String?       @db.Text
+  micro_desc        String?       @db.Text
+  conclusion        String?       @db.Text // Synoptic JSON or Text
+  
+  created_at        DateTime      @default(now())
+  updated_at        DateTime      @updatedAt
+  workflow_logs     PAWorkflow[]
+}
+
+model PAWorkflow {
+  id                Int           @id @default(autoincrement())
+  sample_id         Int
+  sample            PASample      @relation(fields: [sample_id], references: [id])
+  
+  step              String        // GROSSING, PROCESSING, etc.
+  performed_by      String
+  timestamp         DateTime      @default(now())
+}
+
+// --- BLOOD BANK (BDRS) ---
+
+model BloodBag {
+  id                Int           @id @default(autoincrement())
+  blood_type        String        // A, B, O, AB
+  rhesus            String        // +, -
+  component_type    String        // PRC, WB, TC, FFP
+  
+  bag_number        String        @unique
+  donor_source      String?       // Internal, PMI
+  
+  expiry_date       DateTime
+  status            String        @default("AVAILABLE") // AVAILABLE, RESERVED, USED, EXPIRED, DISCARDED
+  
+  crossmatches      BloodCrossmatch[]
+  
+  created_at        DateTime      @default(now())
+}
+
+model BloodCrossmatch {
+  id                Int           @id @default(autoincrement())
+  bag_id            Int
+  bag               BloodBag      @relation(fields: [bag_id], references: [id])
+  
+  patient_id        Int
+  patient           Patient       @relation(fields: [patient_id], references: [id])
+  
+  result            String        // COMPATIBLE, INCOMPATIBLE
+  notes             String?
+  performed_by      String
+  timestamp         DateTime      @default(now())
+}
+
+// --- CSSD (STERILIZATION) ---
+
+model SterileSet {
+  id                Int           @id @default(autoincrement())
+  name              String        // Set Bedah Saraf 01
+  qr_code           String        @unique
+  
+  status            String        @default("READY") // READY, USED, WASHING, STERILIZING
+  last_sterile_at   DateTime?
+  expiry_date       DateTime?
+  
+  cycles            SterileCycle[]
+}
+
+model SterileCycle {
+  id                Int           @id @default(autoincrement())
+  set_id            Int
+  set               SterileSet    @relation(fields: [set_id], references: [id])
+  
+  activity          String        // WASH, PACK, STERILE
+  machine_id        String?
+  operator          String
+  timestamp         DateTime      @default(now())
+}
+
+// --- REMUNERATION & JASA MEDIS ---
+
+model DoctorFeeLog {
+  id              Int           @id @default(autoincrement())
+  doctor_id       Int
+  doctor          Employee      @relation(fields: [doctor_id], references: [id])
+  
+  invoice_id      Int
+  patient_name    String
+  service_name    String
+  amount          Float
+  status          String        @default("PENDING") // PENDING, PAID (To Doctor)
+  
+  created_at      DateTime      @default(now())
+}
+
+// --- FIXED ASSETS & IPSRS ---
+
+model FixedAsset {
+  id                Int           @id @default(autoincrement())
+  name              String        // MRI, CT-Scan, Ambulance
+  code              String        @unique
+  purchase_date     DateTime
+  purchase_price    Float
+  scrap_value       Float         @default(0)
+  useful_life       Int           // In years
+  
+  location          String?
+  status            String        @default("OPERATIONAL") // OPERATIONAL, MAINTENANCE, BROKEN, DISPOSED
+  
+  maintenance_logs  MaintenanceLog[]
+}
+
+model MaintenanceLog {
+  id                Int           @id @default(autoincrement())
+  asset_id          Int
+  asset             FixedAsset    @relation(fields: [asset_id], references: [id])
+  
+  scheduled_date    DateTime
+  performed_date    DateTime?
+  description       String
+  technician        String
+  cost              Float         @default(0)
+}
+
+// --- FINANCE & ACCOUNTING ---
+
+model AccountingJournal {
+  id                Int           @id @default(autoincrement())
+  date              DateTime      @default(now())
+  description       String
+  reference_no      String?       // Invoice NO, PO NO
+  
+  entries           JournalEntry[]
+}
+
+model JournalEntry {
+  id                Int           @id @default(autoincrement())
+  journal_id        Int
+  journal           AccountingJournal @relation(fields: [journal_id], references: [id])
+  
+  account_code      String        // e.g. 10101 (KAS), 40101 (PENDAPATAN)
+  account_name      String
+  debit             Float         @default(0)
+  credit            Float         @default(0)
+}
+
+// --- HR & KPI ---
+
+model EmployeeKPI {
+  id                Int           @id @default(autoincrement())
+  employee_id       Int
+  employee          Employee      @relation(fields: [employee_id], references: [id])
+  
+  period            String        // 2023-12
+  score             Float
+  metrics           Json?         // { "attendance": 100, "patient_count": 500 }
+  feedback          String?
+  
+  created_at        DateTime      @default(now())
 }

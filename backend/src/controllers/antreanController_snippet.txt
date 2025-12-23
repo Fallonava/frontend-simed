@@ -1,0 +1,88 @@
+
+// 4. GET Pending Check-in (Untuk Layar Admisi)
+// URL: /antrean/pending-checkin
+exports.getPendingCheckin = async (req, res) => {
+    try {
+        const today = getToday();
+
+        const pending = await prisma.queue.findMany({
+            where: {
+                status: 'WAITING',
+                check_in_at: null, // Only those who haven't checked in
+                daily_quota: {
+                    date: today
+                }
+            },
+            include: {
+                patient: true,
+                daily_quota: {
+                    include: {
+                        doctor: {
+                            include: { poliklinik: true }
+                        }
+                    }
+                }
+            },
+            orderBy: { created_at: 'asc' }
+        });
+
+        return res.json({
+            metadata: { message: "Ok", code: 200 },
+            response: pending
+        });
+    } catch (error) {
+        console.error(error);
+        return res.status(500).json({ metadata: { message: "Error", code: 500 } });
+    }
+};
+
+// 5. POST Check-in (Konfirmasi Kehadiran)
+// URL: /antrean/checkin
+exports.checkInBooking = async (req, res) => {
+    const { kodebooking, taskid } = req.body; // taskid for BPJS bridging (optional here)
+
+    try {
+        // Find Booking
+        const ticket = await prisma.queue.findFirst({
+            where: { booking_code: kodebooking }
+        });
+
+        if (!ticket) {
+            return res.status(404).json({ metadata: { message: "Booking tidak ditemukan", code: 404 } });
+        }
+
+        if (ticket.check_in_at) {
+            return res.status(400).json({ metadata: { message: "Sudah Check-in sebelumnya", code: 400 } });
+        }
+
+        // Validate Time (Optional: Allow check-in only 1 hour before?)
+        // For demo, just allow.
+
+        // Update Ticket
+        const updatedTicket = await prisma.queue.update({
+            where: { id: ticket.id },
+            data: { 
+                check_in_at: new Date() 
+            },
+            include: {
+                patient: true,
+                daily_quota: {
+                    include: { doctor: { include: { poliklinik: true } } }
+                }
+            }
+        });
+
+        // Emit Socket to Update Doctor's View!
+        // We need 'io' here but this controller structure doesn't inject it easily via exports unless we change signature or use req.io if routed via app.
+        // Assuming this is called via standard express route where req.io is available.
+
+        return res.json({
+            metadata: { message: "Check-in Berhasil", code: 200 },
+            response: updatedTicket
+        });
+
+    } catch (error) {
+        console.error(error);
+        return res.status(500).json({ metadata: { message: "Gagal Check-in", code: 500 } });
+    }
+};

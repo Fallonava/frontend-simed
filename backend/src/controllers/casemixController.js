@@ -121,29 +121,57 @@ exports.generateClaimFile = async (req, res) => {
             data: { status: 'CLAIMED' },
             include: {
                 medical_record: {
-                    include: { patient: true }
+                    include: {
+                        patient: true,
+                        sep: true // Get the real SEP created earlier
+                    }
                 }
             }
         });
 
-        // Generate Mock TXT content for user to "download"
-        // Format: NO_SEP|CARD_NO|ADMISSION_DATE|DISCHARGE_DATE|ICD10|TARIFF
-        const txtParams = [
-            `SEP-${Date.now()}`,
-            claim.medical_record.patient.bpjs_card_no || '00000000000',
-            claim.medical_record.visit_date.toISOString().split('T')[0],
+        const mr = claim.medical_record;
+        const patient = mr.patient;
+        const sep = mr.sep;
+
+        // 1. STANDARD TXT FORMAT (INA-CBG UPLOAD)
+        // Format: NO_SEP|CARD_NO|RM_NO|NAME|DOB|GENDER|ADMISSION_DATE|DISCHARGE_DATE|ICD10|TARIFF
+        const txtContent = [
+            sep?.no_sep || 'NO_SEP_FOUND',
+            patient.bpjs_card_no || '0000000000000',
+            patient.no_rm,
+            patient.name.toUpperCase(),
+            patient.birth_date.toISOString().split('T')[0],
+            patient.gender,
+            mr.visit_date.toISOString().split('T')[0],
             new Date().toISOString().split('T')[0],
             claim.primary_icd10,
             Math.floor(claim.tariff)
         ].join('|');
 
+        // 2. JSON FORMAT (MODERN BRIDGING)
+        const jsonContent = {
+            metadata: { code: 200, message: "OK" },
+            response: {
+                nomor_sep: sep?.no_sep,
+                nomor_kartu: patient.bpjs_card_no,
+                tgl_masuk: mr.visit_date,
+                tgl_pulang: new Date(),
+                diagnosa_utama: claim.primary_icd10,
+                cbg_code: claim.ina_cbg_code,
+                total_tarif: claim.tariff,
+                coder: claim.coder_name
+            }
+        };
+
         res.json({
             message: 'Claim Finalized',
-            file_content: txtParams,
-            filename: `CLAIM-${claim.medical_record.patient.no_rm}-${Date.now()}.txt`
+            txt_file: txtContent,
+            json_file: jsonContent,
+            filename: `CLAIM-${patient.no_rm}-${Date.now()}`
         });
 
     } catch (error) {
+        console.error("E-Klaim Error:", error);
         res.status(500).json({ error: error.message });
     }
 };

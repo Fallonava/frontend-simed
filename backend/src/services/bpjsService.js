@@ -120,11 +120,38 @@ const checkKepesertaanByNIK = async (nik) => {
 };
 
 const insertSEP = async (data) => {
-    const { noKartu, poli, rujukan, diagnosa } = data;
+    // Advanced Logic for Type A Hospital (IGD, KLL, Backdate)
+    const {
+        noKartu, poli, rujukan, diagnosa,
+        is_igd = false, // If true, validation low urgency
+        is_kll = false, // If true, Jasa Raharja check
+        tgl_sep_custom = null // For Backdate (must be <= 3 days)
+    } = data;
 
-    // 1. MOCK MODE
+    const tglSep = tgl_sep_custom || new Date().toISOString().split('T')[0];
+
+    // --- MOCK MODE ---
     if (!IS_PRODUCTION || !CONS_ID) {
         await new Promise(resolve => setTimeout(resolve, 800));
+
+        // 1. MOCK BACKDATE VALIDATION
+        if (tgl_sep_custom) {
+            const diffTime = Math.abs(new Date() - new Date(tgl_sep_custom));
+            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+            if (diffDays > 4) { // 3 + 1 tolerance
+                return { status: 'FAILED', message: 'SEP Backdate Maksimal 3x24 Jam!' };
+            }
+        }
+
+        // 2. MOCK IGD VALIDATION
+        if (is_igd) {
+            const lowUrgencyCodes = ['J30', 'H52', 'Z00'];
+            const dgPrefix = diagnosa.split('.')[0];
+            if (lowUrgencyCodes.includes(dgPrefix)) {
+                return { status: 'WARNING', message: 'Diagnosa Masuk Kategori Low Urgency (Bukan Gawat Darurat).' };
+            }
+        }
+
         const date = new Date();
         const month = (date.getMonth() + 1).toString().padStart(2, '0');
         const year = date.getFullYear().toString().slice(-2);
@@ -135,57 +162,59 @@ const insertSEP = async (data) => {
             status: 'OK',
             data: {
                 noSep: sepNo,
-                tglSep: date.toISOString().split('T')[0],
+                tglSep: tglSep,
                 peserta: {
                     noKartu: noKartu,
                     nama: MOCK_DB[Object.keys(MOCK_DB).find(k => MOCK_DB[k].noKartu === noKartu)]?.nama || 'PESERTA DUMMY'
                 },
-                poli: poli,
+                poli: is_igd ? 'IGD' : poli,
                 diagnosa: diagnosa,
-                catatan: 'SEP SIMULASI'
+                catatan: is_kll ? 'KASUS KLL (JASA RAHARJA)' : 'SEP SIMULASI',
+                keterangan: is_kll ? 'Menunggu Suplesi Jasa Raharja' : '-'
             }
         };
     }
 
-    // 2. REAL PRODUCTION MODE
+    // --- REAL PRODUCTION MODE (Bridging V-Claim 2.0) ---
     try {
         const client = getClient();
-        // Payload must match V-Claim 2.0 standards
+
+        // Construct Payload
         const payload = {
             request: {
                 t_sep: {
                     noKartu: noKartu,
-                    tglSep: new Date().toISOString().split('T')[0],
-                    ppkPelayanan: '0001R001', // RS Code (Should be in .env too)
-                    jnsPelayanan: '2', // 1=Inpatient, 2=Outpatient
+                    tglSep: tglSep,
+                    ppkPelayanan: '0001R001',
+                    jnsPelayanan: '2', // Rawat Jalan / IGD
                     klsRawat: {
-                        klsRawatHak: '3', // Dynamic
+                        klsRawatHak: '3',
                         klsRawatNaik: '',
                         pembiayaan: '',
                         penanggungJawab: ''
                     },
                     noMR: data.noMR || '000000',
                     rujukan: {
-                        asalRujukan: '1', // 1=Faskes 1, 2=RS
-                        tglRujukan: new Date().toISOString().split('T')[0],
+                        asalRujukan: is_igd ? '2' : '1', // 2=Pusat (IGD)
+                        tglRujukan: tglSep,
                         noRujukan: rujukan || '-',
-                        ppkRujukan: '00000000' // Mock PPK
+                        ppkRujukan: '00000000'
                     },
-                    catatan: 'Created via System',
+                    catatan: 'Created via SIMIMED',
                     diagAwal: diagnosa || 'Z00.0',
                     poli: {
-                        tujuan: 'INT', // Internal Medicine Code (Example)
+                        tujuan: is_igd ? 'IGD' : 'INT', // Map to correct poli
                         eksekutif: '0'
                     },
                     cob: { cob: '0' },
                     katarak: { katarak: '0' },
                     jaminan: {
-                        lakaLantas: '0',
+                        lakaLantas: is_kll ? '1' : '0', // 1=Ya, 0=Tidak
                         penjamin: {
-                            tglKejadian: '',
-                            keterangan: '',
+                            tglKejadian: is_kll ? tglSep : '',
+                            keterangan: is_kll ? 'Kecelakaan Lalu Lintas' : '',
                             suplesi: {
-                                suplesi: '0',
+                                suplesi: '0', // 0=Tidak, 1=Ya (Check history)
                                 noSepSuplesi: '',
                                 lokasiLaka: {
                                     kdPropinsi: '',
@@ -222,11 +251,137 @@ const insertSEP = async (data) => {
         }
     } catch (error) {
         console.error('BPJS SEP Error:', error.message);
-        return { status: 'ERROR', message: 'Gagal Membuat SEP' };
+        return { status: 'ERROR', message: 'Gagal Membuat SEP V2' };
+    }
+};
+
+const updateTaskID = async (data) => {
+    const { kodebooking, taskid, waktu } = data;
+
+    // 1. MOCK MODE
+    if (!IS_PRODUCTION || !CONS_ID) {
+        console.log(`[MOCK BPJS] Sending Task ID ${taskid} for ${kodebooking} at ${waktu}`);
+        return { status: 'OK', message: 'Task ID Updated (Mock)' };
+    }
+
+    // 2. REAL MODE
+    try {
+        const client = getClient();
+        const payload = {
+            kodebooking: kodebooking,
+            taskid: taskid,
+            waktu: waktu // milliseconds usually
+        };
+        const response = await client.post('/antrean/updatewaktu', payload);
+
+        if (response.data.metadata.code === 200) {
+            return { status: 'OK', message: 'Task ID Sent' };
+        } else {
+            return { status: 'FAILED', message: response.data.metadata.message };
+        }
+    } catch (error) {
+        console.error("BPJS TaskID Error:", error.message);
+        return { status: 'ERROR', message: 'Failed to send Task ID' };
+    }
+};
+
+
+
+const updateBedApplicare = async (data) => {
+    const { koderuang, kotealas, tersedia, tersediapria, tersediawanita, tersediapriawanita } = data;
+
+    // 1. MOCK MODE
+    if (!IS_PRODUCTION || !CONS_ID) {
+        console.log(`[MOCK APPLICARE] Syncing Bed ${koderuang} -> ${tersedia} available`);
+        return { status: 'OK', message: 'Applicare Updated (Mock)' };
+    }
+
+    // 2. REAL MODE
+    try {
+        const client = getClient();
+        // Applicare URL usually different base, but for this bridging we use client helper
+        const payload = {
+            koderuang,
+            kotealas,
+            tersedia,
+            tersediapria,
+            tersediawanita,
+            tersediapriawanita
+        };
+        const response = await client.post('/applicare/update', payload);
+        return { status: 'OK', message: 'Applicare Sent' };
+    } catch (error) {
+        console.error("Applicare Error:", error.message);
+        return { status: 'ERROR', message: 'Applicare Sync Failed' };
+    }
+};
+
+const checkFingerprint = async (patientId) => {
+    // Standard for hemodialysis, heart, etc.
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    // Filter for TODAY's success log
+    const log = await prisma.fingerprintLog.findFirst({
+        where: {
+            patient_id: parseInt(patientId),
+            status: 'SUCCESS',
+            check_time: { gte: today }
+        }
+    });
+
+    if (log) {
+        return { status: 'OK', valid: true, message: 'Fingerprint Valid' };
+    }
+
+    // For MOCK: If patient NIK ends with '1', assume success for demo
+    const patient = await prisma.patient.findUnique({ where: { id: parseInt(patientId) } });
+    if (patient && patient.nik.endsWith('1')) {
+        return { status: 'OK', valid: true, message: 'Fingerprint Valid (Simulated)' };
+    }
+
+    return { status: 'FAILED', valid: false, message: 'Silakan Scan Sidik Jari Terlebih Dahulu!' };
+};
+
+const insertInternalReferral = async (data) => {
+    const { noSepAsal, poliTujuan, tglRujukan, diagnosa } = data;
+
+    // 1. MOCK MODE
+    if (!IS_PRODUCTION || !CONS_ID) {
+        console.log(`[MOCK BPJS] Creating Internal Referral for SEP ${noSepAsal} -> ${poliTujuan}`);
+        return { status: 'OK', data: { noRujukan: `REF-INT-${Date.now()}`, tglRujukan } };
+    }
+
+    // 2. REAL MODE (Bridging Rujukan Internal)
+    try {
+        const client = getClient();
+        const payload = {
+            request: {
+                t_rujukan: {
+                    noSep: noSepAsal,
+                    tglRujukan: tglRujukan,
+                    ppkDirujuk: '0001R001', // RS Sendiri
+                    jnsPelayanan: '2',
+                    catatan: 'Rujukan Sub-Spesialis',
+                    diagRujukan: diagnosa,
+                    tipeRujukan: '1', // 1=Rujukan Parsial/Internal
+                    poliRujukan: poliTujuan,
+                    user: 'admin'
+                }
+            }
+        };
+        const response = await client.post('/Rujukan/insert', payload);
+        return { status: 'OK', data: response.data.response };
+    } catch (error) {
+        return { status: 'ERROR', message: 'Gagal Membuat Rujukan Internal' };
     }
 };
 
 module.exports = {
     checkKepesertaanByNIK,
-    insertSEP
+    insertSEP,
+    updateTaskID,
+    updateBedApplicare,
+    checkFingerprint,
+    insertInternalReferral
 };

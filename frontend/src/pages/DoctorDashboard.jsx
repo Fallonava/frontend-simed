@@ -1,13 +1,20 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Link } from 'react-router-dom';
-import { Users, Clock, CheckCircle, Activity, FileText, Save, History, Search, ChevronRight, User, Home, ArrowLeft, Trash2, Plus, X, Printer } from 'lucide-react';
+import { Users, Clock, CheckCircle, Activity, FileText, Save, History, Search, ChevronRight, User, Home, ArrowLeft, Trash2, Plus, X, Printer, Mic, MicOff } from 'lucide-react';
 import toast, { Toaster } from 'react-hot-toast';
 
 import { useNavigate } from 'react-router-dom';
 import ModernHeader from '../components/ModernHeader';
 import api from '../utils/axiosConfig';
 import PageWrapper from '../components/PageWrapper';
+import DynamicForm from '../components/DynamicForm';
+import FluidBalanceChart from '../components/FluidBalanceChart';
+import ClinicalCalculators from '../components/ClinicalCalculators';
+import ImplantTracker from '../components/ImplantTracker';
+import AssessmentForms from '../components/AssessmentForms';
+import useAuthStore from '../store/useAuthStore';
+import PACSViewer from '../components/PACSViewer';
 
 const DoctorDashboard = () => {
     const navigate = useNavigate();
@@ -90,90 +97,28 @@ const DoctorDashboard = () => {
     const [showDocModal, setShowDocModal] = useState(false);
     const [selectedDocRecord, setSelectedDocRecord] = useState(null); // Which record to print for
 
-    // --- ADMISSION LOGIC ---
-    const [showAdmissionModal, setShowAdmissionModal] = useState(false);
-    const [availableBeds, setAvailableBeds] = useState([]);
-    const [selectedBed, setSelectedBed] = useState(null);
-    const [admissionDiagnosis, setAdmissionDiagnosis] = useState('');
+    // DMF State
+    const [templates, setTemplates] = useState([]);
+    const [selectedTemplate, setSelectedTemplate] = useState(null);
+    const [dmfSubmitting, setDmfSubmitting] = useState(false);
+    const [dmfResponses, setDmfResponses] = useState([]);
+    const [dmfTab, setDmfTab] = useState('forms'); // 'forms', 'monitoring', 'calculators'
 
-    const handleGenerateDocument = async (type, data = {}) => {
-        if (!selectedDocRecord) return;
-        const toastId = toast.loading('Generating Document...');
-        try {
-            const response = await api.post('/documents/generate', {
-                type,
-                medical_record_id: selectedDocRecord.id,
-                data: { ...data, rest_days: 2 } // Mock data for now
-            }, { responseType: 'blob' });
+    // TTE & PACS State
+    const [isSigning, setIsSigning] = useState(false);
+    const [activePACSStudy, setActivePACSStudy] = useState(null); // { id, patientName }
 
-            // Download PDF
-            const url = window.URL.createObjectURL(new Blob([response.data]));
-            const link = document.createElement('a');
-            link.href = url;
-            link.setAttribute('download', `${type}_${selectedDocRecord.id}.pdf`);
-            document.body.appendChild(link);
-            link.click();
+    // Teaching Hospital States
+    const { user } = useAuthStore();
+    const [pendingVerification, setPendingVerification] = useState([]);
+    const [showAssessment, setShowAssessment] = useState(false);
 
-            toast.success('Document Generated!', { id: toastId });
-            setShowDocModal(false);
-        } catch (error) {
-            console.error(error);
-            toast.error('Failed to generate document', { id: toastId });
-        }
-    };
+    // --- DISPOSITION LOGIC ---
+    const [disposition, setDisposition] = useState('PULANG'); // 'PULANG', 'RAWAT_INAP', 'RUJUK', 'KONTROL'
+    const [referralNote, setReferralNote] = useState('');
 
-    // Fetch Doctors for the "View As" selector
-    const fetchAnyAvailableBed = async () => {
-        try {
-            const res = await api.get('/admission/rooms');
-            const beds = [];
-            // Handle various response structures safely
-            const roomData = Array.isArray(res.data) ? res.data : (res.data.data || []);
-
-            roomData.forEach(room => {
-                if (room.beds) {
-                    room.beds.forEach(bed => {
-                        if (bed.status === 'AVAILABLE') {
-                            beds.push({ ...bed, roomName: room.name });
-                        }
-                    });
-                }
-            });
-            setAvailableBeds(beds);
-        } catch (error) {
-            console.error("Failed to fetch beds", error);
-            toast.error("Could not fetch bed availability");
-        }
-    };
-
-    const handleOpenAdmission = () => {
-        if (!selectedQueue) return;
-        setAdmissionDiagnosis(soap.assessment || '');
-        fetchAnyAvailableBed();
-        setShowAdmissionModal(true);
-    };
-
-    const handleAdmitPatient = async () => {
-        if (!selectedBed || !admissionDiagnosis) {
-            toast.error("Select Bed & Enter Diagnosis");
-            return;
-        }
-        try {
-            await api.post('/admission/checkin', {
-                patientId: selectedQueue.patient_id,
-                bedId: selectedBed,
-                diagnosa: admissionDiagnosis
-            });
-            toast.success("Patient Admitted Successfully");
-            setShowAdmissionModal(false);
-            // Close session by clearing queue (Simulate finish)
-            setQueues(prev => prev.filter(q => q.id !== selectedQueue?.id));
-            setSelectedQueue(null);
-        } catch (error) {
-            toast.error("Admission Failed");
-            console.error(error);
-        }
-    };
+    // Removed direct admission modal logic (handleOpenAdmission, handleAdmitPatient) as this is now handled by RegistrationRanap
+    // based on the disposition flag saved in the Medical Record.
 
     useEffect(() => {
         const fetchDoctors = async () => {
@@ -220,6 +165,52 @@ const DoctorDashboard = () => {
             // We'll use this for local filtering.
             window.icd10Database = mockICD10;
         };
+        const fetchTemplates = async () => {
+            try {
+                const res = await api.get('/dmf/templates');
+                setTemplates(res.data);
+            } catch (error) {
+                console.error(error);
+            }
+        };
+
+        const fetchPendingVerification = async () => {
+            if (user?.role !== 'DPJP' && user?.role !== 'ADMIN') return;
+            try {
+                const res = await api.get('/medical-records/all?status=PROVISIONAL');
+                setPendingVerification(res.data);
+            } catch (error) {
+                console.error(error);
+            }
+        };
+
+        const handleVerifyRecord = async (recordId) => {
+            try {
+                await api.post(`/teaching/records/${recordId}/verify`);
+                toast.success("Record verified successfully!");
+                fetchPendingVerification();
+            } catch (error) {
+                toast.error("Failed to verify record.");
+            }
+        };
+
+        const handleResearchExport = async () => {
+            try {
+                const res = await api.get('/teaching/research-export');
+                const data = res.data;
+                const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `Anonymized_Research_Data_${new Date().toISOString().split('T')[0]}.json`;
+                a.click();
+                toast.success("Anonymized research data exported!");
+            } catch (error) {
+                toast.error("Failed to export research data.");
+            }
+        };
+        fetchTemplates();
+        fetchPendingVerification();
         fetchICD10();
         fetchDoctors();
         fetchMedicines();
@@ -315,7 +306,9 @@ const DoctorDashboard = () => {
                 patient_id: selectedQueue.patient_id,
                 doctor_id: selectedDoctor.id,
                 queue_id: selectedQueue.id,
-                ...soap
+                ...soap,
+                disposition: disposition, // Save Disposition
+                referral_note: referralNote
             });
             console.log("Medical Record Created:", recordRes.data);
 
@@ -360,6 +353,70 @@ const DoctorDashboard = () => {
         } catch (error) {
             toast.error("Failed to save record");
             console.error(error);
+        }
+    };
+
+    const handleSignAndFinalize = async (e) => {
+        e.preventDefault();
+        if (!selectedQueue) return;
+
+        setIsSigning(true);
+        const signToast = toast.loading("Connecting to Government TTE Provider (BSRE)...");
+
+        try {
+            // 1. First save as DRAFT or current state
+            const recordRes = await api.post('/medical-records', {
+                patient_id: selectedQueue.patient_id,
+                doctor_id: selectedDoctor.id,
+                queue_id: selectedQueue.id,
+                ...soap,
+                disposition: disposition,
+                referral_note: referralNote,
+                status: 'FINAL'
+            });
+
+            // 2. Call Signing Endpoint (New)
+            await api.post(`/medical-records/${recordRes.data.id}/sign`, {
+                doctor_id: selectedDoctor.id
+            });
+
+            toast.dismiss(signToast);
+            toast.success("Document Legally Signed (TTE Success)", { icon: '🛡️' });
+
+            // 3. Cleanup existing serving
+            setQueues(prev => prev.filter(q => q.id !== selectedQueue.id));
+            setSelectedQueue(null);
+            setViewMode('history');
+
+        } catch (error) {
+            toast.dismiss(signToast);
+            toast.error("TTE Signing Failed. Check your certificate status.");
+            console.error(error);
+        } finally {
+            setIsSigning(false);
+        }
+    };
+
+    const handleSaveDMF = async (data) => {
+        if (!selectedQueue) return;
+        setDmfSubmitting(true);
+        try {
+            await api.post('/dmf/responses', {
+                template_id: selectedTemplate.id,
+                patient_id: selectedQueue.patient_id,
+                medical_record_id: selectedQueue.medical_records?.[0]?.id || null,
+                admission_id: selectedQueue.admission_id || null,
+                data,
+                submitted_by: `Dr. ${selectedDoctor.name}`
+            });
+            toast.success("Form specialized berhasil disimpan!");
+            setSelectedTemplate(null);
+            // Refresh history to see the new entry if we list them there later
+        } catch (e) {
+            console.error(e);
+            toast.error("Gagal menyimpan form specialized.");
+        } finally {
+            setDmfSubmitting(false);
         }
     };
 
@@ -616,6 +673,12 @@ const DoctorDashboard = () => {
                                     >
                                         <History size={18} /> History
                                     </button>
+                                    <button
+                                        onClick={() => setViewMode('dmf')}
+                                        className={`px-6 py-3 rounded-xl font-bold text-sm transition-all flex items-center gap-2 ${viewMode === 'dmf' ? 'bg-black dark:bg-white text-white dark:text-black shadow-lg' : 'bg-transparent text-gray-400 hover:text-gray-600'}`}
+                                    >
+                                        <Activity size={18} /> Specialized
+                                    </button>
                                 </div>
                             </div>
 
@@ -669,172 +732,182 @@ const DoctorDashboard = () => {
                                             </div>
                                         </div>
 
-                                        <div className="grid grid-cols-2 gap-8">
-                                            {/* Subjective */}
-                                            <div className="space-y-3 relative">
-                                                <div className="flex justify-between items-center">
-                                                    <label className="flex items-center gap-2 text-sm font-bold text-gray-500 uppercase tracking-wider">
-                                                        <span className="w-6 h-6 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center text-xs">S</span>
-                                                        Subjective (Keluhan)
-                                                    </label>
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => startListening('subjective')}
-                                                        className={`p-2 rounded-full transition-colors ${isListening === 'subjective' ? 'bg-red-500 text-white animate-pulse' : 'bg-gray-100 dark:bg-gray-700 text-gray-500 hover:text-blue-500'}`}
-                                                    >
-                                                        {isListening === 'subjective' ? <mic-off size={16} /> : <div className="flex items-center gap-1 text-xs font-bold"><User size={14} /> Dictate</div>}
-                                                    </button>
+                                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                                            {/* LEFT COLUMN: SOAP & Disposition */}
+                                            <div className="space-y-6">
+                                                {/* Subjective */}
+                                                <div className="space-y-3 relative">
+                                                    <div className="flex justify-between items-center">
+                                                        <label className="flex items-center gap-2 text-sm font-bold text-gray-500 uppercase tracking-wider">
+                                                            <span className="w-6 h-6 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center text-xs">S</span>
+                                                            Subjective (Keluhan)
+                                                        </label>
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => startListening('subjective')}
+                                                            className={`p-2 rounded-full transition-colors ${isListening === 'subjective' ? 'bg-red-500 text-white animate-pulse' : 'bg-gray-100 dark:bg-gray-700 text-gray-500 hover:text-blue-500'}`}
+                                                        >
+                                                            {isListening === 'subjective' ? <MicOff size={16} /> : <div className="flex items-center gap-1 text-xs font-bold"><Mic size={14} /> Dictate</div>}
+                                                        </button>
+                                                    </div>
+                                                    <textarea
+                                                        className="w-full h-32 p-5 rounded-[24px] bg-gray-50 dark:bg-gray-800 border-none focus:ring-2 focus:ring-blue-500 transition-all text-lg resize-none shadow-inner"
+                                                        placeholder="Keluhan utama pasien..."
+                                                        value={soap.subjective}
+                                                        onChange={e => setSoap({ ...soap, subjective: e.target.value })}
+                                                        required
+                                                    />
                                                 </div>
-                                                <textarea
-                                                    className="w-full h-40 p-5 rounded-[24px] bg-gray-50 dark:bg-gray-800 border-none focus:ring-2 focus:ring-blue-500 transition-all text-lg resize-none shadow-inner"
-                                                    placeholder="Keluhan utama pasien... (Click 'Dictate' to speak)"
-                                                    value={soap.subjective}
-                                                    onChange={e => setSoap({ ...soap, subjective: e.target.value })}
-                                                    required
-                                                />
-                                            </div>
 
-                                            {/* Objective */}
-                                            <div className="space-y-3 relative">
-                                                <div className="flex justify-between items-center">
-                                                    <label className="flex items-center gap-2 text-sm font-bold text-gray-500 uppercase tracking-wider">
-                                                        <span className="w-6 h-6 rounded-full bg-red-100 text-red-600 flex items-center justify-center text-xs">O</span>
-                                                        Objective (Pemeriksaan)
-                                                    </label>
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => startListening('objective')}
-                                                        className={`p-2 rounded-full transition-colors ${isListening === 'objective' ? 'bg-red-500 text-white animate-pulse' : 'bg-gray-100 dark:bg-gray-700 text-gray-500 hover:text-red-500'}`}
-                                                    >
-                                                        {isListening === 'objective' ? <mic-off size={16} /> : <div className="flex items-center gap-1 text-xs font-bold"><Activity size={14} /> Dictate</div>}
-                                                    </button>
+                                                {/* Objective */}
+                                                <div className="space-y-3 relative">
+                                                    <div className="flex justify-between items-center">
+                                                        <label className="flex items-center gap-2 text-sm font-bold text-gray-500 uppercase tracking-wider">
+                                                            <span className="w-6 h-6 rounded-full bg-red-100 text-red-600 flex items-center justify-center text-xs">O</span>
+                                                            Objective (Pemeriksaan)
+                                                        </label>
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => startListening('objective')}
+                                                            className={`p-2 rounded-full transition-colors ${isListening === 'objective' ? 'bg-red-500 text-white animate-pulse' : 'bg-gray-100 dark:bg-gray-700 text-gray-500 hover:text-red-500'}`}
+                                                        >
+                                                            {isListening === 'objective' ? <MicOff size={16} /> : <div className="flex items-center gap-1 text-xs font-bold"><Mic size={14} /> Dictate</div>}
+                                                        </button>
+                                                    </div>
+                                                    <textarea
+                                                        className="w-full h-32 p-5 rounded-[24px] bg-gray-50 dark:bg-gray-800 border-none focus:ring-2 focus:ring-red-500 transition-all text-lg resize-none shadow-inner"
+                                                        placeholder="Hasil pemeriksaan fisik..."
+                                                        value={soap.objective}
+                                                        onChange={e => setSoap({ ...soap, objective: e.target.value })}
+                                                        required
+                                                    />
                                                 </div>
-                                                <textarea
-                                                    className="w-full h-40 p-5 rounded-[24px] bg-gray-50 dark:bg-gray-800 border-none focus:ring-2 focus:ring-red-500 transition-all text-lg resize-none shadow-inner"
-                                                    placeholder="Hasil pemeriksaan fisik..."
-                                                    value={soap.objective}
-                                                    onChange={e => setSoap({ ...soap, objective: e.target.value })}
-                                                    required
-                                                />
-                                            </div>
 
-                                            {/* Assessment (ICD-10 Enhanced) */}
-                                            <div className="space-y-3 relative">
-                                                <label className="flex items-center gap-2 text-sm font-bold text-gray-500 uppercase tracking-wider">
-                                                    <span className="w-6 h-6 rounded-full bg-yellow-100 text-yellow-600 flex items-center justify-center text-xs">A</span>
-                                                    Assessment (Diagnosa ICD-10)
-                                                </label>
-
-                                                {/* ICD-10 Search Input */}
-                                                <div className="relative">
-                                                    <Search className="absolute left-4 top-4 text-gray-400" size={20} />
-                                                    <input
-                                                        type="text"
-                                                        placeholder="Ketik kode atau nama diagnosa (min. 2 karakter)..."
-                                                        className="w-full p-4 pl-12 rounded-[24px] bg-gray-50 dark:bg-gray-800 border-none focus:ring-2 focus:ring-yellow-500 font-bold text-lg"
-                                                        onChange={(e) => {
-                                                            const val = e.target.value;
-                                                            setSoap({ ...soap, assessment: val });
-
-                                                            if (val.length > 1) {
-                                                                // Use local mock database if available, else try API (fallback)
-                                                                if (window.icd10Database) {
-                                                                    const results = window.icd10Database.filter(item =>
+                                                {/* Assessment */}
+                                                <div className="space-y-3 relative">
+                                                    <label className="flex items-center gap-2 text-sm font-bold text-gray-500 uppercase tracking-wider">
+                                                        <span className="w-6 h-6 rounded-full bg-yellow-100 text-yellow-600 flex items-center justify-center text-xs">A</span>
+                                                        Assessment (Diagnosa ICD-10)
+                                                    </label>
+                                                    <div className="relative">
+                                                        <Search className="absolute left-4 top-4 text-gray-400" size={20} />
+                                                        <input
+                                                            type="text"
+                                                            placeholder="Ketik kode/nama diagnosa..."
+                                                            className="w-full p-4 pl-12 rounded-[24px] bg-gray-50 dark:bg-gray-800 border-none focus:ring-2 focus:ring-yellow-500 font-bold text-lg"
+                                                            onChange={(e) => {
+                                                                const val = e.target.value;
+                                                                setSoap({ ...soap, assessment: val });
+                                                                if (val.length > 1 && window.icd10Database) {
+                                                                    setIcd10List(window.icd10Database.filter(item =>
                                                                         item.code.toLowerCase().includes(val.toLowerCase()) ||
                                                                         item.name.toLowerCase().includes(val.toLowerCase())
-                                                                    );
-                                                                    setIcd10List(results);
+                                                                    ));
                                                                 } else {
-                                                                    // Fallback to API if we had one
                                                                     setIcd10List([]);
                                                                 }
-                                                            } else {
-                                                                setIcd10List([]);
-                                                            }
-                                                        }}
-                                                        value={soap.assessment}
-                                                    />
-
-                                                    {/* Dropdown Results */}
-                                                    {icd10List.length > 0 && (
-                                                        <div className="absolute z-50 w-full mt-2 bg-white dark:bg-gray-800 rounded-xl shadow-xl border border-gray-100 dark:border-gray-700 max-h-60 overflow-y-auto">
-                                                            {icd10List.map(item => (
-                                                                <div
-                                                                    key={item.code}
-                                                                    className="p-3 hover:bg-yellow-50 dark:hover:bg-gray-700 cursor-pointer border-b border-gray-50 dark:border-gray-700 last:border-none"
-                                                                    onClick={() => {
-                                                                        setSoap({
-                                                                            ...soap,
-                                                                            assessment: `${item.code} - ${item.name}`
-                                                                        });
-                                                                        setIcd10List([]);
-                                                                    }}
-                                                                >
-                                                                    <div className="font-bold text-gray-800 dark:text-white flex justify-between">
-                                                                        <span>{item.name}</span>
-                                                                        <span className="text-yellow-600 bg-yellow-100 px-2 rounded text-xs flex items-center">{item.code}</span>
+                                                            }}
+                                                            value={soap.assessment}
+                                                        />
+                                                        {icd10List.length > 0 && (
+                                                            <div className="absolute z-50 w-full mt-2 bg-white dark:bg-gray-800 rounded-xl shadow-xl max-h-60 overflow-y-auto border border-gray-100">
+                                                                {icd10List.map(item => (
+                                                                    <div
+                                                                        key={item.code}
+                                                                        className="p-3 hover:bg-yellow-50 cursor-pointer border-b border-gray-50"
+                                                                        onClick={() => {
+                                                                            setSoap({ ...soap, assessment: `${item.code} - ${item.name}` });
+                                                                            setIcd10List([]);
+                                                                        }}
+                                                                    >
+                                                                        <div className="font-bold flex justify-between">
+                                                                            <span>{item.name}</span>
+                                                                            <span className="text-yellow-600 bg-yellow-100 px-2 rounded text-xs">{item.code}</span>
+                                                                        </div>
                                                                     </div>
-                                                                    <div className="text-xs text-gray-400">{item.description}</div>
-                                                                </div>
-                                                            ))}
-                                                        </div>
-                                                    )}
-                                                </div>
-                                                <p className="text-xs text-gray-400 pl-4">Standardized JCI Diagnosis Code</p>
-                                            </div>
-
-                                            {/* Plan */}
-                                            <div className="space-y-3">
-                                                <div className="flex justify-between items-center">
-                                                    <label className="flex items-center gap-2 text-sm font-bold text-gray-500 uppercase tracking-wider">
-                                                        <span className="w-6 h-6 rounded-full bg-green-100 text-green-600 flex items-center justify-center text-xs">P</span>
-                                                        Plan (Terapi/Tindakan) & E-Prescription
-                                                    </label>
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => startListening('plan')}
-                                                        className={`p-2 rounded-full transition-colors ${isListening === 'plan' ? 'bg-red-500 text-white animate-pulse' : 'bg-gray-100 dark:bg-gray-700 text-gray-500 hover:text-green-500'}`}
-                                                    >
-                                                        {isListening === 'plan' ? <mic-off size={16} /> : <div className="flex items-center gap-1 text-xs font-bold"><CheckCircle size={14} /> Dictate</div>}
-                                                    </button>
-                                                </div>
-                                                <textarea
-                                                    className="w-full h-24 p-5 rounded-[24px] bg-gray-50 dark:bg-gray-800 border-none focus:ring-2 focus:ring-green-500 transition-all text-lg resize-none shadow-inner mb-4"
-                                                    placeholder="Resep obat dan tindakan (Teks)..."
-                                                    value={soap.plan}
-                                                    onChange={e => setSoap({ ...soap, plan: e.target.value })}
-                                                    required
-                                                />
-
-                                                {/* DISPOSITION SELECTOR */}
-                                                <div className="bg-gray-50 dark:bg-gray-800 p-4 rounded-2xl flex items-center justify-between border border-gray-100 dark:border-gray-700">
-                                                    <label className="font-bold text-sm text-gray-500 uppercase">Outcome / Disposition</label>
-                                                    <div className="flex bg-white dark:bg-gray-700 rounded-xl p-1 shadow-sm">
-                                                        {['PULANG', 'RAWAT_INAP', 'RUJUK', 'KONTROL'].map(opt => (
-                                                            <button
-                                                                key={opt}
-                                                                type="button"
-                                                                onClick={() => setSoap({ ...soap, disposition: opt })}
-                                                                className={`px-4 py-2 rounded-lg text-xs font-bold transition-all ${soap.disposition === opt
-                                                                    ? 'bg-blue-600 text-white shadow-md'
-                                                                    : 'text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-600'
-                                                                    }`}
-                                                            >
-                                                                {opt.replace('_', ' ')}
-                                                            </button>
-                                                        ))}
+                                                                ))}
+                                                            </div>
+                                                        )}
                                                     </div>
                                                 </div>
 
-
-                                                {/* E-PRESCRIPTION UI */}
-                                                <div className="bg-white dark:bg-gray-800 p-4 rounded-2xl border border-gray-100 dark:border-gray-700 space-y-3">
+                                                {/* Plan */}
+                                                <div className="space-y-3 relative">
                                                     <div className="flex justify-between items-center">
-                                                        <h4 className="font-bold text-sm text-gray-600 dark:text-gray-300">Prescription Items</h4>
+                                                        <label className="flex items-center gap-2 text-sm font-bold text-gray-500 uppercase tracking-wider">
+                                                            <span className="w-6 h-6 rounded-full bg-green-100 text-green-600 flex items-center justify-center text-xs">P</span>
+                                                            Plan (Terapi/Tindakan)
+                                                        </label>
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => startListening('plan')}
+                                                            className={`p-2 rounded-full transition-colors ${isListening === 'plan' ? 'bg-green-500 text-white animate-pulse' : 'bg-gray-100 dark:bg-gray-700 text-gray-500 hover:text-green-500'}`}
+                                                        >
+                                                            {isListening === 'plan' ? <MicOff size={16} /> : <div className="flex items-center gap-1 text-xs font-bold"><Mic size={14} /> Dictate</div>}
+                                                        </button>
+                                                    </div>
+                                                    <textarea
+                                                        className="w-full h-32 p-5 rounded-[24px] bg-gray-50 dark:bg-gray-800 border-none focus:ring-2 focus:ring-green-500 transition-all text-lg resize-none shadow-inner"
+                                                        placeholder="Rencana terapi..."
+                                                        value={soap.plan}
+                                                        onChange={e => setSoap({ ...soap, plan: e.target.value })}
+                                                        required
+                                                    />
+                                                </div>
+
+                                                {/* Disposition Section */}
+                                                <div className="bg-blue-50 dark:bg-blue-900/20 p-6 rounded-[24px] border border-blue-100 dark:border-blue-800 space-y-4">
+                                                    <h3 className="text-sm font-bold text-blue-600 dark:text-blue-300 uppercase tracking-widest flex items-center gap-2">
+                                                        <Home size={16} /> Disposition (Keputusan Medis)
+                                                    </h3>
+                                                    <div className="grid grid-cols-2 gap-3">
+                                                        {[
+                                                            { id: 'PULANG', label: 'Boleh Pulang' },
+                                                            { id: 'RAWAT_INAP', label: 'Rawat Inap' },
+                                                            { id: 'RUJUK', label: 'Rujuk RS Lain' },
+                                                            { id: 'KONTROL', label: 'Kontrol Ulang' }
+                                                        ].map(type => (
+                                                            <button
+                                                                key={type.id}
+                                                                type="button"
+                                                                onClick={() => setDisposition(type.id)}
+                                                                className={`p-3 rounded-xl font-bold text-xs transition-all border-2 flex flex-col items-center gap-2
+                                                                    ${disposition === type.id
+                                                                        ? 'bg-blue-600 text-white border-blue-600 shadow-lg'
+                                                                        : 'bg-white dark:bg-gray-800 text-gray-400 border-transparent hover:border-blue-200'
+                                                                    }
+                                                                `}
+                                                            >
+                                                                <div className={`w-3 h-3 rounded-full ${disposition === type.id ? 'bg-white' : 'bg-gray-300'}`} />
+                                                                {type.label}
+                                                            </button>
+                                                        ))}
+                                                    </div>
+                                                    <AnimatePresence>
+                                                        {disposition === 'RUJUK' && (
+                                                            <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }}>
+                                                                <input
+                                                                    placeholder="Rujuk ke RS mana / Alasan..."
+                                                                    className="w-full p-3 rounded-xl border border-blue-200 focus:ring-2 focus:ring-blue-500"
+                                                                    value={referralNote}
+                                                                    onChange={e => setReferralNote(e.target.value)}
+                                                                />
+                                                            </motion.div>
+                                                        )}
+                                                    </AnimatePresence>
+                                                </div>
+                                            </div>
+
+                                            {/* RIGHT COLUMN: Prescriptions & Service Orders */}
+                                            <div className="space-y-6">
+                                                {/* E-PRESCRIPTION UI */}
+                                                <div className="bg-white dark:bg-gray-800 p-6 rounded-[24px] border border-gray-100 dark:border-gray-700 space-y-4 h-fit">
+                                                    <div className="flex justify-between items-center">
+                                                        <h4 className="font-bold text-sm text-gray-600 dark:text-gray-300 uppercase tracking-wider">Prescription Items</h4>
                                                         <button
                                                             type="button"
                                                             onClick={() => setShowMedSelector(!showMedSelector)}
-                                                            className="text-xs font-bold text-blue-600 bg-blue-50 px-3 py-1 rounded-lg hover:bg-blue-100"
+                                                            className="text-xs font-bold text-blue-600 bg-blue-50 px-3 py-2 rounded-lg hover:bg-blue-100 transition"
                                                         >
                                                             + Add Medicine
                                                         </button>
@@ -857,77 +930,76 @@ const DoctorDashboard = () => {
                                                     )}
 
                                                     {/* Selected Items List */}
-                                                    <div className="space-y-2">
+                                                    <div className="space-y-2 min-h-[100px] max-h-[400px] overflow-y-auto custom-scrollbar">
                                                         <AnimatePresence>
                                                             {prescriptionItems.map((item, idx) => (
                                                                 <motion.div
-                                                                    key={item.medicine_id} // Use medicine_id for stable key
+                                                                    key={item.medicine_id}
                                                                     initial={{ opacity: 0, y: -10 }}
                                                                     animate={{ opacity: 1, y: 0 }}
                                                                     exit={{ opacity: 0, x: -20 }}
-                                                                    transition={{ duration: 0.2 }}
                                                                     className="flex items-center gap-2 bg-gray-50 dark:bg-gray-700/50 p-2 rounded-xl text-sm"
                                                                 >
-                                                                    <div className="font-bold flex-1">{item.name}</div>
+                                                                    <div className="font-bold flex-1 truncate">{item.name}</div>
                                                                     <input
                                                                         type="number"
-                                                                        className="w-16 p-1 rounded-lg bg-white dark:bg-gray-600 font-bold text-center"
+                                                                        className="w-14 p-1 rounded-lg bg-white dark:bg-gray-600 font-bold text-center border-none"
                                                                         value={item.quantity}
                                                                         onChange={e => updateItem(idx, 'quantity', parseInt(e.target.value))}
                                                                     />
                                                                     <input
                                                                         type="text"
-                                                                        className="w-32 p-1 rounded-lg bg-white dark:bg-gray-600 font-medium"
+                                                                        className="w-24 p-1 rounded-lg bg-white dark:bg-gray-600 font-medium border-none"
                                                                         value={item.dosage}
                                                                         onChange={e => updateItem(idx, 'dosage', e.target.value)}
-                                                                        placeholder="3x1..."
+                                                                        placeholder="Dosage"
                                                                     />
-                                                                    <button type="button" onClick={() => removeItem(idx)} className="text-red-500 p-1"><Trash2 size={16} /></button>
+                                                                    <button type="button" onClick={() => removeItem(idx)} className="text-red-400 hover:text-red-500 p-1"><Trash2 size={16} /></button>
                                                                 </motion.div>
                                                             ))}
                                                         </AnimatePresence>
-
-                                                        {/* CDS ALERT MODAL (If we wanted modal, but using Toast for now. Keeping placeholder if needed later) */}
-                                                        {/* Currently handling via checkDrugInteraction return + Toast */}
-                                                        {prescriptionItems.length === 0 && <div className="text-xs text-gray-400 italic text-center py-2">No medicines selected</div>}
+                                                        {prescriptionItems.length === 0 && <div className="text-xs text-gray-400 italic text-center py-10 border-2 border-dashed border-gray-100 rounded-xl">No medicines selected</div>}
                                                     </div>
                                                 </div>
 
                                                 {/* SERVICE ORDER BUTTONS */}
-                                                <div className="grid grid-cols-2 gap-4">
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => setShowOrderModal('LAB')}
-                                                        className="p-4 rounded-xl border-2 border-dashed border-blue-200 dark:border-blue-800 text-blue-500 font-bold hover:bg-blue-50 dark:hover:bg-blue-900/20 transition flex items-center justify-center gap-2"
-                                                    >
-                                                        <Activity size={20} /> Order Lab
-                                                    </button>
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => setShowOrderModal('RAD')}
-                                                        className="p-4 rounded-xl border-2 border-dashed border-purple-200 dark:border-purple-800 text-purple-500 font-bold hover:bg-purple-50 dark:hover:bg-purple-900/20 transition flex items-center justify-center gap-2"
-                                                    >
-                                                        <Activity size={20} /> Order Radiology
-                                                    </button>
-                                                </div>
-
-                                                {/* Service Orders List */}
-                                                {serviceOrders.length > 0 && (
-                                                    <div className="space-y-2 mt-4">
-                                                        <h4 className="font-bold text-sm text-gray-500 uppercase">Pending Orders</h4>
-                                                        {serviceOrders.map((order, idx) => (
-                                                            <div key={idx} className="flex justify-between items-center bg-gray-50 dark:bg-gray-700/30 p-3 rounded-xl border border-gray-100 dark:border-gray-700">
-                                                                <div className="flex items-center gap-3">
-                                                                    <div className={`w-8 h-8 rounded-lg flex items-center justify-center font-bold text-xs ${order.type === 'LAB' ? 'bg-blue-100 text-blue-600' : 'bg-purple-100 text-purple-600'}`}>
-                                                                        {order.type}
-                                                                    </div>
-                                                                    <div className="text-sm font-medium dark:text-gray-300">{order.notes}</div>
-                                                                </div>
-                                                                <button type="button" onClick={() => removeOrder(idx)} className="text-red-400 hover:text-red-500"><X size={16} /></button>
-                                                            </div>
-                                                        ))}
+                                                <div className="bg-white dark:bg-gray-800 p-6 rounded-[24px] border border-gray-100 dark:border-gray-700 space-y-4">
+                                                    <h4 className="font-bold text-sm text-gray-600 dark:text-gray-300 uppercase tracking-wider">Service Orders</h4>
+                                                    <div className="grid grid-cols-2 gap-3">
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => setShowOrderModal('LAB')}
+                                                            className="py-4 rounded-xl border-2 border-dashed border-blue-200 dark:border-blue-800 text-blue-500 font-bold hover:bg-blue-50 dark:hover:bg-blue-900/20 transition flex flex-col items-center justify-center gap-2"
+                                                        >
+                                                            <Activity size={24} /> Order Lab
+                                                        </button>
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => setShowOrderModal('RAD')}
+                                                            className="py-4 rounded-xl border-2 border-dashed border-purple-200 dark:border-purple-800 text-purple-500 font-bold hover:bg-purple-50 dark:hover:bg-purple-900/20 transition flex flex-col items-center justify-center gap-2"
+                                                        >
+                                                            <Activity size={24} /> Order Rad
+                                                        </button>
                                                     </div>
-                                                )}
+
+                                                    {/* Service Orders List */}
+                                                    {serviceOrders.length > 0 && (
+                                                        <div className="space-y-2 mt-4">
+                                                            <h4 className="font-bold text-[10px] text-gray-400 uppercase">Pending Orders List</h4>
+                                                            {serviceOrders.map((order, idx) => (
+                                                                <div key={idx} className="flex justify-between items-center bg-gray-50 dark:bg-gray-700/30 p-3 rounded-xl border border-gray-100 dark:border-gray-700">
+                                                                    <div className="flex items-center gap-3">
+                                                                        <div className={`w-8 h-8 rounded-lg flex items-center justify-center font-bold text-xs ${order.type === 'LAB' ? 'bg-blue-100 text-blue-600' : 'bg-purple-100 text-purple-600'}`}>
+                                                                            {order.type}
+                                                                        </div>
+                                                                        <div className="text-sm font-medium dark:text-gray-300 truncate max-w-[150px]">{order.notes}</div>
+                                                                    </div>
+                                                                    <button type="button" onClick={() => removeOrder(idx)} className="text-gray-400 hover:text-red-500"><X size={16} /></button>
+                                                                </div>
+                                                            ))}
+                                                        </div>
+                                                    )}
+                                                </div>
                                             </div>
                                         </div>
 
@@ -943,13 +1015,24 @@ const DoctorDashboard = () => {
 
                                             <button
                                                 type="submit"
-                                                className="flex-[2] bg-blue-600 hover:bg-blue-700 text-white px-10 py-4 rounded-[20px] font-bold text-lg shadow-xl shadow-blue-600/30 transition-all hover:scale-105 active:scale-95 flex items-center justify-center gap-3"
+                                                disabled={isSigning}
+                                                className="flex-1 bg-slate-800 hover:bg-slate-900 text-white px-8 py-4 rounded-[20px] font-bold text-lg shadow-xl transition-all flex items-center justify-center gap-3"
                                             >
-                                                <Save size={20} /> Save Medical Record
+                                                <Save size={20} /> Save Draft
+                                            </button>
+
+                                            <button
+                                                type="button"
+                                                onClick={handleSignAndFinalize}
+                                                disabled={isSigning}
+                                                className="flex-1 bg-gradient-to-r from-blue-600 to-indigo-700 hover:shadow-blue-500/30 text-white px-8 py-4 rounded-[20px] font-black text-lg shadow-2xl transition-all hover:scale-105 active:scale-95 flex items-center justify-center gap-3"
+                                            >
+                                                {isSigning ? <Activity className="animate-spin" size={20} /> : <Shield size={20} />}
+                                                Sign & Finalize (TTE)
                                             </button>
                                         </div>
                                     </form>
-                                ) : (
+                                ) : viewMode === 'history' ? (
                                     <div className="space-y-6 max-w-4xl mx-auto">
                                         {patientHistory.length === 0 ? (
                                             <div className="text-center py-20 text-gray-400">No medical history found.</div>
@@ -965,12 +1048,22 @@ const DoctorDashboard = () => {
                                                                 Dr. {record.doctor?.name}
                                                             </div>
                                                         </div>
-                                                        <button
-                                                            onClick={() => { setSelectedDocRecord(record); setShowDocModal(true); }}
-                                                            className="flex items-center gap-2 text-xs font-bold text-blue-600 bg-blue-50 hover:bg-blue-100 px-3 py-1.5 rounded-lg transition"
-                                                        >
-                                                            <Printer size={14} /> Cetak Surat
-                                                        </button>
+                                                        <div className="flex gap-2">
+                                                            {(record.service_orders?.some(o => o.type === 'RAD') || record.assessment?.toLowerCase().includes('fracture') || record.assessment?.toLowerCase().includes('trauma')) && (
+                                                                <button
+                                                                    onClick={() => setActivePACSStudy({ id: `RDS-${record.id}`, patientName: record.patient?.name })}
+                                                                    className="flex items-center gap-2 text-xs font-bold text-purple-600 bg-purple-50 hover:bg-purple-100 px-3 py-1.5 rounded-lg transition"
+                                                                >
+                                                                    <Activity size={14} /> View Radiology
+                                                                </button>
+                                                            )}
+                                                            <button
+                                                                onClick={() => { setSelectedDocRecord(record); setShowDocModal(true); }}
+                                                                className="flex items-center gap-2 text-xs font-bold text-blue-600 bg-blue-50 hover:bg-blue-100 px-3 py-1.5 rounded-lg transition"
+                                                            >
+                                                                <Printer size={14} /> Cetak Surat
+                                                            </button>
+                                                        </div>
                                                     </div>
                                                     <div className="grid grid-cols-2 gap-4 text-sm">
                                                         <div className="bg-blue-50/50 dark:bg-gray-700/30 p-4 rounded-xl">
@@ -994,85 +1087,177 @@ const DoctorDashboard = () => {
                                             ))
                                         )}
                                     </div>
+                                ) : (
+                                    <div className="max-w-6xl mx-auto space-y-8">
+                                        {/* DMF Sub-Tabs */}
+                                        <div className="flex gap-4 bg-slate-100 dark:bg-slate-800/50 p-2 rounded-2xl w-fit mb-4 overflow-x-auto">
+                                            {['forms', 'monitoring', 'calculators', 'implants', 'dialysis', 'teaching'].map(tab => (
+                                                <button
+                                                    key={tab}
+                                                    onClick={() => setDmfTab(tab)}
+                                                    className={`px-6 py-2 rounded-xl font-black text-xs uppercase tracking-widest transition-all whitespace-nowrap
+                                                        ${dmfTab === tab ? 'bg-white dark:bg-slate-900 text-blue-600 shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}
+                                                >
+                                                    {tab}
+                                                </button>
+                                            ))}
+                                        </div>
+
+                                        {dmfTab === 'forms' && (
+                                            <>
+                                                {!selectedTemplate ? (
+                                                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                                                        {templates.map(tmp => (
+                                                            <motion.div
+                                                                key={tmp.id}
+                                                                whileHover={{ scale: 1.02, translateY: -5 }}
+                                                                whileTap={{ scale: 0.98 }}
+                                                                onClick={() => setSelectedTemplate(tmp)}
+                                                                className="bg-white dark:bg-slate-900 p-8 rounded-[40px] shadow-xl border border-slate-100 dark:border-slate-800 cursor-pointer group"
+                                                            >
+                                                                <div className="w-16 h-16 bg-blue-100 dark:bg-blue-500/10 rounded-3xl flex items-center justify-center text-blue-600 mb-6 group-hover:bg-blue-600 group-hover:text-white transition-all">
+                                                                    <FileText size={32} />
+                                                                </div>
+                                                                <h3 className="text-2xl font-black mb-2">{tmp.name}</h3>
+                                                                <p className="text-slate-500 text-sm mb-6">{tmp.description}</p>
+                                                                <div className="flex justify-between items-center">
+                                                                    <span className="text-xs font-black uppercase text-blue-600 tracking-widest">{tmp.category}</span>
+                                                                    <ChevronRight size={20} className="text-slate-300" />
+                                                                </div>
+                                                            </motion.div>
+                                                        ))}
+                                                    </div>
+                                                ) : (
+                                                    <div className="space-y-6">
+                                                        <button
+                                                            onClick={() => setSelectedTemplate(null)}
+                                                            className="flex items-center gap-2 text-slate-500 font-bold hover:text-blue-600 transition-colors"
+                                                        >
+                                                            <ArrowLeft size={20} /> Kembali ke Daftar Form
+                                                        </button>
+                                                        <DynamicForm
+                                                            template={selectedTemplate}
+                                                            isSubmitting={dmfSubmitting}
+                                                            onSubmit={handleSaveDMF}
+                                                        />
+                                                    </div>
+                                                )}
+                                            </>
+                                        )}
+
+                                        {dmfTab === 'monitoring' && (
+                                            <FluidBalanceChart admissionId={selectedQueue.admission_id} />
+                                        )}
+
+                                        {dmfTab === 'calculators' && (
+                                            <ClinicalCalculators />
+                                        )}
+
+                                        {dmfTab === 'implants' && (
+                                            <ImplantTracker
+                                                patientId={selectedQueue.patient_id}
+                                                medicalRecordId={selectedQueue.medical_records?.[0]?.id}
+                                                admissionId={selectedQueue.admission_id}
+                                            />
+                                        )}
+
+                                        {dmfTab === 'dialysis' && (
+                                            <div className="bg-white dark:bg-slate-900 rounded-[40px] p-12 shadow-2xl border border-slate-200 dark:border-slate-800 text-center">
+                                                <Activity size={64} className="mx-auto text-blue-500 mb-6 opacity-20" />
+                                                <h2 className="text-3xl font-black mb-2">Hemodialysis Module</h2>
+                                                <p className="text-slate-500 max-w-md mx-auto">Dialyzer reuse tracking and session monitoring for renal unit. Specialized HD EMR integration is currently being prepared.</p>
+                                            </div>
+                                        )}
+
+                                        {dmfTab === 'teaching' && (
+                                            <div className="space-y-8">
+                                                {/* Hierarchy Actions */}
+                                                {(user?.role === 'DPJP' || user?.role === 'ADMIN') && (
+                                                    <div className="bg-blue-600/5 border border-blue-500/20 p-8 rounded-[40px]">
+                                                        <h3 className="text-xl font-black text-blue-600 mb-6 flex items-center gap-2">
+                                                            <CheckCircle size={20} /> Verification Queue (DPJP Only)
+                                                        </h3>
+                                                        <div className="space-y-4">
+                                                            {pendingVerification.length === 0 ? (
+                                                                <div className="text-slate-500 text-center py-10 opacity-50">
+                                                                    <Activity size={48} className="mx-auto mb-4" />
+                                                                    <p className="font-bold">No records pending your verification.</p>
+                                                                </div>
+                                                            ) : (
+                                                                pendingVerification.map(rec => (
+                                                                    <div key={rec.id} className="bg-white dark:bg-slate-900 p-6 rounded-3xl border border-blue-100 flex justify-between items-center">
+                                                                        <div>
+                                                                            <div className="font-black">{rec.patient?.name}</div>
+                                                                            <div className="text-xs text-slate-500">Subjective: {rec.subjective?.substring(0, 50)}...</div>
+                                                                            <div className="text-[10px] mt-2 font-black text-blue-600 bg-blue-50 px-2 py-1 rounded inline-block">BY: {rec.doctor?.name}</div>
+                                                                        </div>
+                                                                        <button
+                                                                            onClick={() => handleVerifyRecord(rec.id)}
+                                                                            className="px-6 py-3 bg-blue-600 text-white rounded-xl font-black text-xs hover:bg-blue-700 transition"
+                                                                        >
+                                                                            Verify & Finalize
+                                                                        </button>
+                                                                    </div>
+                                                                ))
+                                                            )}
+                                                        </div>
+                                                    </div>
+                                                )}
+
+                                                <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+                                                    <button
+                                                        onClick={() => setShowAssessment(!showAssessment)}
+                                                        className="p-10 bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-[40px] text-left hover:border-blue-500 transition-all group"
+                                                    >
+                                                        <div className="w-12 h-12 bg-amber-100 dark:bg-amber-500/10 rounded-2xl flex items-center justify-center text-amber-600 mb-6 group-hover:scale-110 transition-transform">
+                                                            <Star size={24} />
+                                                        </div>
+                                                        <h4 className="text-xl font-black mb-2">Academic Assessment</h4>
+                                                        <p className="text-sm text-slate-500">Conduct Mini-CEX or DOPS evaluation.</p>
+                                                    </button>
+
+                                                    <div className="p-10 bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-[40px] text-left">
+                                                        <div className="w-12 h-12 bg-indigo-100 dark:bg-indigo-500/10 rounded-2xl flex items-center justify-center text-indigo-600 mb-6">
+                                                            <History size={24} />
+                                                        </div>
+                                                        <h4 className="text-xl font-black mb-2">Logbook Integration</h4>
+                                                        <p className="text-sm text-slate-500">Automated synchronization of clinical cases.</p>
+                                                    </div>
+
+                                                    <button
+                                                        onClick={handleResearchExport}
+                                                        className="p-10 bg-gradient-to-br from-indigo-600 to-purple-700 text-white rounded-[40px] text-left hover:scale-[1.02] transition-all shadow-xl shadow-indigo-500/20"
+                                                    >
+                                                        <div className="w-12 h-12 bg-white/20 rounded-2xl flex items-center justify-center mb-6">
+                                                            <Search size={24} />
+                                                        </div>
+                                                        <h4 className="text-xl font-black mb-2 text-white">Research Data</h4>
+                                                        <p className="text-sm text-white/70">Export anonymized data for clinical research (PDP Law Compliant).</p>
+                                                    </button>
+                                                </div>
+
+                                                {showAssessment && (
+                                                    <AssessmentForms
+                                                        studentId={101} // Mock student ID
+                                                        medicalRecordId={selectedQueue.id}
+                                                        onSubmit={(data) => {
+                                                            toast.success(`Assessment ${data.type} finalized!`);
+                                                            setShowAssessment(false);
+                                                        }}
+                                                    />
+                                                )}
+                                            </div>
+                                        )}
+                                    </div>
                                 )}
-                            </div>
+                            </div >
                         </>
                     )}
-                </div>
-            </div>
-            {/* ADMISSION MODAL */}
-            <AnimatePresence>
-                {showAdmissionModal && (
-                    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-                        <motion.div
-                            initial={{ scale: 0.9, opacity: 0 }}
-                            animate={{ scale: 1, opacity: 1 }}
-                            exit={{ scale: 0.9, opacity: 0 }}
-                            className="bg-white dark:bg-gray-800 w-full max-w-2xl rounded-[32px] p-6 shadow-2xl border border-white/20"
-                        >
-                            <h2 className="text-2xl font-bold mb-2 dark:text-white">Admit to Inpatient / Rawat Inap</h2>
-                            <p className="text-gray-500 mb-6">Select a bed for the patient.</p>
-
-                            <div className="mb-6">
-                                <label className="block text-sm font-bold text-gray-500 mb-2 uppercase">Diagnosis for Admission (Diagnosa Masuk)</label>
-                                <input
-                                    type="text"
-                                    className="w-full p-4 bg-gray-50 dark:bg-gray-700 rounded-xl font-bold dark:text-white border-none focus:ring-2 focus:ring-blue-500"
-                                    placeholder="Isi diagnosa awal..."
-                                    value={admissionDiagnosis}
-                                    onChange={e => setAdmissionDiagnosis(e.target.value)}
-                                />
-                            </div>
-
-                            <div className="mb-6">
-                                <label className="block text-sm font-bold text-gray-500 mb-2 uppercase">Available Beds</label>
-                                <div className="grid grid-cols-2 md:grid-cols-3 gap-3 max-h-[250px] overflow-y-auto pr-2">
-                                    {availableBeds.length === 0 ? (
-                                        <div className="col-span-full text-center py-10 text-gray-400 bg-gray-50 dark:bg-gray-700/50 rounded-2xl border-2 border-dashed border-gray-200 dark:border-gray-600">
-                                            <div className="font-bold">No Available Beds</div>
-                                            <div className="text-xs mt-1">Check Admission Dashboard</div>
-                                        </div>
-                                    ) : (
-                                        availableBeds.map(bed => (
-                                            <div
-                                                key={bed.id}
-                                                onClick={() => setSelectedBed(bed.id)}
-                                                className={`p-4 rounded-xl border-2 cursor-pointer transition-all ${selectedBed === bed.id
-                                                    ? 'border-green-500 bg-green-50 dark:bg-green-900/20 ring-2 ring-green-500 ring-offset-2 dark:ring-offset-gray-800'
-                                                    : 'bg-white dark:bg-gray-700 border-gray-100 dark:border-gray-600 hover:border-blue-400'
-                                                    }`}
-                                            >
-                                                <div className="font-bold text-lg dark:text-white">{bed.code}</div>
-                                                <div className="text-xs text-gray-500 dark:text-gray-400">{bed.roomName}</div>
-                                                <div className="text-[10px] font-bold text-green-600 mt-2 bg-green-100 dark:bg-green-900/40 w-fit px-2 py-0.5 rounded-full">AVAILABLE</div>
-                                            </div>
-                                        ))
-                                    )}
-                                </div>
-                            </div>
-
-                            <div className="flex gap-4">
-                                <button
-                                    onClick={() => setShowAdmissionModal(false)}
-                                    className="flex-1 py-4 font-bold text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-2xl transition"
-                                >
-                                    Cancel
-                                </button>
-                                <button
-                                    onClick={handleAdmitPatient}
-                                    disabled={!selectedBed || !admissionDiagnosis}
-                                    className="flex-1 py-4 bg-green-600 hover:bg-green-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-white rounded-2xl font-bold shadow-lg shadow-green-600/30 transition transform hover:-translate-y-1"
-                                >
-                                    Confirm Admission
-                                </button>
-                            </div>
-                        </motion.div>
-                    </div>
-                )}
-            </AnimatePresence>
+                </div >
+            </div >
 
             {/* Service Order Modal */}
-            <AnimatePresence>
+            < AnimatePresence >
                 {showOrderModal && (
                     <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
                         <motion.div
@@ -1109,10 +1294,10 @@ const DoctorDashboard = () => {
                         </motion.div>
                     </div>
                 )}
-            </AnimatePresence>
+            </AnimatePresence >
 
             {/* Smart Document Modal */}
-            <AnimatePresence>
+            < AnimatePresence >
                 {showDocModal && (
                     <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
                         <motion.div
@@ -1168,7 +1353,7 @@ const DoctorDashboard = () => {
                         </motion.div>
                     </div>
                 )}
-            </AnimatePresence>
+            </AnimatePresence >
         </PageWrapper >
     );
 };

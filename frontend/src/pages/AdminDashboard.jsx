@@ -51,6 +51,13 @@ const LiveStatusSection = memo(({ doctors, leaves, isConnected }) => {
 
 const AdminDashboard = () => {
     const navigate = useNavigate();
+    const { doctors, isConnected, initialize, generateQuota } = useQueueStore();
+
+    const [activeTab, setActiveTab] = useState('dashboard');
+    const [loading, setLoading] = useState(true);
+    const [leaves, setLeaves] = useState([]);
+    const [analytics, setAnalytics] = useState({ totalPatients: 0, pieChartData: [], barChartData: [] });
+    const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
 
     useEffect(() => {
         const init = async () => {
@@ -60,7 +67,7 @@ const AdminDashboard = () => {
             setLoading(false);
         };
         init();
-    }, [initialize, selectedDate]);
+    }, [selectedDate]);
 
     const fetchLeaves = async () => {
         try {

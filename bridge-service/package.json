@@ -1,0 +1,27 @@
+{
+    "name": "fallonava-bridge-service",
+    "version": "1.0.0",
+    "description": "Microservice for Indonesian Government Health Systems Integration",
+    "main": "src/app.js",
+    "scripts": {
+        "start": "node src/app.js",
+        "dev": "nodemon src/app.js",
+        "worker": "node src/workers/index.js"
+    },
+    "dependencies": {
+        "express": "^4.18.2",
+        "bullmq": "^4.14.0",
+        "ioredis": "^5.3.2",
+        "@prisma/client": "^5.7.0",
+        "axios": "^1.6.2",
+        "dotenv": "^16.3.1",
+        "winston": "^3.11.0",
+        "cors": "^2.8.5",
+        "@ahryman40k/ts-fhir-types": "^4.0.37",
+        "exceljs": "^4.3.0",
+        "xml2js": "^0.6.2"
+    },
+    "devDependencies": {
+        "nodemon": "^3.0.2"
+    }
+}

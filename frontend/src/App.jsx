@@ -8,10 +8,14 @@ import CommandPalette from './components/CommandPalette';
 import PageWrapper from './components/PageWrapper';
 import PageLoader from './components/PageLoader';
 import SmoothScroll from './components/SmoothScroll';
+import { io } from 'socket.io-client';
+import { NotificationContainer } from './components/NotificationToast';
+
+const SOCKET_URL = import.meta.env.VITE_SOCKET_URL || 'http://localhost:3000';
 
 // Lazy Load Pages
 const AdminDashboard = React.lazy(() => import('./pages/AdminDashboard'));
-const Kiosk = React.lazy(() => import('./pages/Kiosk'));
+
 const Counter = React.lazy(() => import('./pages/Counter'));
 const MasterData = React.lazy(() => import('./pages/MasterData'));
 const Login = React.lazy(() => import('./pages/Login'));
@@ -41,6 +45,8 @@ const BedHeadUnit = React.lazy(() => import('./pages/BedHeadUnit')); // Tablet M
 const InpatientNurseDashboard = React.lazy(() => import('./pages/InpatientNurseDashboard'));
 const NutritionKitchen = React.lazy(() => import('./pages/NutritionKitchen')); // Phase 6
 const NutritionOrder = React.lazy(() => import('./pages/NutritionOrder')); // Phase 6 (Nurse View)
+const Kiosk = React.lazy(() => import('./pages/Kiosk')); // On-Site Kiosk
+const OnlineBooking = React.lazy(() => import('./pages/OnlineBooking')); // Web Booking / MJKN
 const NurseStation = React.lazy(() => import('./pages/NurseStation')); // Phase 2b: CPPT
 const DischargeDashboard = React.lazy(() => import('./pages/DischargeDashboard')); // Phase 2b: Discharge
 const MedicalRecords = React.lazy(() => import('./pages/MedicalRecords')); // Phase 1: Archive
@@ -49,6 +55,9 @@ const HRDashboard = React.lazy(() => import('./pages/HRDashboard')); // Phase 8
 const FinanceDashboard = React.lazy(() => import('./pages/FinanceDashboard')); // Phase 9
 const InventoryDashboard = React.lazy(() => import('./pages/InventoryDashboard')); // Phase 2: Logistics
 const CasemixDashboard = React.lazy(() => import('./pages/CasemixDashboard')); // Phase 2b: Claims
+const BackOfficeDashboard = React.lazy(() => import('./pages/BackOfficeDashboard'));
+const IntegrationDashboard = React.lazy(() => import('./pages/IntegrationDashboard'));
+const MedicalSupport = React.lazy(() => import('./pages/MedicalSupport'));
 
 function AnimatedRoutes() {
   const location = useLocation();
@@ -68,7 +77,7 @@ function AnimatedRoutes() {
           {/* Public Queue Display (TV Mode) */}
           <Route path="/queue-display" element={<QueueDisplay />} />
 
-          <Route path="/kiosk" element={<PageWrapper><Kiosk /></PageWrapper>} />
+
           <Route path="/counter" element={<PageWrapper><Counter /></PageWrapper>} />
           <Route path="/queue-status/:ticketId" element={<PageWrapper><QueueStatus /></PageWrapper>} />
           <Route path="/public/schedule" element={<PageWrapper><PublicSchedule /></PageWrapper>} />
@@ -124,11 +133,20 @@ function AnimatedRoutes() {
             <Route path="/admission" element={<PageWrapper><AdmissionDashboard /></PageWrapper>} />
 
             {/* Phase 6: Nurse Monitoring */}
+            <Route path="/back-office" element={<PageWrapper><BackOfficeDashboard /></PageWrapper>} />
+            <Route path="/integration" element={<PageWrapper><IntegrationDashboard /></PageWrapper>} />
+            <Route path="/medical-support" element={<PageWrapper><MedicalSupport /></PageWrapper>} />
             {/* <Route path="/inpatient/beds" element={<PageWrapper><BedManagement /></PageWrapper>} /> Consolidated into Admission */}
             <Route path="/nurse/station" element={<PageWrapper><NurseStation /></PageWrapper>} />
             <Route path="/nurse/discharge" element={<PageWrapper><DischargeDashboard /></PageWrapper>} />
             <Route path="/nutrition" element={<PageWrapper><NutritionKitchen /></PageWrapper>} />
             <Route path="/nurse/diet" element={<PageWrapper><NutritionOrder /></PageWrapper>} />
+
+            {/* Kiosk / Anjungan Mandiri (On-Site) */}
+            <Route path="/kiosk" element={<PageWrapper><Kiosk /></PageWrapper>} />
+
+            {/* Online Booking (Web / Mobile JKN) */}
+            <Route path="/booking" element={<PageWrapper><OnlineBooking /></PageWrapper>} />
             <Route path="/hr" element={<PageWrapper><HRDashboard /></PageWrapper>} />
             <Route path="/finance" element={<PageWrapper><FinanceDashboard /></PageWrapper>} />
             <Route path="/casemix" element={<PageWrapper><CasemixDashboard /></PageWrapper>} />
@@ -150,11 +168,51 @@ function AnimatedRoutes() {
 }
 
 function App() {
+  const [notifications, setNotifications] = React.useState([]);
+  const { user } = useAuthStore();
+
+  React.useEffect(() => {
+    if (!user) return;
+
+    const socket = io(SOCKET_URL, {
+      transports: ['websocket'],
+      autoConnect: true
+    });
+
+    socket.on('PATIENT_CHECKIN', (data) => {
+      console.log('REAL-TIME: Patient Arrived', data);
+
+      // Play subtle notification sound (Premium feel)
+      try {
+        const audio = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3');
+        audio.volume = 0.4;
+        audio.play();
+      } catch (e) { console.warn("Audio play failed", e); }
+
+      setNotifications(prev => [...prev, { ...data, id: Date.now() }]);
+    });
+
+    // Also listen for general admissions if needed
+    socket.on('admission_update', (data) => {
+      console.log('Admission update:', data);
+    });
+
+    return () => socket.disconnect();
+  }, [user]);
+
+  const removeNotification = (id) => {
+    setNotifications(prev => prev.filter(n => n.id !== id));
+  };
+
   return (
     <BrowserRouter>
-      <SmoothScroll />
+      <ThemeToggle />
       <CommandPalette />
       <AnimatedRoutes />
+      <NotificationContainer
+        notifications={notifications}
+        removeNotification={removeNotification}
+      />
     </BrowserRouter>
   );
 }

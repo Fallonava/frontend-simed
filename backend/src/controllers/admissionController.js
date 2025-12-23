@@ -124,6 +124,18 @@ exports.checkIn = async (req, res) => {
             });
         });
 
+        // BPJS APPLICARE SYNC (Async)
+        const bpjsService = require('../services/bpjsService');
+        const bed = await prisma.bed.findUnique({ where: { id: parseInt(bedId) }, include: { room: true } });
+        bpjsService.updateBedApplicare({
+            koderuang: bed.room.name,
+            kotealas: bed.room.type, // Map appropriate code
+            tersedia: 0, // Not available anymore
+            tersediapria: 0,
+            tersediawanita: 0,
+            tersediapriawanita: 0
+        }).catch(err => console.error("Applicare Sync Error:", err));
+
         // SOCKET EMIT
         req.io.emit('admission_update', { type: 'CHECKIN', patientId, bedId });
 
@@ -227,6 +239,20 @@ exports.checkOut = async (req, res) => {
             return { transaction, diffDays, grandTotal };
         });
 
+        // BPJS APPLICARE SYNC (Async)
+        const bpjsService = require('../services/bpjsService');
+        const bed = await prisma.bed.findUnique({ where: { id: parseInt(bedId) }, include: { room: true } });
+        // NOTE: Checkout usually moves to CLEANING, which is still not available for new patient
+        // We'll sync when it marks as AVAILABLE
+        bpjsService.updateBedApplicare({
+            koderuang: bed.room.name,
+            kotealas: bed.room.type,
+            tersedia: 0, // Still not available (Cleaning)
+            tersediapria: 0,
+            tersediawanita: 0,
+            tersediapriawanita: 0
+        }).catch(err => console.error("Applicare Sync Checkout Error:", err));
+
         // SOCKET EMIT
         req.io.emit('admission_update', { type: 'CHECKOUT', bedId });
 
@@ -250,6 +276,20 @@ exports.updateBedStatus = async (req, res) => {
             where: { id: parseInt(bedId) },
             data: { status }
         });
+
+        // BPJS APPLICARE SYNC (If available)
+        if (status === 'AVAILABLE') {
+            const bpjsService = require('../services/bpjsService');
+            const bed = await prisma.bed.findUnique({ where: { id: parseInt(bedId) }, include: { room: true } });
+            bpjsService.updateBedApplicare({
+                koderuang: bed.room.name,
+                kotealas: bed.room.type,
+                tersedia: 1,
+                tersediapria: 1,
+                tersediawanita: 1,
+                tersediapriawanita: 1
+            }).catch(err => console.error("Applicare Sync Status Error:", err));
+        }
 
         // SOCKET EMIT
         req.io.emit('admission_update', { type: 'BED_STATUS', bedId, status });

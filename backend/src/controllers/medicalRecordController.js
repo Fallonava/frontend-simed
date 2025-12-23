@@ -22,7 +22,11 @@ exports.create = async (req, res) => {
                 weight: req.body.weight ? parseFloat(req.body.weight) : null,
                 height: req.body.height ? parseFloat(req.body.height) : null,
                 disposition: req.body.disposition || null,
-                icd10_code: req.body.icd10_code || null
+                icd10_code: req.body.icd10_code || null,
+
+                // Teaching Hospital Logic
+                status: req.user.role === 'KOAS' ? 'DRAFT' : (req.user.role === 'RESIDENT' ? 'PROVISIONAL' : 'FINAL'),
+                created_by_id: req.user.id
             },
             include: {
                 patient: true,
@@ -86,10 +90,13 @@ exports.getHistory = async (req, res) => {
 
 exports.getAll = async (req, res) => {
     const { prisma } = req;
-    const { search } = req.query;
+    const { search, status } = req.query;
 
     try {
         const where = {};
+        if (status) {
+            where.status = status;
+        }
         if (search) {
             where.OR = [
                 { patient: { name: { contains: search } } },
@@ -113,5 +120,71 @@ exports.getAll = async (req, res) => {
     } catch (error) {
         console.error(error);
         res.status(500).json({ error: 'Failed to fetch all records' });
+    }
+};
+
+exports.signRecord = async (req, res) => {
+    const { prisma } = req;
+    const { id } = req.params;
+    const { doctor_id } = req.body;
+
+    try {
+        const TTEProvider = require('../utils/TTEProvider');
+
+        // 1. Get the medical record
+        const record = await prisma.medicalRecord.findUnique({
+            where: { id: parseInt(id) },
+            include: {
+                patient: true,
+                doctor: true
+            }
+        });
+
+        if (!record) {
+            return res.status(404).json({ error: 'Medical record not found' });
+        }
+
+        // 2. Generate PDF buffer (simplified mock - in production use pdfkit or puppeteer)
+        const documentBuffer = Buffer.from(`MEDICAL RECORD #${record.id} - ${record.patient.name}`);
+
+        // 3. Sign with TTE Provider
+        const signResult = await TTEProvider.signDocument(documentBuffer, {
+            name: record.doctor.name,
+            nik: record.doctor.nik || '1234567890123456',
+            specialist: record.doctor.specialist
+        });
+
+        if (!signResult.success) {
+            return res.status(500).json({ error: 'TTE Signing Failed' });
+        }
+
+        // 4. Update record with signature metadata
+        const updated = await prisma.medicalRecord.update({
+            where: { id: parseInt(id) },
+            data: {
+                is_signed: true,
+                signed_at: new Date(),
+                tte_metadata: signResult.metadata,
+                status: 'FINAL'
+            }
+        });
+
+        // 5. Lock the record by marking queue as SERVED
+        if (record.queue_id) {
+            await prisma.queue.update({
+                where: { id: record.queue_id },
+                data: { status: 'SERVED' }
+            });
+        }
+
+        res.json({
+            success: true,
+            record: updated,
+            signature: signResult.metadata
+        });
+
+    } catch (error) {
+        console.error('TTE Signing Error:', error);
+        res.status(500).json({ error: 'Failed to sign medical record' });
     }
 };

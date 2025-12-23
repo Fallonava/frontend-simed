@@ -430,7 +430,8 @@ const RegistrationIGD = () => {
         try {
             const res = await api.post('/queue/ticket', {
                 doctor_id: selectedDoctor,
-                patient_id: patientFound.id
+                patient_id: patientFound.id,
+                payment_type: paymentType
             });
 
             // Prepare Ticket Data

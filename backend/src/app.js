@@ -37,29 +37,36 @@ app.use(helmet({
 app.use(compression());
 app.use(morgan('dev')); // Log requests
 
-app.get('/', (req, res) => {
-    res.json({ message: "Hospital API is running", status: "OK", timestamp: new Date() });
-});
-
-app.get('/api/time', (req, res) => {
-    res.json({ time: new Date() });
-});
-
-const defaultOrigins = ["http://localhost:5173", "http://127.0.0.1:5173", "http://localhost:5174", "https://frontend-simed.vercel.app", "http://13.210.197.247", "https://app.fallonava.my.id"];
-const envOrigins = process.env.CORS_ORIGIN ? process.env.CORS_ORIGIN.split(',') : [];
+const prisma = new PrismaClient();
 
 const checkOrigin = (origin, callback) => {
-    // console.log('Check Origin:', origin); // DEBUG: Log only if needed
-    if (!origin) return callback(null, true); // Allow non-browser agents (e.g. Postman, Server-to-Server)
+    if (!origin) return callback(null, true);
+    const allowedPatterns = [
+        /^http:\/\/localhost(:\d+)?$/,
+        /^http:\/\/127\.0\.0\.1(:\d+)?$/,
+        /^http:\/\/192\.168\.\d+\.\d+(:\d+)?$/,
+        /^http:\/\/172\.(1[6-9]|2[0-9]|3[0-1])\.\d+\.\d+(:\d+)?$/,
+        /^http:\/\/10\.\d+\.\d+\.\d+(:\d+)?$/,
+        /\.vercel\.app$/,
+        /\.fallonava\.my\.id$/
+    ];
 
-    const allowed = [...defaultOrigins, ...envOrigins];
-    if (allowed.includes(origin) || origin.startsWith('http://192.168.') || origin.startsWith('http://172.') || origin.startsWith('http://10.')) {
+    const isAllowed = allowedPatterns.some(pattern => pattern.test(origin));
+
+    if (isAllowed) {
         callback(null, true);
     } else {
         console.warn(`[CORS BLOCK] Origin: ${origin} not allowed.`);
         callback(new Error('Not allowed by CORS'));
     }
 };
+
+app.use(cors({
+    origin: checkOrigin,
+    credentials: true,
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"]
+}));
 
 const io = new Server(server, {
     cors: {
@@ -68,12 +75,13 @@ const io = new Server(server, {
     }
 });
 
-const prisma = new PrismaClient();
+app.get('/', (req, res) => {
+    res.json({ message: "Hospital API is running", status: "OK", timestamp: new Date() });
+});
 
-app.use(cors({
-    origin: checkOrigin,
-    credentials: true
-}));
+app.get('/api/time', (req, res) => {
+    res.json({ time: new Date() });
+});
 app.use(express.json());
 const path = require('path');
 app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
@@ -96,6 +104,7 @@ app.use((req, res, next) => {
 
 // Auth Routes
 app.post('/api/auth/login', authController.login);
+app.post('/api/auth/login-patient', authController.loginPatient); // New
 app.get('/api/auth/me', authMiddleware, authController.me);
 
 // User Management Routes
@@ -152,6 +161,7 @@ app.post('/api/medical-records', authMiddleware, medicalRecordController.create)
 app.get('/api/medical-records/history', authMiddleware, medicalRecordController.getHistory); // By patient_id query
 app.get('/api/medical-records/all', authMiddleware, medicalRecordController.getAll); // Dashboard listing
 app.get('/api/medical-records/patient/:patient_id', authMiddleware, medicalRecordController.getByPatient);
+app.post('/api/medical-records/:id/sign', authMiddleware, medicalRecordController.signRecord);
 
 // Service Order Routes (CPOE: Lab/Rad)
 const serviceOrderController = require('./controllers/serviceOrderController');
@@ -168,12 +178,16 @@ app.post('/api/triage/:queueId/submit', authMiddleware, triageController.submitT
 const bpjsController = require('./controllers/bpjsController');
 app.post('/api/bpjs/check-participant', authMiddleware, bpjsController.checkParticipant);
 app.post('/api/bpjs/sep/insert', authMiddleware, bpjsController.createSEP);
+app.get('/api/bpjs/fingerprint/:patientId', authMiddleware, bpjsController.checkFingerprint);
+app.post('/api/bpjs/referral/internal', authMiddleware, bpjsController.createInternalReferral);
 
 // BPJS Antrean Online (Mock endpoints for Mobile JKN)
 const antreanController = require('./controllers/antreanController');
 app.get('/api/antrean/status/:kodepoli/:tanggal', antreanController.getStatusAntrean);
 app.get('/api/antrean/sisa', antreanController.getSisaAntrean);
 app.post('/api/antrean/ambil', antreanController.ambilAntrean);
+app.get('/api/antrean/pending-checkin', authMiddleware, antreanController.getPendingCheckin); // NEW
+app.post('/api/antrean/checkin', authMiddleware, antreanController.checkInBooking); // NEW
 
 // Inpatient / Admission Routes
 const admissionController = require('./controllers/admissionController');
@@ -188,6 +202,13 @@ const inpatientController = require('./controllers/inpatientController');
 app.get('/api/inpatient/:admissionId/clinical', authMiddleware, inpatientController.getClinicalData);
 app.post('/api/inpatient/:admissionId/observation', authMiddleware, inpatientController.addObservation);
 app.post('/api/inpatient/:admissionId/mar', authMiddleware, inpatientController.logMedication);
+
+// Specialized Service Routes
+app.use('/api/dmf', require('./routes/dmfRoutes'));
+app.use('/api/teaching', require('./routes/teachingRoutes'));
+app.use('/api/medical-support', require('./routes/medicalSupportRoutes'));
+app.use('/api/back-office', require('./routes/backOfficeRoutes'));
+app.use('/api/integration', require('./routes/integrationRoutes'));
 
 // Nutrition / Gizi Routes
 const nutritionController = require('./controllers/nutritionController');
@@ -313,9 +334,9 @@ app.put('/api/polies/:id', poliklinikController.update);
 app.delete('/api/polies/:id', poliklinikController.delete);
 
 app.get('/api/doctors-master', doctorController.getAll); // Different endpoint to avoid conflict with queueController.getDoctors
-app.post('/api/doctors', doctorController.create);
-app.put('/api/doctors/:id', doctorController.update);
-app.delete('/api/doctors/:id', doctorController.delete);
+app.post('/api/doctors-master', doctorController.create);
+app.put('/api/doctors-master/:id', doctorController.update);
+app.delete('/api/doctors-master/:id', doctorController.delete);
 
 // Doctor Leave Routes
 const doctorLeaveController = require('./controllers/doctorLeaveController');
