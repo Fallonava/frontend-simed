@@ -17,7 +17,7 @@ BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
 # Configuration
-APP_DIR="/var/www/simrs"  # Change this to your deployment path
+APP_DIR="/var/www/simed-app"  # Updated to match actual server path
 BACKEND_DIR="$APP_DIR/backend"
 DB_NAME="simrs_production"
 DB_USER="simrs_user"
