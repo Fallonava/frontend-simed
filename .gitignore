@@ -39,6 +39,7 @@ Thumbs.db
 
 # Database Dumps and Backups
 *.sql
+!backend/prisma/migrations/**/*.sql
 *.sqlite
 *.db
 

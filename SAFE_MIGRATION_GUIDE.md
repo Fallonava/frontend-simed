@@ -49,8 +49,8 @@ git push origin main
 ssh -i .\hospital-api.pem ubuntu@16.79.196.134
 
 # On server - pull latest code
-cd /var/www/simrs  # Adjust to your actual deployment path
-git pull origin main
+cd /var/www/simed-app
+git pull origin dev
 ```
 
 ### Step 4: Apply Migration Safely (Production)
@@ -85,7 +85,7 @@ npx prisma generate
 pm2 restart all
 
 # Or restart specific app
-pm2 restart simrs-backend
+pm2 restart simed-backend
 
 # Check status
 pm2 status
@@ -112,7 +112,7 @@ npx prisma migrate resolve --rolled-back "YYYYMMDDHHMMSS_migration_name"
 
 ```bash
 # Restore from backup (if you have one)
-pg_restore -U simrs_user -d simrs_production /path/to/backup.sql
+pg_restore -U simed_user -d simed_db /path/to/backup.sql
 ```
 
 ### Option 3: Cherry-pick Revert Commit
@@ -247,13 +247,13 @@ crontab -e
 # === ON SERVER (via SSH) ===
 
 # 1. Backup database
-sudo -u postgres pg_dump simrs_production > ~/simrs_backup_$(date +%Y%m%d_%H%M%S).sql
+sudo -u postgres pg_dump simed_db > ~/simed_db_backup_$(date +%Y%m%d_%H%M%S).sql
 
 # 2. Navigate to app directory
-cd /var/www/simrs
+cd /var/www/simed-app
 
 # 3. Pull latest code
-git pull origin main
+git pull origin dev
 
 # 4. Navigate to backend
 cd backend

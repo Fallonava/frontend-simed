@@ -188,7 +188,7 @@ ssh -i .\hospital-api.pem ubuntu@16.79.196.134
 
 ```
 /home/ubuntu/                    # User home directory
-/var/www/simrs/                 # Application root (typical)
+/var/www/simed-app/             # Application root (simed-app)
 ├── frontend/                   # React frontend build
 ├── backend/                    # Node.js backend
 ├── bridge-service/             # National integration bridge

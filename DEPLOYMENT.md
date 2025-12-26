@@ -28,8 +28,8 @@ You can use `scp` or `rsync` to transfer files, or pull from a Git repository.
 1.  SSH into your EC2 instance.
 2.  Clone your repository:
     ```bash
-    git clone <repository_url> simed
-    cd simed
+    git clone <repository_url> simed-app
+    cd simed-app
     ```
 
 **Option B: SCP**
