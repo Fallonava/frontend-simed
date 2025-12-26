@@ -16,7 +16,10 @@ import AssessmentForms from '../components/AssessmentForms';
 import PACSViewer from '../components/PACSViewer';
 import SoapForm from '../components/SoapForm';
 
+import useAuthStore from '../store/useAuthStore';
+
 const DoctorDashboard = () => {
+    const { user } = useAuthStore();
     const navigate = useNavigate();
     const [doctors, setDoctors] = useState([]);
     const [selectedDoctor, setSelectedDoctor] = useState(null);
@@ -507,7 +510,7 @@ const DoctorDashboard = () => {
             <Toaster position="top-center" toastOptions={{ className: 'backdrop-blur-md bg-white/80 dark:bg-gray-800/80' }} />
 
             <ModernHeader
-                title="Doctor Workstation"
+                title={`Good Morning, ${user?.username || 'Doctor'}`}
                 subtitle="EMR & Clinical Order Entry"
                 onBack={() => navigate('/menu')}
                 className="mb-6"

@@ -9,6 +9,11 @@ const ProtectedRoute = ({ allowedRoles }) => {
         return <Navigate to="/login" replace />;
     }
 
+    // Super Admin Bypass
+    if (user.role === 'SUPER_ADMIN') {
+        return <Outlet />;
+    }
+
     if (allowedRoles && !allowedRoles.includes(user.role)) {
         // Redirect based on role if unauthorized
         if (user.role === 'ADMIN') return <Navigate to="/admin/dashboard" replace />;

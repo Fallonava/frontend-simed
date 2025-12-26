@@ -29,7 +29,7 @@ const MainMenu = () => {
                     description: 'Emergency Department',
                     icon: <Siren size={28} />,
                     path: '/registration/igd',
-                    roles: ['ADMIN', 'STAFF'],
+                    roles: ['ADMIN', 'REGISTRATION', 'NURSE', 'SUPER_ADMIN'],
                     color: 'from-red-500 to-red-600',
                     shadow: 'shadow-red-500/20'
                 },
@@ -38,7 +38,7 @@ const MainMenu = () => {
                     description: 'Outpatient Admission',
                     icon: <ClipboardPlus size={28} />,
                     path: '/registration',
-                    roles: ['ADMIN', 'STAFF'],
+                    roles: ['ADMIN', 'REGISTRATION', 'SUPER_ADMIN'],
                     color: 'from-blue-500 to-blue-600',
                     shadow: 'shadow-blue-500/20'
                 },
@@ -47,7 +47,7 @@ const MainMenu = () => {
                     description: 'Inpatient Admission',
                     icon: <Bed size={28} />,
                     path: '/registration/ranap',
-                    roles: ['ADMIN', 'STAFF'],
+                    roles: ['ADMIN', 'REGISTRATION', 'NURSE', 'SUPER_ADMIN'],
                     color: 'from-orange-500 to-orange-600',
                     shadow: 'shadow-orange-500/20'
                 },
@@ -56,7 +56,7 @@ const MainMenu = () => {
                     description: 'Kiosk System',
                     icon: <Monitor size={28} />,
                     path: '/kiosk',
-                    roles: ['ADMIN', 'STAFF'],
+                    roles: ['ADMIN', 'REGISTRATION', 'SUPER_ADMIN'],
                     color: 'from-cyan-500 to-cyan-600',
                     shadow: 'shadow-cyan-500/20'
                 },
@@ -65,7 +65,7 @@ const MainMenu = () => {
                     description: 'Web / JKN Booking',
                     icon: <Monitor size={28} />,
                     path: '/booking',
-                    roles: ['ADMIN', 'STAFF'],
+                    roles: ['ADMIN', 'REGISTRATION', 'SUPER_ADMIN'],
                     color: 'from-sky-500 to-sky-600',
                     shadow: 'shadow-sky-500/20'
                 },
@@ -74,7 +74,7 @@ const MainMenu = () => {
                     description: 'Public Queue Display',
                     icon: <Monitor size={28} />,
                     path: '/counter',
-                    roles: ['ADMIN', 'STAFF'],
+                    roles: ['ADMIN', 'REGISTRATION', 'SUPER_ADMIN'],
                     color: 'from-indigo-500 to-indigo-600',
                     shadow: 'shadow-indigo-500/20',
                     external: true
@@ -84,7 +84,7 @@ const MainMenu = () => {
                     description: 'Physician Schedule',
                     icon: <Calendar size={28} />,
                     path: '/public/schedule',
-                    roles: ['ADMIN', 'STAFF'],
+                    roles: ['ADMIN', 'REGISTRATION', 'SUPER_ADMIN'],
                     color: 'from-purple-500 to-purple-600',
                     shadow: 'shadow-purple-500/20',
                     external: true
@@ -99,7 +99,7 @@ const MainMenu = () => {
                     description: 'Unified Clinical Dashboard',
                     icon: <LayoutDashboard size={28} />,
                     path: '/nurse/station',
-                    roles: ['ADMIN', 'STAFF'],
+                    roles: ['ADMIN', 'NURSE', 'SUPER_ADMIN'],
                     color: 'from-pink-500 to-pink-600',
                     shadow: 'shadow-pink-500/20'
                 },
@@ -108,7 +108,7 @@ const MainMenu = () => {
                     description: 'EMR & CPOE',
                     icon: <Activity size={28} />,
                     path: '/doctor/dashboard',
-                    roles: ['ADMIN', 'STAFF'],
+                    roles: ['ADMIN', 'DOCTOR', 'SUPER_ADMIN'],
                     color: 'from-emerald-500 to-emerald-600',
                     shadow: 'shadow-emerald-500/20'
                 },
@@ -117,7 +117,7 @@ const MainMenu = () => {
                     description: 'Ward Management',
                     icon: <Bed size={28} />,
                     path: '/admission',
-                    roles: ['ADMIN', 'STAFF'],
+                    roles: ['ADMIN', 'NURSE', 'REGISTRATION', 'SUPER_ADMIN'],
                     color: 'from-orange-600 to-orange-700',
                     shadow: 'shadow-orange-600/20'
                 },
@@ -126,7 +126,7 @@ const MainMenu = () => {
                     description: 'Inpatient Clinical Alerts',
                     icon: <Bell size={28} />,
                     path: '/nurse/inpatient',
-                    roles: ['ADMIN', 'STAFF'],
+                    roles: ['ADMIN', 'NURSE', 'SUPER_ADMIN'],
                     color: 'from-red-600 to-red-700',
                     shadow: 'shadow-red-600/20'
                 },
@@ -135,7 +135,7 @@ const MainMenu = () => {
                     description: 'Patient Discharge',
                     icon: <LogOut size={28} />,
                     path: '/nurse/discharge',
-                    roles: ['ADMIN', 'STAFF'],
+                    roles: ['ADMIN', 'NURSE', 'SUPER_ADMIN'],
                     color: 'from-slate-500 to-slate-600',
                     shadow: 'shadow-slate-500/20'
                 },
@@ -144,7 +144,7 @@ const MainMenu = () => {
                     description: 'Medical Support',
                     icon: <Camera size={28} />,
                     path: '/medical-support',
-                    roles: ['ADMIN', 'STAFF'],
+                    roles: ['ADMIN', 'DOCTOR', 'NURSE', 'SUPER_ADMIN'],
                     color: 'from-blue-600 to-indigo-700',
                     shadow: 'shadow-blue-600/20'
                 },
@@ -153,7 +153,7 @@ const MainMenu = () => {
                     description: 'Remunerasi, Aset & Finance',
                     icon: <Calculator size={28} />,
                     path: '/back-office',
-                    roles: ['ADMIN'],
+                    roles: ['ADMIN', 'SUPER_ADMIN'],
                     color: 'from-indigo-700 to-violet-900',
                     shadow: 'shadow-indigo-700/20'
                 },
@@ -162,7 +162,7 @@ const MainMenu = () => {
                     description: 'SATUSEHAT, SIRS & SISRUTE',
                     icon: <Shield size={28} />,
                     path: '/integration',
-                    roles: ['ADMIN'],
+                    roles: ['ADMIN', 'SUPER_ADMIN'],
                     color: 'from-emerald-600 to-teal-700',
                     shadow: 'shadow-emerald-600/20'
                 }
@@ -199,7 +199,7 @@ const MainMenu = () => {
                     description: 'Outpatient Pharmacy',
                     icon: <Pill size={28} />,
                     path: '/pharmacy',
-                    roles: ['ADMIN', 'STAFF'],
+                    roles: ['ADMIN', 'PHARMACIST', 'SUPER_ADMIN'],
                     color: 'from-teal-500 to-teal-600',
                     shadow: 'shadow-teal-500/20'
                 },
@@ -208,7 +208,7 @@ const MainMenu = () => {
                     description: 'Laboratory Information',
                     icon: <Microscope size={28} />,
                     path: '/lab',
-                    roles: ['ADMIN', 'STAFF'],
+                    roles: ['ADMIN', 'LABORATORY', 'SUPER_ADMIN'],
                     color: 'from-purple-600 to-purple-700',
                     shadow: 'shadow-purple-600/20'
                 },
@@ -217,7 +217,7 @@ const MainMenu = () => {
                     description: 'Radiology Information',
                     icon: <Activity size={28} />,
                     path: '/radiology',
-                    roles: ['ADMIN', 'STAFF'],
+                    roles: ['ADMIN', 'RADIOLOGY', 'SUPER_ADMIN'],
                     color: 'from-indigo-600 to-indigo-700',
                     shadow: 'shadow-indigo-600/20'
                 },
@@ -226,7 +226,7 @@ const MainMenu = () => {
                     description: 'Nutrition & Kitchen',
                     icon: <Utensils size={28} />,
                     path: '/nutrition',
-                    roles: ['ADMIN', 'STAFF'],
+                    roles: ['ADMIN', 'KITCHEN', 'SUPER_ADMIN'],
                     color: 'from-amber-500 to-amber-600',
                     shadow: 'shadow-amber-500/20'
                 },
@@ -235,7 +235,7 @@ const MainMenu = () => {
                     description: 'Dietary Orders (Nurse)',
                     icon: <Utensils size={28} />,
                     path: '/nurse/diet',
-                    roles: ['ADMIN', 'STAFF'],
+                    roles: ['ADMIN', 'NURSE', 'SUPER_ADMIN'],
                     color: 'from-orange-400 to-orange-500',
                     shadow: 'shadow-orange-400/20'
                 }
@@ -249,7 +249,7 @@ const MainMenu = () => {
                     description: 'Inventory, Assets & Pharmacy',
                     icon: <Package size={28} />,
                     path: '/inventory/general', // This route maps to InventoryDashboard
-                    roles: ['ADMIN', 'STAFF'],
+                    roles: ['ADMIN', 'LOGISTICS', 'PHARMACIST', 'SUPER_ADMIN'],
                     color: 'from-teal-600 to-teal-700',
                     shadow: 'shadow-teal-600/20'
                 }
@@ -272,7 +272,7 @@ const MainMenu = () => {
                     description: 'Cashier Dashboard',
                     icon: <Receipt size={28} />,
                     path: '/cashier',
-                    roles: ['ADMIN', 'STAFF'],
+                    roles: ['ADMIN', 'CASHIER', 'SUPER_ADMIN'],
                     color: 'from-teal-400 to-teal-500',
                     shadow: 'shadow-teal-400/20'
                 },
@@ -281,7 +281,7 @@ const MainMenu = () => {
                     description: 'Financial Overview',
                     icon: <DollarSign size={28} />,
                     path: '/finance',
-                    roles: ['ADMIN', 'STAFF'],
+                    roles: ['ADMIN', 'SUPER_ADMIN'],
                     color: 'from-pink-600 to-pink-700',
                     shadow: 'shadow-pink-600/20'
                 },
@@ -345,6 +345,20 @@ const MainMenu = () => {
                     shadow: 'shadow-violet-600/20'
                 }
             ]
+        },
+        {
+            category: "Super Admin",
+            items: [
+                {
+                    title: 'Super Console',
+                    description: 'User & System Management',
+                    icon: <Shield size={28} />,
+                    path: '/super-admin',
+                    roles: ['SUPER_ADMIN'],
+                    color: 'from-slate-800 to-black',
+                    shadow: 'shadow-black/20'
+                }
+            ]
         }
     ], []);
 
@@ -375,7 +389,7 @@ const MainMenu = () => {
                     {/* Hero Section */}
                     <div className="mb-12 relative z-10">
                         <div className="flex flex-col md:flex-row items-center justify-between gap-6 px-4">
-                            <GreetingHeader userName={user?.name?.split(' ')[0]} />
+                            <GreetingHeader userName={user?.name || user?.username} />
 
                             <motion.div
                                 initial={{ opacity: 0, scale: 0.9 }}

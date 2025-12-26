@@ -58,6 +58,7 @@ const CasemixDashboard = React.lazy(() => import('./pages/CasemixDashboard')); /
 const BackOfficeDashboard = React.lazy(() => import('./pages/BackOfficeDashboard'));
 const IntegrationDashboard = React.lazy(() => import('./pages/IntegrationDashboard'));
 const MedicalSupport = React.lazy(() => import('./pages/MedicalSupport'));
+const SuperAdminDashboard = React.lazy(() => import('./pages/SuperAdminDashboard'));
 
 function AnimatedRoutes() {
   const location = useLocation();
@@ -85,8 +86,8 @@ function AnimatedRoutes() {
           {/* Bed Head Unit (Tablet Mode - Standalone) */}
           <Route path="/bed-panel/:bedId" element={<BedHeadUnit />} />
 
-          {/* Protected Routes */}
-          <Route element={<ProtectedRoute allowedRoles={['ADMIN', 'STAFF']} />}>
+          {/* Protected Routes - Main Menu Access */}
+          <Route element={<ProtectedRoute allowedRoles={['ADMIN', 'SUPER_ADMIN', 'DOCTOR', 'REGISTRATION', 'PHARMACIST', 'LABORATORY', 'RADIOLOGY', 'NURSE', 'CASHIER', 'KITCHEN', 'LOGISTICS']} />}>
             <Route path="/menu" element={<PageWrapper><MainMenu /></PageWrapper>} />
           </Route>
 
@@ -97,6 +98,11 @@ function AnimatedRoutes() {
             <Route path="/admin/leave-calendar" element={<PageWrapper><DoctorLeaveCalendar /></PageWrapper>} />
           </Route>
 
+          {/* Super Admin Routes */}
+          <Route element={<ProtectedRoute allowedRoles={['SUPER_ADMIN']} />}>
+            <Route path="/super-admin" element={<PageWrapper><SuperAdminDashboard /></PageWrapper>} />
+          </Route>
+
           {/* Staff Routes */}
           <Route element={<ProtectedRoute allowedRoles={['STAFF', 'ADMIN']} />}>
             <Route path="/admin/counter" element={<PageWrapper><RegistrationRJ /></PageWrapper>} />
@@ -104,32 +110,48 @@ function AnimatedRoutes() {
             <Route path="/registration/igd" element={<PageWrapper><RegistrationIGD /></PageWrapper>} />
             {/* Triage Redirect or Removed - Unified in Nurse Station */}
             <Route path="/registration/ranap" element={<PageWrapper><RegistrationRanap /></PageWrapper>} />
+          </Route>
+
+          {/* Doctor Routes */}
+          <Route element={<ProtectedRoute allowedRoles={['DOCTOR', 'ADMIN', 'SUPER_ADMIN']} />}>
             <Route path="/doctor/dashboard" element={<PageWrapper><DoctorDashboard /></PageWrapper>} />
+          </Route>
 
 
-            {/* Patient Hub */}
+
+          {/* General Staff & Hospital Modules */}
+          <Route element={<ProtectedRoute allowedRoles={['STAFF', 'ADMIN', 'SUPER_ADMIN', 'REGISTRATION', 'PHARMACIST', 'LABORATORY', 'RADIOLOGY', 'NURSE', 'CASHIER', 'KITCHEN']} />}>
+            {/* Patient Hub - Admin, Reg, Nurse */}
             <Route path="/admin/patients" element={<PageWrapper><PatientList /></PageWrapper>} />
             <Route path="/admin/patients/:id" element={<PageWrapper><PatientDetail /></PageWrapper>} />
 
             {/* Pharmacy Module */}
-            <Route path="/pharmacy" element={<PageWrapper><PharmacyDashboard /></PageWrapper>} />
+            <Route element={<ProtectedRoute allowedRoles={['PHARMACIST', 'ADMIN', 'SUPER_ADMIN']} />}>
+              <Route path="/pharmacy" element={<PageWrapper><PharmacyDashboard /></PageWrapper>} />
+            </Route>
 
             {/* Cashier Module */}
-            <Route path="/cashier" element={<PageWrapper><CashierDashboard /></PageWrapper>} />
-
+            <Route element={<ProtectedRoute allowedRoles={['CASHIER', 'ADMIN', 'SUPER_ADMIN']} />}>
+              <Route path="/cashier" element={<PageWrapper><CashierDashboard /></PageWrapper>} />
+            </Route>
 
             {/* AI Features */}
             <Route path="/chronology" element={<PageWrapper><ChronologyGenerator /></PageWrapper>} />
 
             {/* Nurse Module */}
-            <Route path="/nurse/inpatient" element={<PageWrapper><InpatientNurseDashboard /></PageWrapper>} />
-            {/* <Route path="/nurse/inpatient" element={<PageWrapper><div className="p-10 font-bold text-red-500">DEBUGGING DASHBOARD</div></PageWrapper>} /> */}
+            <Route element={<ProtectedRoute allowedRoles={['NURSE', 'ADMIN', 'SUPER_ADMIN']} />}>
+              <Route path="/nurse/inpatient" element={<PageWrapper><InpatientNurseDashboard /></PageWrapper>} />
+            </Route>
 
-            {/* Lab & Radiology (Separated) */}
-            <Route path="/lab" element={<PageWrapper><LabDashboard /></PageWrapper>} />
-            <Route path="/radiology" element={<PageWrapper><RadiologyDashboard /></PageWrapper>} />
+            {/* Lab & Radiology */}
+            <Route element={<ProtectedRoute allowedRoles={['LABORATORY', 'ADMIN', 'SUPER_ADMIN']} />}>
+              <Route path="/lab" element={<PageWrapper><LabDashboard /></PageWrapper>} />
+            </Route>
+            <Route element={<ProtectedRoute allowedRoles={['RADIOLOGY', 'ADMIN', 'SUPER_ADMIN']} />}>
+              <Route path="/radiology" element={<PageWrapper><RadiologyDashboard /></PageWrapper>} />
+            </Route>
 
-            {/* Inpatient / Admission */}
+            {/* Inpatient / Admission - Registration & Nurse */}
             <Route path="/admission" element={<PageWrapper><AdmissionDashboard /></PageWrapper>} />
 
             {/* Phase 6: Nurse Monitoring */}

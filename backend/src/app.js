@@ -108,10 +108,13 @@ app.post('/api/auth/login-patient', authController.loginPatient); // New
 app.get('/api/auth/me', authMiddleware, authController.me);
 
 // User Management Routes
-app.get('/api/users', authMiddleware, userController.getAll);
-app.post('/api/users', authMiddleware, userController.create);
-app.put('/api/users/:id', authMiddleware, userController.update);
-app.delete('/api/users/:id', authMiddleware, userController.delete);
+const roleMiddleware = require('./middleware/roleMiddleware');
+
+// User Management Routes (Super Admin Only)
+app.get('/api/users', authMiddleware, roleMiddleware(['SUPER_ADMIN']), userController.getAllUsers);
+app.post('/api/users', authMiddleware, roleMiddleware(['SUPER_ADMIN']), userController.createUser);
+app.put('/api/users/:id', authMiddleware, roleMiddleware(['SUPER_ADMIN']), userController.updateUser);
+app.delete('/api/users/:id', authMiddleware, roleMiddleware(['SUPER_ADMIN']), userController.deleteUser);
 
 // Analytics Routes
 app.get('/api/analytics/daily', analyticsController.getDailyStats);
