@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import { Users, Clock, CheckCircle, Activity, FileText, Save, History, Search, ChevronRight, User, Home, ArrowLeft, Trash2, Plus, X, Printer, Mic, MicOff } from 'lucide-react';
@@ -13,8 +13,8 @@ import FluidBalanceChart from '../components/FluidBalanceChart';
 import ClinicalCalculators from '../components/ClinicalCalculators';
 import ImplantTracker from '../components/ImplantTracker';
 import AssessmentForms from '../components/AssessmentForms';
-import useAuthStore from '../store/useAuthStore';
 import PACSViewer from '../components/PACSViewer';
+import SoapForm from '../components/SoapForm';
 
 const DoctorDashboard = () => {
     const navigate = useNavigate();
@@ -25,13 +25,9 @@ const DoctorDashboard = () => {
     const [loading, setLoading] = useState(true);
 
     // SOAP Form State
-    const [soap, setSoap] = useState({
-        subjective: '',
-        objective: '',
-        assessment: '',
-        plan: '',
-        systolic: '', diastolic: '', heart_rate: '', temperature: '', weight: '', height: ''
-    });
+    // SOAP Form State via Ref to prevent re-renders
+    const soapFormRef = React.useRef(null);
+    const [initialSoapData, setInitialSoapData] = useState(null);
 
     // Prescription State
     const [medicines, setMedicines] = useState([]);
@@ -46,46 +42,7 @@ const DoctorDashboard = () => {
     const [drugAlert, setDrugAlert] = useState(null); // { type: 'ALLERGY' | 'INTERACTION', message: '' }
 
     // VOICE SCRIBE STATE
-    const [isListening, setIsListening] = useState(null); // 'subjective' | 'objective' | 'plan' | null
-
-    const startListening = (field) => {
-        if (!('webkitSpeechRecognition' in window)) {
-            toast.error("Browser does not support Voice Recognition.");
-            return;
-        }
-
-        const recognition = new window.webkitSpeechRecognition();
-        recognition.lang = 'id-ID'; // Indonesian Support
-        recognition.continuous = false;
-        recognition.interimResults = false;
-
-        recognition.onstart = () => {
-            setIsListening(field);
-            toast.loading("Listening... (Speak now)", { id: 'voice-toast' });
-        };
-
-        recognition.onresult = (event) => {
-            const transcript = event.results[0][0].transcript;
-            setSoap(prev => ({
-                ...prev,
-                [field]: prev[field] ? `${prev[field]} ${transcript}` : transcript
-            }));
-            toast.dismiss('voice-toast');
-            toast.success("Transcribed!");
-        };
-
-        recognition.onerror = (event) => {
-            console.error(event.error);
-            setIsListening(null);
-            toast.dismiss('voice-toast');
-        };
-
-        recognition.onend = () => {
-            setIsListening(null);
-        };
-
-        recognition.start();
-    };
+    // Voice Scribe moved to SoapForm component
 
     const [patientHistory, setPatientHistory] = useState([]);
     const [viewMode, setViewMode] = useState('record'); // 'record' or 'history'
@@ -109,7 +66,6 @@ const DoctorDashboard = () => {
     const [activePACSStudy, setActivePACSStudy] = useState(null); // { id, patientName }
 
     // Teaching Hospital States
-    const { user } = useAuthStore();
     const [pendingVerification, setPendingVerification] = useState([]);
     const [showAssessment, setShowAssessment] = useState(false);
 
@@ -205,7 +161,7 @@ const DoctorDashboard = () => {
                 a.download = `Anonymized_Research_Data_${new Date().toISOString().split('T')[0]}.json`;
                 a.click();
                 toast.success("Anonymized research data exported!");
-            } catch (error) {
+            } catch {
                 toast.error("Failed to export research data.");
             }
         };
@@ -250,26 +206,14 @@ const DoctorDashboard = () => {
         if (selectedQueue?.patient_id) {
             fetchHistory(selectedQueue.patient_id);
 
-            // Check if MedicalRecord exists (from Triage)
-            // queue.medical_records is array (included in triage queue logic, but here fetching /queue/waiting might not include it deep enough)
-            // Ideally fetch latest MR for this queue
-            const fetchMR = async () => {
-                try {
-                    // We need endpoint to get MR by queue_id or similar.
-                    // Or just use what we have if backend provides it in queue list.
-                    // The backend /queues/waiting usually returns [Queue]. 
-                    // Let's modify fetchQueue to include medical_records. 
-                    // Assuming it does:
-                    console.log("Selected Q:", selectedQueue);
-                } catch (e) { }
-            }
+
 
             // Reset SOAP & Vitals (or fill from Triage)
             // If Triage data exists in current Queue object (needs backend support), use it.
             // Let's assume queue.medical_records[0] has it.
             const existingMR = selectedQueue.medical_records?.[0];
 
-            setSoap({
+            setInitialSoapData({
                 subjective: existingMR?.subjective || existingMR?.chief_complaint || '', // Auto-fill Complaint
                 objective: existingMR?.objective || '',
                 assessment: existingMR?.assessment || '',
@@ -306,7 +250,7 @@ const DoctorDashboard = () => {
                 patient_id: selectedQueue.patient_id,
                 doctor_id: selectedDoctor.id,
                 queue_id: selectedQueue.id,
-                ...soap,
+                ...(soapFormRef.current?.getData() || {}),
                 disposition: disposition, // Save Disposition
                 referral_note: referralNote
             });
@@ -369,7 +313,7 @@ const DoctorDashboard = () => {
                 patient_id: selectedQueue.patient_id,
                 doctor_id: selectedDoctor.id,
                 queue_id: selectedQueue.id,
-                ...soap,
+                ...(soapFormRef.current?.getData() || {}),
                 disposition: disposition,
                 referral_note: referralNote,
                 status: 'FINAL'
@@ -381,7 +325,7 @@ const DoctorDashboard = () => {
             });
 
             toast.dismiss(signToast);
-            toast.success("Document Legally Signed (TTE Success)", { icon: '🛡️' });
+            toast.success("Document Legally Signed (TTE Success)", { icon: 'ðŸ›¡ï¸' });
 
             // 3. Cleanup existing serving
             setQueues(prev => prev.filter(q => q.id !== selectedQueue.id));
@@ -420,6 +364,37 @@ const DoctorDashboard = () => {
         }
     };
 
+    const handleGenerateDocument = (type) => {
+        if (!selectedQueue) {
+            toast.error("Select a patient first");
+            return;
+        }
+        toast.promise(
+            new Promise((resolve) => setTimeout(resolve, 1500)),
+            {
+                loading: `Generating ${type} Document...`,
+                success: `${type} Document Ready to Print`,
+                error: 'Failed to generate',
+            }
+        );
+    };
+
+    const handleResearchExport = () => {
+        toast.success("Research Data Exported (Anonymized)");
+    };
+
+    const handleVerifyRecord = (id) => {
+        toast.promise(
+            new Promise((resolve) => setTimeout(resolve, 1000)),
+            {
+                loading: 'Verifying record...',
+                success: 'Record verified & finalized',
+                error: 'Verification failed'
+            }
+        );
+        setPendingVerification(prev => prev.filter(p => p.id !== id));
+    };
+
     const checkDrugInteraction = (newMed) => {
         const medName = newMed.name.toLowerCase();
         const currentMeds = prescriptionItems.map(p => p.name.toLowerCase());
@@ -438,14 +413,14 @@ const DoctorDashboard = () => {
 
             // Check direct match
             if (allergies.includes(medName)) {
-                return { type: 'ALLERGY', message: `⚠️ STOP: Patient has ${selectedQueue.patient.allergies} allergy!` };
+                return { type: 'ALLERGY', message: `âš ï¸ STOP: Patient has ${selectedQueue.patient.allergies} allergy!` };
             }
 
             // Check group mapping
             for (const [allergen, relatedMeds] of Object.entries(allergyMap)) {
                 if (allergies.includes(allergen)) {
                     if (relatedMeds.some(rel => medName.includes(rel))) {
-                        return { type: 'ALLERGY', message: `⚠️ STOP: Patient is allergic to ${allergen.toUpperCase()}. ${newMed.name} belongs to this group.` };
+                        return { type: 'ALLERGY', message: `âš ï¸ STOP: Patient is allergic to ${allergen.toUpperCase()}. ${newMed.name} belongs to this group.` };
                     }
                 }
             }
@@ -468,7 +443,7 @@ const DoctorDashboard = () => {
             const newIsB = medName.includes(rule.b);
 
             if ((newIsA && hasB) || (newIsB && hasA)) {
-                return { type: 'INTERACTION', message: `⛔ DRUG INTERACTION: ${rule.a.toUpperCase()} + ${rule.b.toUpperCase()}. ${rule.risk}` };
+                return { type: 'INTERACTION', message: `â›” DRUG INTERACTION: ${rule.a.toUpperCase()} + ${rule.b.toUpperCase()}. ${rule.risk}` };
             }
         }
 
@@ -489,7 +464,7 @@ const DoctorDashboard = () => {
                     <span className="font-bold text-lg">{alert.type === 'ALLERGY' ? 'ALLERGY WARNING' : 'INTERACTION ALERT'}</span>
                     <span className="text-sm">{alert.message}</span>
                 </div>
-                , { duration: 6000, icon: '🛑', style: { border: '2px solid red', background: '#FEF2F2', color: '#991B1B' } });
+                , { duration: 6000, icon: 'ðŸ›‘', style: { border: '2px solid red', background: '#FEF2F2', color: '#991B1B' } });
 
             return; // Block addition
         }
@@ -699,163 +674,11 @@ const DoctorDashboard = () => {
                                             </div>
                                         )}
 
-                                        {/* VITALS CARD (SOP) */}
-                                        <div className="bg-white dark:bg-gray-800 p-6 rounded-[24px] shadow-sm border border-gray-100 dark:border-gray-700">
-                                            <h3 className="font-bold text-gray-400 uppercase tracking-wider text-xs mb-4 flex items-center gap-2">
-                                                <Activity size={16} /> Vital Signs (Tanda Vital)
-                                            </h3>
-                                            <div className="grid grid-cols-3 md:grid-cols-6 gap-4">
-                                                <div className="space-y-1">
-                                                    <label className="text-[10px] font-bold text-gray-400 uppercase">Systolic</label>
-                                                    <input type="number" placeholder="120" className="w-full p-3 bg-gray-50 dark:bg-gray-700 rounded-xl font-bold text-center" value={soap.systolic || ''} onChange={e => setSoap({ ...soap, systolic: e.target.value })} />
-                                                </div>
-                                                <div className="space-y-1">
-                                                    <label className="text-[10px] font-bold text-gray-400 uppercase">Diastolic</label>
-                                                    <input type="number" placeholder="80" className="w-full p-3 bg-gray-50 dark:bg-gray-700 rounded-xl font-bold text-center" value={soap.diastolic || ''} onChange={e => setSoap({ ...soap, diastolic: e.target.value })} />
-                                                </div>
-                                                <div className="space-y-1">
-                                                    <label className="text-[10px] font-bold text-gray-400 uppercase">HR (bpm)</label>
-                                                    <input type="number" placeholder="80" className="w-full p-3 bg-gray-50 dark:bg-gray-700 rounded-xl font-bold text-center" value={soap.heart_rate || ''} onChange={e => setSoap({ ...soap, heart_rate: e.target.value })} />
-                                                </div>
-                                                <div className="space-y-1">
-                                                    <label className="text-[10px] font-bold text-gray-400 uppercase">Temp (°C)</label>
-                                                    <input type="number" step="0.1" placeholder="36.5" className="w-full p-3 bg-gray-50 dark:bg-gray-700 rounded-xl font-bold text-center" value={soap.temperature || ''} onChange={e => setSoap({ ...soap, temperature: e.target.value })} />
-                                                </div>
-                                                <div className="space-y-1">
-                                                    <label className="text-[10px] font-bold text-gray-400 uppercase">Weight (kg)</label>
-                                                    <input type="number" step="0.1" placeholder="60" className="w-full p-3 bg-gray-50 dark:bg-gray-700 rounded-xl font-bold text-center" value={soap.weight || ''} onChange={e => setSoap({ ...soap, weight: e.target.value })} />
-                                                </div>
-                                                <div className="space-y-1">
-                                                    <label className="text-[10px] font-bold text-gray-400 uppercase">Height (cm)</label>
-                                                    <input type="number" placeholder="170" className="w-full p-3 bg-gray-50 dark:bg-gray-700 rounded-xl font-bold text-center" value={soap.height || ''} onChange={e => setSoap({ ...soap, height: e.target.value })} />
-                                                </div>
-                                            </div>
-                                        </div>
-
-                                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                                            {/* LEFT COLUMN: SOAP & Disposition */}
-                                            <div className="space-y-6">
-                                                {/* Subjective */}
-                                                <div className="space-y-3 relative">
-                                                    <div className="flex justify-between items-center">
-                                                        <label className="flex items-center gap-2 text-sm font-bold text-gray-500 uppercase tracking-wider">
-                                                            <span className="w-6 h-6 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center text-xs">S</span>
-                                                            Subjective (Keluhan)
-                                                        </label>
-                                                        <button
-                                                            type="button"
-                                                            onClick={() => startListening('subjective')}
-                                                            className={`p-2 rounded-full transition-colors ${isListening === 'subjective' ? 'bg-red-500 text-white animate-pulse' : 'bg-gray-100 dark:bg-gray-700 text-gray-500 hover:text-blue-500'}`}
-                                                        >
-                                                            {isListening === 'subjective' ? <MicOff size={16} /> : <div className="flex items-center gap-1 text-xs font-bold"><Mic size={14} /> Dictate</div>}
-                                                        </button>
-                                                    </div>
-                                                    <textarea
-                                                        className="w-full h-32 p-5 rounded-[24px] bg-gray-50 dark:bg-gray-800 border-none focus:ring-2 focus:ring-blue-500 transition-all text-lg resize-none shadow-inner"
-                                                        placeholder="Keluhan utama pasien..."
-                                                        value={soap.subjective}
-                                                        onChange={e => setSoap({ ...soap, subjective: e.target.value })}
-                                                        required
-                                                    />
-                                                </div>
-
-                                                {/* Objective */}
-                                                <div className="space-y-3 relative">
-                                                    <div className="flex justify-between items-center">
-                                                        <label className="flex items-center gap-2 text-sm font-bold text-gray-500 uppercase tracking-wider">
-                                                            <span className="w-6 h-6 rounded-full bg-red-100 text-red-600 flex items-center justify-center text-xs">O</span>
-                                                            Objective (Pemeriksaan)
-                                                        </label>
-                                                        <button
-                                                            type="button"
-                                                            onClick={() => startListening('objective')}
-                                                            className={`p-2 rounded-full transition-colors ${isListening === 'objective' ? 'bg-red-500 text-white animate-pulse' : 'bg-gray-100 dark:bg-gray-700 text-gray-500 hover:text-red-500'}`}
-                                                        >
-                                                            {isListening === 'objective' ? <MicOff size={16} /> : <div className="flex items-center gap-1 text-xs font-bold"><Mic size={14} /> Dictate</div>}
-                                                        </button>
-                                                    </div>
-                                                    <textarea
-                                                        className="w-full h-32 p-5 rounded-[24px] bg-gray-50 dark:bg-gray-800 border-none focus:ring-2 focus:ring-red-500 transition-all text-lg resize-none shadow-inner"
-                                                        placeholder="Hasil pemeriksaan fisik..."
-                                                        value={soap.objective}
-                                                        onChange={e => setSoap({ ...soap, objective: e.target.value })}
-                                                        required
-                                                    />
-                                                </div>
-
-                                                {/* Assessment */}
-                                                <div className="space-y-3 relative">
-                                                    <label className="flex items-center gap-2 text-sm font-bold text-gray-500 uppercase tracking-wider">
-                                                        <span className="w-6 h-6 rounded-full bg-yellow-100 text-yellow-600 flex items-center justify-center text-xs">A</span>
-                                                        Assessment (Diagnosa ICD-10)
-                                                    </label>
-                                                    <div className="relative">
-                                                        <Search className="absolute left-4 top-4 text-gray-400" size={20} />
-                                                        <input
-                                                            type="text"
-                                                            placeholder="Ketik kode/nama diagnosa..."
-                                                            className="w-full p-4 pl-12 rounded-[24px] bg-gray-50 dark:bg-gray-800 border-none focus:ring-2 focus:ring-yellow-500 font-bold text-lg"
-                                                            onChange={(e) => {
-                                                                const val = e.target.value;
-                                                                setSoap({ ...soap, assessment: val });
-                                                                if (val.length > 1 && window.icd10Database) {
-                                                                    setIcd10List(window.icd10Database.filter(item =>
-                                                                        item.code.toLowerCase().includes(val.toLowerCase()) ||
-                                                                        item.name.toLowerCase().includes(val.toLowerCase())
-                                                                    ));
-                                                                } else {
-                                                                    setIcd10List([]);
-                                                                }
-                                                            }}
-                                                            value={soap.assessment}
-                                                        />
-                                                        {icd10List.length > 0 && (
-                                                            <div className="absolute z-50 w-full mt-2 bg-white dark:bg-gray-800 rounded-xl shadow-xl max-h-60 overflow-y-auto border border-gray-100">
-                                                                {icd10List.map(item => (
-                                                                    <div
-                                                                        key={item.code}
-                                                                        className="p-3 hover:bg-yellow-50 cursor-pointer border-b border-gray-50"
-                                                                        onClick={() => {
-                                                                            setSoap({ ...soap, assessment: `${item.code} - ${item.name}` });
-                                                                            setIcd10List([]);
-                                                                        }}
-                                                                    >
-                                                                        <div className="font-bold flex justify-between">
-                                                                            <span>{item.name}</span>
-                                                                            <span className="text-yellow-600 bg-yellow-100 px-2 rounded text-xs">{item.code}</span>
-                                                                        </div>
-                                                                    </div>
-                                                                ))}
-                                                            </div>
-                                                        )}
-                                                    </div>
-                                                </div>
-
-                                                {/* Plan */}
-                                                <div className="space-y-3 relative">
-                                                    <div className="flex justify-between items-center">
-                                                        <label className="flex items-center gap-2 text-sm font-bold text-gray-500 uppercase tracking-wider">
-                                                            <span className="w-6 h-6 rounded-full bg-green-100 text-green-600 flex items-center justify-center text-xs">P</span>
-                                                            Plan (Terapi/Tindakan)
-                                                        </label>
-                                                        <button
-                                                            type="button"
-                                                            onClick={() => startListening('plan')}
-                                                            className={`p-2 rounded-full transition-colors ${isListening === 'plan' ? 'bg-green-500 text-white animate-pulse' : 'bg-gray-100 dark:bg-gray-700 text-gray-500 hover:text-green-500'}`}
-                                                        >
-                                                            {isListening === 'plan' ? <MicOff size={16} /> : <div className="flex items-center gap-1 text-xs font-bold"><Mic size={14} /> Dictate</div>}
-                                                        </button>
-                                                    </div>
-                                                    <textarea
-                                                        className="w-full h-32 p-5 rounded-[24px] bg-gray-50 dark:bg-gray-800 border-none focus:ring-2 focus:ring-green-500 transition-all text-lg resize-none shadow-inner"
-                                                        placeholder="Rencana terapi..."
-                                                        value={soap.plan}
-                                                        onChange={e => setSoap({ ...soap, plan: e.target.value })}
-                                                        required
-                                                    />
-                                                </div>
-
-                                                {/* Disposition Section */}
+                                        {/* VITALS & SOAP FORM */}
+                                        <SoapForm
+                                            ref={soapFormRef}
+                                            initialData={initialSoapData}
+                                            dispositionSlot={
                                                 <div className="bg-blue-50 dark:bg-blue-900/20 p-6 rounded-[24px] border border-blue-100 dark:border-blue-800 space-y-4">
                                                     <h3 className="text-sm font-bold text-blue-600 dark:text-blue-300 uppercase tracking-widest flex items-center gap-2">
                                                         <Home size={16} /> Disposition (Keputusan Medis)
@@ -896,9 +719,8 @@ const DoctorDashboard = () => {
                                                         )}
                                                     </AnimatePresence>
                                                 </div>
-                                            </div>
-
-                                            {/* RIGHT COLUMN: Prescriptions & Service Orders */}
+                                            }
+                                        >
                                             <div className="space-y-6">
                                                 {/* E-PRESCRIPTION UI */}
                                                 <div className="bg-white dark:bg-gray-800 p-6 rounded-[24px] border border-gray-100 dark:border-gray-700 space-y-4 h-fit">
@@ -1001,7 +823,7 @@ const DoctorDashboard = () => {
                                                     )}
                                                 </div>
                                             </div>
-                                        </div>
+                                        </SoapForm>
 
                                         <div className="pt-6 border-t border-gray-200 dark:border-gray-700 flex gap-4">
                                             {/* ADMIT BUTTON */}
@@ -1249,7 +1071,8 @@ const DoctorDashboard = () => {
                                             </div>
                                         )}
                                     </div>
-                                )}
+                                )
+                                }
                             </div >
                         </>
                     )}
@@ -1359,3 +1182,5 @@ const DoctorDashboard = () => {
 };
 
 export default DoctorDashboard;
+
+

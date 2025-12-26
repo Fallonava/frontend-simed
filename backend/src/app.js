@@ -129,6 +129,7 @@ const chronologyLimiter = rateLimit({
 });
 
 app.post('/api/chronology/generate', authMiddleware, chronologyLimiter, upload.single('file'), chronologyController.generateChronology);
+app.get('/api/patients/recent', authMiddleware, patientController.getRecent); // New: Recent Patients
 app.get('/api/patients/search', authMiddleware, patientController.search);
 app.post('/api/patients', authMiddleware, patientController.create);
 app.get('/api/patients', authMiddleware, patientController.getAll);           // New

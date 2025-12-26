@@ -1,6 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useMemo } from 'react';
 import SmoothScrollArea from '../components/SmoothScrollArea';
 import ModernHeader from '../components/ModernHeader';
+import GreetingHeader from '../components/GreetingHeader';
 import { useNavigate } from 'react-router-dom';
 import useAuthStore from '../store/useAuthStore';
 import {
@@ -15,26 +16,11 @@ import { motion, AnimatePresence } from 'framer-motion';
 const MainMenu = () => {
     const { user } = useAuthStore();
     const navigate = useNavigate();
+
     const [searchTerm, setSearchTerm] = useState('');
-    const [currentTime, setCurrentTime] = useState(new Date());
-    const [greeting, setGreeting] = useState('');
-
-    useEffect(() => {
-        const timer = setInterval(() => setCurrentTime(new Date()), 1000);
-
-        const hour = new Date().getHours();
-        if (hour < 12) setGreeting('Good Morning');
-        else if (hour < 18) setGreeting('Good Afternoon');
-        else setGreeting('Good Evening');
-
-        return () => clearInterval(timer);
-    }, []);
-
-    const formattedTime = currentTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-    const formattedDate = currentTime.toLocaleDateString([], { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
 
     // Organized by Categories
-    const menuGroups = [
+    const menuGroups = useMemo(() => [
         {
             category: "Front Office & Admission",
             items: [
@@ -360,10 +346,10 @@ const MainMenu = () => {
                 }
             ]
         }
-    ];
+    ], []);
 
     // Filter Items
-    const filteredGroups = menuGroups.map(group => ({
+    const filteredGroups = useMemo(() => menuGroups.map(group => ({
         ...group,
         items: group.items.filter(item => {
             const matchesRole = item.roles.includes(user?.role);
@@ -371,7 +357,7 @@ const MainMenu = () => {
                 item.description.toLowerCase().includes(searchTerm.toLowerCase());
             return matchesRole && matchesSearch;
         })
-    })).filter(group => group.items.length > 0);
+    })).filter(group => group.items.length > 0), [menuGroups, user, searchTerm]);
 
     return (
         <div className="h-screen bg-[#F5F5F7] dark:bg-[#0D1117] transition-colors duration-500 relative font-sans flex flex-col overflow-hidden">
@@ -389,19 +375,7 @@ const MainMenu = () => {
                     {/* Hero Section */}
                     <div className="mb-12 relative z-10">
                         <div className="flex flex-col md:flex-row items-center justify-between gap-6 px-4">
-                            <motion.div
-                                initial={{ opacity: 0, x: -20 }}
-                                animate={{ opacity: 1, x: 0 }}
-                                transition={{ duration: 0.6 }}
-                            >
-                                <h1 className="text-4xl md:text-5xl font-bold bg-gradient-to-r from-gray-900 to-gray-600 dark:from-white dark:to-gray-400 bg-clip-text text-transparent mb-2 tracking-tight">
-                                    {greeting}, {user?.name?.split(' ')[0] || 'Doctor'}
-                                </h1>
-                                <p className="text-gray-500 dark:text-gray-400 text-lg flex items-center gap-2">
-                                    <Clock size={18} />
-                                    {formattedDate} • {formattedTime}
-                                </p>
-                            </motion.div>
+                            <GreetingHeader userName={user?.name?.split(' ')[0]} />
 
                             <motion.div
                                 initial={{ opacity: 0, scale: 0.9 }}

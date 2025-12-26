@@ -281,9 +281,10 @@ model MedicalRecord {
   assessments   ClinicalAssessment[]
   
   // TTE (Electronic Signature)
-  is_signed     Boolean  @default(false)
-  signed_at     DateTime?
-  tte_metadata  Json?    // Store BSRE/Privy response or certificate hash
+  // TTE (Electronic Signature) - Temporarily disabled due to DB mismatch
+  // is_signed     Boolean  @default(false)
+  // signed_at     DateTime?
+  // tte_metadata  Json?    // Store BSRE/Privy response or certificate hash
 }
 
 model ICD10 {

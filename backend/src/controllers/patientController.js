@@ -72,6 +72,19 @@ exports.create = async (req, res) => {
     }
 };
 
+// Get Recent Patients (Last 5)
+exports.getRecent = async (req, res) => {
+    try {
+        const patients = await prisma.patient.findMany({
+            take: 5,
+            orderBy: { created_at: 'desc' }
+        });
+        res.json(patients);
+    } catch (error) {
+        res.status(500).json({ error: 'Failed to fetch recent patients' });
+    }
+};
+
 // Get All (Paginated)
 exports.getAll = async (req, res) => {
     const { page = 1, limit = 50, q = '' } = req.query;
